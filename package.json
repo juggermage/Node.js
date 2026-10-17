@@ -1,18 +1,16 @@
-
 {
   "name": "node",
   "version": "1.0.0",
   "description": "| Учасник           | Позиція | Дата заступлення на позицію |\r |-------------------|---|---|\r | Залєвський Руслан | Team lead | 06.10.2026 |\r | Зубик Діана       | Developer | 06.10.2026 |\r | Малісевич Віталій | Quality Assurance | 06.10.2026 |\r | Іванців Денис| Developer | 06.10.2026 |\r | Зорій Ярослава | Developer | 06.10.2026 |\r | Івасюк Дмитро | Business Analyst | 06.10.2026 |\r | Дубецький Олександр | Developer | 06.10.2026 |\r | Гуменюк Денис | Developer | 06.10.2026 |",
   "main": "index.js",
- 
-"scripts": {
-  "start": "node src/server.js",
-  "dev": "node --watch src/server.js",
-  "db:check": "node scripts/check-db.js",
-  "db:generate": "prisma generate",
-  "db:push": "prisma db push",
-  "db:validate": "prisma validate"
-},
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:check": "node scripts/check-db.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:validate": "prisma validate"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/juggermage/Node.js.git"
@@ -36,5 +34,10 @@
   },
   "overrides": {
     "deepmerge-ts": "^8.0.0"
+  },
+  "allowScripts": {
+    "prisma@6.19.3": true,
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true
   }
 }
