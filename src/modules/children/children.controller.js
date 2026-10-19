@@ -2,14 +2,34 @@
 const childrenService = require('./children.service');
 
 function getAll(req, res) {
-  const data = childrenService.getAll(req.query.search);
+  const { search, age } = req.query;
+
+  if (age !== undefined && !childrenService.isValidAge(age)) {
+    return res.status(422).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Age must be a non-negative integer'
+      }
+    });
+  }
+
+  const data = childrenService.getAll(search, age);
+
   if (data === null) {
     return res.status(400).json({
       success: false,
-      error: { code: 'INVALID_SEARCH', message: 'Invalid search parameter' }
+      error: {
+        code: 'INVALID_SEARCH',
+        message: 'Invalid search parameter'
+      }
     });
   }
-  return res.status(200).json({ success: true, data });
+
+  return res.status(200).json({
+    success: true,
+    data
+  });
 }
 
 function getById(req, res) {

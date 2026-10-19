@@ -10,6 +10,29 @@ function isValidBirthDate(value) {
   return value <= new Date().toISOString().slice(0, 10);
 }
 
+function calculateAge(birthDate) {
+  const today = new Date();
+  const [year, month, day] = birthDate.split('-').map(Number);
+
+  let age = today.getUTCFullYear() - year;
+
+  if (
+    today.getUTCMonth() + 1 < month ||
+    (today.getUTCMonth() + 1 === month && today.getUTCDate() < day)
+  ) {
+    age--;
+  }
+
+  return age;
+}
+
+function isValidAge(age) {
+  return typeof age === 'string' &&
+    /^(0|[1-9]\d*)$/.test(age) &&
+    Number.isSafeInteger(Number(age));
+}
+
+
 function validateChild(data, partial = false) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return 'Request body must be an object';
   const keys = Object.keys(data);
@@ -27,15 +50,29 @@ function validateChild(data, partial = false) {
   return null;
 }
 
-function getAll(search) {
-  if (search === undefined) return [...children];
-  if (typeof search !== 'string') return null;
-  const query = search.trim().toLocaleLowerCase();
-  return children.filter(({ firstName, lastName }) =>
-    `${firstName} ${lastName}`.toLocaleLowerCase().includes(query) ||
-    `${lastName} ${firstName}`.toLocaleLowerCase().includes(query)
-  );
+function getAll(search, age) {
+  let result = [...children];
+
+  if (search !== undefined) {
+    if (typeof search !== 'string') return null;
+
+    const query = search.trim().toLocaleLowerCase();
+
+    result = result.filter(({ firstName, lastName }) =>
+      `${firstName} ${lastName}`.toLocaleLowerCase().includes(query) ||
+      `${lastName} ${firstName}`.toLocaleLowerCase().includes(query)
+    );
+  }
+
+  if (age !== undefined) {
+    result = result.filter((child) =>
+      calculateAge(child.birthDate) === Number(age)
+    );
+  }
+
+  return result;
 }
+
 
 function getById(id) {
   return children.find((child) => child.id === id) || null;
@@ -68,4 +105,12 @@ function remove(id) {
   return true;
 }
 
-module.exports = { validateChild, getAll, getById, create, update, remove };
+module.exports = {
+  validateChild,
+  isValidAge,
+  getAll,
+  getById,
+  create,
+  update,
+  remove
+};
