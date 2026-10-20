@@ -2,7 +2,7 @@ const groupsService = require("./groups.service");
 
 async function getAll(req, res, next) {
   try {
-    const data = await groupsService.getAllGroups();
+    const data = await groupsService.getAllGroups(req.query);
     return res.status(200).json({
       success: true,
       data

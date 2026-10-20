@@ -31,7 +31,7 @@ function validateAgeCategory(ageValue) {
   if (
     ageValue === undefined ||
     ageValue === null ||
-    ageValue === "" ||
+    String(ageValue).trim() === "" ||
     typeof ageValue === "boolean"
   ) {
     throw createHttpError(
@@ -53,8 +53,24 @@ function validateAgeCategory(ageValue) {
   return age;
 }
 
-async function getAllGroups() {
-  return groups;
+async function getAllGroups(query = {}) {
+  let result = [...groups];
+
+  // 1. Фільтрація та валідація за ageCategory (якщо параметр передано в URL)
+  if (query.ageCategory !== undefined) {
+    const validAge = validateAgeCategory(query.ageCategory);
+    result = result.filter((group) => group.ageCategory === validAge);
+  }
+
+  // 2. Пошук за назвою без урахування регістру (якщо параметр search передано)
+  if (query.search !== undefined && String(query.search).trim() !== "") {
+    const searchLower = String(query.search).trim().toLowerCase();
+    result = result.filter((group) =>
+      group.name.toLowerCase().includes(searchLower)
+    );
+  }
+
+  return result;
 }
 
 async function getGroupById(id) {
