@@ -1,0 +1,19 @@
+info:
+  name: 06 POST duplicate email
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/parents
+  body:
+    type: json
+    data: '{ "firstName": "Олена", "lastName": "Тестенко", "middleName": "Петрівна", "phone": "+380501234567", "email": "test.parent@example.com" } '
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,19 @@
+info:
+  name: 04 PATCH update
+  type: http
+  seq: 4
+
+http:
+  method: PATCH
+  url: http://localhost:3000/api/v1/parents/10cc354f-aff3-47cb-bada-2403d82c0dba
+  body:
+    type: json
+    data: '{ "firstName": "Оксана" } '
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,16 @@
+info:
+  name: "05 DELETE "
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: http://localhost:3000/api/v1/subjects/33cce105-d889-4ddc-aa26-7ac363822cc3
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

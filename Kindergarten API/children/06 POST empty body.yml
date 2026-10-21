@@ -1,0 +1,16 @@
+info:
+  name: 06 POST empty body
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/children/6819bc3f-6da6-4080-9faa-9d700c6240d4
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

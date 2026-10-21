@@ -1,0 +1,19 @@
+info:
+  name: 02 POST
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/subjects
+  body:
+    type: json
+    data: '{ "name": "Англійська мова", "description": "Заняття для дітей 4–5 років" } '
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
