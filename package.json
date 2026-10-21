@@ -1,7 +1,7 @@
 {
   "name": "node",
   "version": "1.0.0",
-  "description": "| Учасник           | Позиція | Дата заступлення на позицію |\r |-------------------|---|---|\r | Залєвський Руслан | Team lead | 06.10.2026 |\r | Зубик Діана       | Developer | 06.10.2026 |\r | Малісевич Віталій | Quality Assurance | 06.10.2026 |\r | Іванців Денис| Developer | 06.10.2026 |\r | Зорій Ярослава | Developer | 06.10.2026 |\r | Івасюк Дмитро | Business Analyst | 06.10.2026 |\r | Дубецький Олександр | Developer | 06.10.2026 |\r | Гуменюк Денис | Developer | 06.10.2026 |",
+  "description": "REST API for kindergarten management system",
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
