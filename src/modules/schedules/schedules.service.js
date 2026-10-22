@@ -6,11 +6,11 @@ let nextId = 1;
 class ScheduleService {
   // 1. Покращена валідація дати (блокує 2026-02-30)
   _isValidDate(dateString) {
-    if (typeof dateString !== 'string') return false;
+    if (typeof dateString !== "string") return false;
     const regex = /^\d{4}-\d{2}-\d{2}$/;
     if (!regex.test(dateString)) return false;
 
-    const [year, month, day] = dateString.split('-').map(Number);
+    const [year, month, day] = dateString.split("-").map(Number);
     const date = new Date(Date.UTC(year, month - 1, day));
 
     // Перевіряємо, чи не "переповнився" час (наприклад, 30 лютого стане 2 березня)
@@ -22,13 +22,13 @@ class ScheduleService {
   }
 
   _isValidTime(timeString) {
-    if (typeof timeString !== 'string') return false;
+    if (typeof timeString !== "string") return false;
     const regex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     return regex.test(timeString);
   }
 
   _timeToMinutes(timeString) {
-    const [hours, minutes] = timeString.split(':').map(Number);
+    const [hours, minutes] = timeString.split(":").map(Number);
     return hours * 60 + minutes;
   }
 
@@ -50,26 +50,29 @@ class ScheduleService {
   // Перевірка тіла запиту для POST
   _validateCreateBody(body) {
     if (!body || Object.keys(body).length === 0) {
-      throw { code: 'EMPTY_BODY', message: 'Тіло запиту не може бути порожнім' };
+      throw { code: "EMPTY_BODY", message: "Тіло запиту не може бути порожнім" };
     }
     if (body.id !== undefined) {
-      throw { code: 'ID_NOT_ALLOWED', message: 'Поле id генерується автоматично і не може бути передане' };
+      throw {
+        code: "ID_NOT_ALLOWED",
+        message: "Поле id генерується автоматично і не може бути передане"
+      };
     }
-    if (body.title !== undefined && typeof body.title !== 'string') {
-      throw { code: 'INVALID_TITLE_TYPE', message: 'Поле title має бути рядком' };
+    if (body.title !== undefined && typeof body.title !== "string") {
+      throw { code: "INVALID_TITLE_TYPE", message: "Поле title має бути рядком" };
     }
   }
 
   // Перевірка тіла запиту для PATCH
   _validateUpdateBody(body) {
     if (!body || Object.keys(body).length === 0) {
-      throw { code: 'EMPTY_BODY', message: 'Тіло запиту не може бути порожнім' };
+      throw { code: "EMPTY_BODY", message: "Тіло запиту не може бути порожнім" };
     }
     if (body.id !== undefined) {
-      throw { code: 'ID_NOT_ALLOWED', message: 'Зміна поля id заборонена' };
+      throw { code: "ID_NOT_ALLOWED", message: "Зміна поля id заборонена" };
     }
-    if (body.title !== undefined && typeof body.title !== 'string') {
-      throw { code: 'INVALID_TITLE_TYPE', message: 'Поле title має бути рядком' };
+    if (body.title !== undefined && typeof body.title !== "string") {
+      throw { code: "INVALID_TITLE_TYPE", message: "Поле title має бути рядком" };
     }
   }
 
@@ -77,7 +80,10 @@ class ScheduleService {
     if (filterDate) {
       // Валідація query-параметра date
       if (!this._isValidDate(filterDate)) {
-        throw { code: 'INVALID_DATE_FORMAT', message: 'Параметр date має бути у форматі YYYY-MM-DD та бути реальною датою' };
+        throw {
+          code: "INVALID_DATE_FORMAT",
+          message: "Параметр date має бути у форматі YYYY-MM-DD та бути реальною датою"
+        };
       }
       return schedules.filter((lesson) => lesson.date === filterDate);
     }
@@ -94,19 +100,28 @@ class ScheduleService {
     const { date, startTime, endTime, title } = data;
 
     if (!this._isValidDate(date)) {
-      throw { code: 'INVALID_DATE_FORMAT', message: 'Дата має бути у форматі YYYY-MM-DD та існувати в календарі' };
+      throw {
+        code: "INVALID_DATE_FORMAT",
+        message: "Дата має бути у форматі YYYY-MM-DD та існувати в календарі"
+      };
     }
     if (!this._isValidTime(startTime) || !this._isValidTime(endTime)) {
-      throw { code: 'INVALID_TIME_FORMAT', message: 'Час має бути у форматі HH:MM' };
+      throw { code: "INVALID_TIME_FORMAT", message: "Час має бути у форматі HH:MM" };
     }
 
     if (this._timeToMinutes(endTime) <= this._timeToMinutes(startTime)) {
-      throw { code: 'INVALID_TIME_RANGE', message: 'Час завершення не може бути раніше або дорівнювати часу початку' };
+      throw {
+        code: "INVALID_TIME_RANGE",
+        message: "Час завершення не може бути раніше або дорівнювати часу початку"
+      };
     }
 
     const conflict = this._hasTimeConflict(date, startTime, endTime);
     if (conflict) {
-      throw { code: 'SCHEDULE_CONFLICT', message: 'Час заняття перетинається з іншим заняттям на цю дату' };
+      throw {
+        code: "SCHEDULE_CONFLICT",
+        message: "Час заняття перетинається з іншим заняттям на цю дату"
+      };
     }
 
     const newLesson = {
@@ -114,7 +129,7 @@ class ScheduleService {
       date,
       startTime,
       endTime,
-      title: title || 'Без назви',
+      title: title || "Без назви"
     };
 
     schedules.push(newLesson);
@@ -128,25 +143,34 @@ class ScheduleService {
     if (index === -1) return null;
 
     const existingLesson = schedules[index];
-    
+
     const date = data.date !== undefined ? data.date : existingLesson.date;
     const startTime = data.startTime !== undefined ? data.startTime : existingLesson.startTime;
     const endTime = data.endTime !== undefined ? data.endTime : existingLesson.endTime;
     const title = data.title !== undefined ? data.title : existingLesson.title;
 
     if (!this._isValidDate(date)) {
-      throw { code: 'INVALID_DATE_FORMAT', message: 'Дата має бути у форматі YYYY-MM-DD та існувати в календарі' };
+      throw {
+        code: "INVALID_DATE_FORMAT",
+        message: "Дата має бути у форматі YYYY-MM-DD та існувати в календарі"
+      };
     }
     if (!this._isValidTime(startTime) || !this._isValidTime(endTime)) {
-      throw { code: 'INVALID_TIME_FORMAT', message: 'Час має бути у форматі HH:MM' };
+      throw { code: "INVALID_TIME_FORMAT", message: "Час має бути у форматі HH:MM" };
     }
     if (this._timeToMinutes(endTime) <= this._timeToMinutes(startTime)) {
-      throw { code: 'INVALID_TIME_RANGE', message: 'Час завершення не може бути раніше або дорівнювати часу початку' };
+      throw {
+        code: "INVALID_TIME_RANGE",
+        message: "Час завершення не може бути раніше або дорівнювати часу початку"
+      };
     }
 
     const conflict = this._hasTimeConflict(date, startTime, endTime, id);
     if (conflict) {
-      throw { code: 'SCHEDULE_CONFLICT', message: 'Час заняття перетинається з іншим заняттям на цю дату' };
+      throw {
+        code: "SCHEDULE_CONFLICT",
+        message: "Час заняття перетинається з іншим заняттям на цю дату"
+      };
     }
 
     const updatedLesson = { id, date, startTime, endTime, title };
@@ -157,7 +181,7 @@ class ScheduleService {
   delete(id) {
     const index = schedules.findIndex((lesson) => lesson.id === id);
     if (index === -1) return false;
-    
+
     schedules.splice(index, 1);
     return true;
   }

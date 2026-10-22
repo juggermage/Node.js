@@ -47,7 +47,7 @@ function create(data) {
     lastName: data.lastName,
     middleName: data.middleName,
     phone: data.phone,
-    email: data.email,
+    email: data.email
   };
 
   parents.push(parent);

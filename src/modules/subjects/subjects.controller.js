@@ -61,10 +61,7 @@ function create(req, res, next) {
 
 function update(req, res, next) {
   try {
-    const subject = subjectsService.update(
-      req.params.id,
-      req.body
-    );
+    const subject = subjectsService.update(req.params.id, req.body);
 
     if (!subject) {
       return res.status(404).json({
