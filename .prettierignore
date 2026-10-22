@@ -1,0 +1,10 @@
+node_modules/
+coverage/
+dist/
+.env
+.env.*
+package-lock.json
+
+README.md
+docs/
+Kindergarten API/

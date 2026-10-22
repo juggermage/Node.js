@@ -6,7 +6,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const DUPLICATE_MESSAGES = {
   DUPLICATE_EMAIL: "Батько з таким email вже існує",
-  DUPLICATE_PHONE: "Батько з таким телефоном вже існує",
+  DUPLICATE_PHONE: "Батько з таким телефоном вже існує"
 };
 
 function sendSuccess(res, status, data) {
@@ -164,5 +164,5 @@ module.exports = {
   getParentById,
   createParent,
   updateParent,
-  deleteParent,
+  deleteParent
 };

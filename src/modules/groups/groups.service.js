@@ -19,11 +19,7 @@ function createHttpError(status, code, message) {
 
 function validateName(name) {
   if (typeof name !== "string" || name.trim() === "") {
-    throw createHttpError(
-      422,
-      "INVALID_GROUP_NAME",
-      "Group name is required and cannot be empty"
-    );
+    throw createHttpError(422, "INVALID_GROUP_NAME", "Group name is required and cannot be empty");
   }
 }
 
@@ -65,9 +61,7 @@ async function getAllGroups(query = {}) {
   // 2. Пошук за назвою без урахування регістру (якщо параметр search передано)
   if (query.search !== undefined && String(query.search).trim() !== "") {
     const searchLower = String(query.search).trim().toLowerCase();
-    result = result.filter((group) =>
-      group.name.toLowerCase().includes(searchLower)
-    );
+    result = result.filter((group) => group.name.toLowerCase().includes(searchLower));
   }
 
   return result;
@@ -104,11 +98,7 @@ async function updateGroup(id, body = {}) {
   }
 
   if (body.id !== undefined || body._id !== undefined) {
-    throw createHttpError(
-      400,
-      "FORBIDDEN_FIELD",
-      "Updating group ID is not allowed"
-    );
+    throw createHttpError(400, "FORBIDDEN_FIELD", "Updating group ID is not allowed");
   }
 
   const currentGroup = groups[groupIndex];
