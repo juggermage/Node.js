@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 
 const { PrismaClient } = require("@prisma/client");
@@ -15,9 +14,7 @@ async function main() {
   const databaseName = new URL(databaseUrl).pathname.slice(1);
 
   if (databaseName !== "kindergarten_dev") {
-    throw new Error(
-      "Seed is allowed only for kindergarten_dev"
-    );
+    throw new Error("Seed is allowed only for kindergarten_dev");
   }
 
   console.log("Seeding database:", databaseName);
@@ -35,7 +32,7 @@ async function main() {
     }
   });
 
-  const musicRoom = await prisma.room.upsert({
+  await prisma.room.upsert({
     where: {
       name: "Seed Music Room"
     },
@@ -50,7 +47,7 @@ async function main() {
   console.log("Rooms seeded");
 
   // 2. Test group
-  const group = await prisma.group.upsert({
+  await prisma.group.upsert({
     where: {
       name: "Seed Group A"
     },

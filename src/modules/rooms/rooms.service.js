@@ -4,11 +4,7 @@ const HTTP_STATUS = require("../../utils/http-status");
 
 function handleRoomError(error) {
   if (error.code === "P2002") {
-    throw new AppError(
-      "Room name already exists",
-      HTTP_STATUS.CONFLICT,
-      "ROOM_NAME_EXISTS"
-    );
+    throw new AppError("Room name already exists", HTTP_STATUS.CONFLICT, "ROOM_NAME_EXISTS");
   }
 
   throw error;
@@ -52,11 +48,7 @@ async function getById(id) {
   });
 
   if (!room) {
-    throw new AppError(
-      "Room not found",
-      HTTP_STATUS.NOT_FOUND,
-      "ROOM_NOT_FOUND"
-    );
+    throw new AppError("Room not found", HTTP_STATUS.NOT_FOUND, "ROOM_NOT_FOUND");
   }
 
   return room;
@@ -85,11 +77,7 @@ async function update(id, data) {
     });
 
     if (result.count === 0) {
-      throw new AppError(
-        "Room not found",
-        HTTP_STATUS.NOT_FOUND,
-        "ROOM_NOT_FOUND"
-      );
+      throw new AppError("Room not found", HTTP_STATUS.NOT_FOUND, "ROOM_NOT_FOUND");
     }
 
     return getById(id);
@@ -111,11 +99,7 @@ async function remove(id) {
   });
 
   if (activeGroupsCount > 0) {
-    throw new AppError(
-      "Room is assigned to an active group",
-      HTTP_STATUS.CONFLICT,
-      "ROOM_IN_USE"
-    );
+    throw new AppError("Room is assigned to an active group", HTTP_STATUS.CONFLICT, "ROOM_IN_USE");
   }
 
   const result = await prisma.room.updateMany({
@@ -130,11 +114,7 @@ async function remove(id) {
   });
 
   if (result.count === 0) {
-    throw new AppError(
-      "Room not found",
-      HTTP_STATUS.NOT_FOUND,
-      "ROOM_NOT_FOUND"
-    );
+    throw new AppError("Room not found", HTTP_STATUS.NOT_FOUND, "ROOM_NOT_FOUND");
   }
 }
 
