@@ -1,4 +1,3 @@
-
 const { randomUUID } = require("node:crypto");
 const prisma = require("../../config/prisma");
 const AppError = require("../../utils/app-error");
@@ -8,9 +7,7 @@ function normalizeData(data) {
   const result = { ...data };
 
   if (result.birthDate !== undefined) {
-    result.birthDate = new Date(
-      `${result.birthDate}T00:00:00.000Z`
-    );
+    result.birthDate = new Date(`${result.birthDate}T00:00:00.000Z`);
   }
 
   return result;
@@ -86,11 +83,7 @@ async function getById(id) {
   });
 
   if (!child) {
-    throw new AppError(
-      "Child not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_NOT_FOUND"
-    );
+    throw new AppError("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 
   return child;
@@ -115,11 +108,7 @@ async function update(id, data) {
   });
 
   if (result.count === 0) {
-    throw new AppError(
-      "Child not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_NOT_FOUND"
-    );
+    throw new AppError("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 
   return getById(id);
@@ -138,11 +127,7 @@ async function remove(id) {
   });
 
   if (result.count === 0) {
-    throw new AppError(
-      "Child not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_NOT_FOUND"
-    );
+    throw new AppError("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 }
 

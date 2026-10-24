@@ -1,4 +1,3 @@
-
 const express = require("express");
 
 const childrenController = require("./children.controller");
@@ -13,23 +12,11 @@ const {
 
 const router = express.Router();
 
-router.get(
-  "/",
-  validate(searchChildSchema, "query"),
-  childrenController.getAll
-);
+router.get("/", validate(searchChildSchema, "query"), childrenController.getAll);
 
-router.get(
-  "/:id",
-  validate(childIdSchema, "params"),
-  childrenController.getById
-);
+router.get("/:id", validate(childIdSchema, "params"), childrenController.getById);
 
-router.post(
-  "/",
-  validate(createChildSchema),
-  childrenController.create
-);
+router.post("/", validate(createChildSchema), childrenController.create);
 
 router.patch(
   "/:id",
@@ -38,10 +25,6 @@ router.patch(
   childrenController.update
 );
 
-router.delete(
-  "/:id",
-  validate(childIdSchema, "params"),
-  childrenController.remove
-);
+router.delete("/:id", validate(childIdSchema, "params"), childrenController.remove);
 
 module.exports = router;
