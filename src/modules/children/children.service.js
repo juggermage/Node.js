@@ -16,56 +16,55 @@ function normalizeData(data) {
   return result;
 }
 
-async function getAll(search) {
+async function getAll(filters = {}) {
+  const { search, status } = filters;
+
   const where = {
-    status: { not: "ARCHIVED" }
+    status: status || { not: "ARCHIVED" }
   };
 
-  if (search) {
+  if (search && search.trim()) {
     const query = search.trim();
+    const parts = query.split(/\s+/);
 
-    if (query) {
-      const parts = query.split(/\s+/);
-
-      if (parts.length === 2) {
-        where.OR = [
-          {
-            firstName: {
-              contains: parts[0],
-              mode: "insensitive"
-            },
-            lastName: {
-              contains: parts[1],
-              mode: "insensitive"
-            }
+    if (parts.length === 2) {
+      where.OR = [
+        {
+          firstName: {
+            contains: parts[0],
+            mode: "insensitive"
           },
-          {
-            firstName: {
-              contains: parts[1],
-              mode: "insensitive"
-            },
-            lastName: {
-              contains: parts[0],
-              mode: "insensitive"
-            }
+          lastName: {
+            contains: parts[1],
+            mode: "insensitive"
           }
-        ];
-      } else {
-        where.OR = [
-          {
-            firstName: {
-              contains: query,
-              mode: "insensitive"
-            }
+        },
+        {
+          firstName: {
+            contains: parts[1],
+            mode: "insensitive"
           },
-          {
-            lastName: {
-              contains: query,
-              mode: "insensitive"
-            }
+          lastName: {
+            contains: parts[0],
+            mode: "insensitive"
           }
-        ];
-      }
+        }
+      ];
+    } else {
+      where.OR = [
+        {
+          firstName: {
+            contains: query,
+            mode: "insensitive"
+          }
+        },
+        {
+          lastName: {
+            contains: query,
+            mode: "insensitive"
+          }
+        }
+      ];
     }
   }
 

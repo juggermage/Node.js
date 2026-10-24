@@ -9,7 +9,7 @@ const {
   updateChildSchema,
   childIdSchema,
   searchChildSchema
-} = require("./children.validator");
+} = require("./children.validation");
 
 const router = express.Router();
 
