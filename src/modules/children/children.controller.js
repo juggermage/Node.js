@@ -1,66 +1,63 @@
 const childrenService = require("./children.service");
+const HTTP_STATUS = require("../../utils/http-status");
 
-function getAll(req, res) {
-  const data = childrenService.getAll(req.query.search);
-  if (data === null) {
-    return res.status(400).json({
-      success: false,
-      error: { code: "INVALID_SEARCH", message: "Invalid search parameter" }
-    });
-  }
-  return res.status(200).json({ success: true, data });
+async function getAll(req, res) {
+  const { search } = res.locals.validated.query;
+
+  const children = await childrenService.getAll(search);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: children
+  });
 }
 
-function getById(req, res) {
-  const child = childrenService.getById(req.params.id);
-  if (!child) {
-    return res.status(404).json({
-      success: false,
-      error: { code: "CHILD_NOT_FOUND", message: "Child not found" }
-    });
-  }
-  return res.status(200).json({ success: true, data: child });
+async function getById(req, res) {
+  const { id } = res.locals.validated.params;
+
+  const child = await childrenService.getById(id);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: child
+  });
 }
 
-function create(req, res) {
-  const error = childrenService.validateChild(req.body);
-  if (error) {
-    return res.status(422).json({
-      success: false,
-      error: { code: "VALIDATION_ERROR", message: error }
-    });
-  }
-  const child = childrenService.create(req.body);
-  return res.status(201).json({ success: true, data: child });
+async function create(req, res) {
+  const data = res.locals.validated.body;
+
+  const child = await childrenService.create(data);
+
+  return res.status(HTTP_STATUS.CREATED).json({
+    success: true,
+    data: child
+  });
 }
 
-function update(req, res) {
-  const existing = childrenService.getById(req.params.id);
-  if (!existing) {
-    return res.status(404).json({
-      success: false,
-      error: { code: "CHILD_NOT_FOUND", message: "Child not found" }
-    });
-  }
-  const error = childrenService.validateChild(req.body, true);
-  if (error) {
-    return res.status(422).json({
-      success: false,
-      error: { code: "VALIDATION_ERROR", message: error }
-    });
-  }
-  const child = childrenService.update(req.params.id, req.body);
-  return res.status(200).json({ success: true, data: child });
+async function update(req, res) {
+  const { id } = res.locals.validated.params;
+  const data = res.locals.validated.body;
+
+  const child = await childrenService.update(id, data);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: child
+  });
 }
 
-function remove(req, res) {
-  if (!childrenService.remove(req.params.id)) {
-    return res.status(404).json({
-      success: false,
-      error: { code: "CHILD_NOT_FOUND", message: "Child not found" }
-    });
-  }
-  return res.status(204).send();
+async function remove(req, res) {
+  const { id } = res.locals.validated.params;
+
+  await childrenService.remove(id);
+
+  return res.status(HTTP_STATUS.NO_CONTENT).send();
 }
 
-module.exports = { getAll, getById, create, update, remove };
+module.exports = {
+  getAll,
+  getById,
+  create,
+  update,
+  remove
+};

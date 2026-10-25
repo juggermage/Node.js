@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,8 +8,539 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  email        String   @unique
+  name         String
+  passwordHash String?
+  role         UserRole @default(PARENT)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  parent    Parent?
+  employee  Employee?
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum ParentRelation {
+  MOTHER
+  FATHER
+  GUARDIAN
+  OTHER
+}
+
+model Child {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  childCode    String       @unique
+  firstName    String
+  lastName     String
+  birthDate    DateTime
+  enrolledAt   DateTime     @default(now())
+  status       RecordStatus @default(ACTIVE)
+  dietaryNotes String?
+  notes        String?
+  archivedAt   DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  parents     ChildParent[]
+  enrollments GroupEnrollment[]
+  discounts   ChildDiscount[]
+  invoices    Invoice[]
+
+  @@map("children")
+}
+
+model Parent {
+  id         String       @id @default(auto()) @map("_id") @db.ObjectId
+  firstName  String
+  lastName   String
+  phone      String
+  email      String?
+  status     RecordStatus @default(ACTIVE)
+  archivedAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  userId     String?      @unique @db.ObjectId
+  user       User?        @relation(fields: [userId], references: [id])
+
+  children ChildParent[]
+  invoices Invoice[]
+  payments Payment[]
+
+  @@map("parents")
+}
+
+model ChildParent {
+  id       String         @id @default(auto()) @map("_id") @db.ObjectId
+  childId  String         @db.ObjectId
+  parentId String         @db.ObjectId
+  relation ParentRelation
+
+  child  Child  @relation(fields: [childId], references: [id])
+  parent Parent @relation(fields: [parentId], references: [id])
+
+  @@unique([childId, parentId])
+  @@index([parentId])
+  @@map("child_parents")
+}
+
+model Group {
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  name          String       @unique
+  ageFromMonths Int
+  ageToMonths   Int
+  capacity      Int          @default(20)
+  status        RecordStatus @default(ACTIVE)
+  archivedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  mainRoomId String? @db.ObjectId
+  mainRoom   Room?   @relation("GroupMainRoom", fields: [mainRoomId], references: [id])
+
+  enrollments      GroupEnrollment[]
+  staffAssignments StaffAssignment[]
+  schedules        Schedule[]
+
+  @@index([mainRoomId])
+  @@map("groups")
+}
+
+model GroupEnrollment {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  childId   String    @db.ObjectId
+  groupId   String    @db.ObjectId
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+
+  child Child @relation(fields: [childId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@index([childId, endDate])
+  @@index([groupId, endDate])
+  @@map("group_enrollments")
+}
+
+model Room {
+  id         String       @id @default(auto()) @map("_id") @db.ObjectId
+  name       String       @unique
+  purpose    String
+  capacity   Int
+  status     RecordStatus @default(ACTIVE)
+  archivedAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  mainGroups    Group[]        @relation("GroupMainRoom")
+  scheduleItems ScheduleItem[]
+
+  @@map("rooms")
+}
+
+enum EmployeeRole {
+  MANAGER
+  TEACHER
+  EDUCATOR
+  ASSISTANT
+}
+
+model Employee {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  employeeCode String       @unique
+  firstName    String
+  lastName     String
+  role         EmployeeRole
+  phone        String?
+  email        String?
+  status       RecordStatus @default(ACTIVE)
+  archivedAt   DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  userId       String?      @unique @db.ObjectId
+  user         User?        @relation(fields: [userId], references: [id])
+
+  assignments        StaffAssignment[]
+  subjects           TeacherSubject[]
+  scheduleItems      ScheduleItem[]
+  salaryRates        SalaryRate[]
+  salaryCalculations SalaryCalculation[]
+
+  @@map("employees")
+}
+
+model StaffAssignment {
+  id         String       @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId String       @db.ObjectId
+  groupId    String       @db.ObjectId
+  role       EmployeeRole
+  startDate  DateTime     @default(now())
+  endDate    DateTime?
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  group    Group    @relation(fields: [groupId], references: [id])
+
+  @@index([employeeId, endDate])
+  @@index([groupId, endDate])
+  @@map("staff_assignments")
+}
+
+model Subject {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  name        String       @unique
+  description String?
+  status      RecordStatus @default(ACTIVE)
+  archivedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  teachers      TeacherSubject[]
+  scheduleItems ScheduleItem[]
+
+  @@map("subjects")
+}
+
+model TeacherSubject {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId String @db.ObjectId
+  subjectId  String @db.ObjectId
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  subject  Subject  @relation(fields: [subjectId], references: [id])
+
+  @@unique([employeeId, subjectId])
+  @@index([subjectId])
+  @@map("teacher_subjects")
+}
+
+enum ScheduleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ScheduleItemType {
+  LESSON
+  BREAKFAST
+  LUNCH
+  SNACK
+  SLEEP
+  FREE_TIME
+}
+
+model Schedule {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  groupId   String         @db.ObjectId
   name      String
+  status    ScheduleStatus @default(DRAFT)
+  validFrom DateTime
+  validTo   DateTime?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  group Group          @relation(fields: [groupId], references: [id])
+  items ScheduleItem[]
+
+  @@index([groupId, validFrom])
+  @@map("schedules")
+}
+
+model ScheduleItem {
+  id         String           @id @default(auto()) @map("_id") @db.ObjectId
+  scheduleId String           @db.ObjectId
+  subjectId  String?          @db.ObjectId
+  teacherId  String?          @db.ObjectId
+  roomId     String?          @db.ObjectId
+  type       ScheduleItemType
+  dayOfWeek  Int
+  startTime  String
+  endTime    String
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  schedule Schedule  @relation(fields: [scheduleId], references: [id])
+  subject  Subject?  @relation(fields: [subjectId], references: [id])
+  teacher  Employee? @relation(fields: [teacherId], references: [id])
+  room     Room?     @relation(fields: [roomId], references: [id])
+
+  @@index([scheduleId, dayOfWeek])
+  @@index([teacherId, dayOfWeek])
+  @@index([roomId, dayOfWeek])
+  @@map("schedule_items")
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+model TuitionRate {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  amount    BigInt
+  validFrom DateTime
+  validTo   DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([validFrom, validTo])
+  @@map("tuition_rates")
+}
+
+model MealRate {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  ageYears  Int
+  amount    BigInt
+  validFrom DateTime
+  validTo   DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([ageYears, validFrom])
+  @@map("meal_rates")
+}
+
+model Discount {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  type        DiscountType
+  percentage  Int?
+  fixedAmount BigInt?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  children ChildDiscount[]
+
+  @@map("discounts")
+}
+
+model ChildDiscount {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  childId    String    @db.ObjectId
+  discountId String    @db.ObjectId
+  validFrom  DateTime
+  validTo    DateTime?
+
+  child    Child    @relation(fields: [childId], references: [id])
+  discount Discount @relation(fields: [discountId], references: [id])
+
+  @@index([childId, validFrom])
+  @@index([discountId])
+  @@map("child_discounts")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+enum InvoiceType {
+  MONTHLY
+  ANNUAL
+  ADJUSTMENT
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model Invoice {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  childId     String        @db.ObjectId
+  payerId     String        @db.ObjectId
+  periodYear  Int
+  periodMonth Int
+  type        InvoiceType   @default(MONTHLY)
+  amountDue   BigInt
+  status      InvoiceStatus @default(DRAFT)
+  issuedAt    DateTime?
+  dueDate     DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  child       Child               @relation(fields: [childId], references: [id])
+  payer       Parent              @relation(fields: [payerId], references: [id])
+  lines       InvoiceLine[]
+  allocations PaymentAllocation[]
+
+  @@unique([childId, periodYear, periodMonth, type])
+  @@index([payerId, status])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceId      String   @db.ObjectId
+  description    String
+  quantity       Int      @default(1)
+  unitAmount     BigInt
+  amount         BigInt
+  tariffSnapshot Json?
+  createdAt      DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@map("invoice_lines")
+}
+
+model Payment {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  payerId        String        @db.ObjectId
+  idempotencyKey String        @unique
+  amount         BigInt
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  payer       Parent              @relation(fields: [payerId], references: [id])
+  allocations PaymentAllocation[]
+
+  @@index([payerId, paidAt])
+  @@map("payments")
+}
+
+model PaymentAllocation {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  paymentId String   @db.ObjectId
+  invoiceId String   @db.ObjectId
+  amount    BigInt
   createdAt DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@unique([paymentId, invoiceId])
+  @@index([invoiceId])
+  @@map("payment_allocations")
+}
+
+enum SalaryType {
+  FIXED
+  PER_CHILD
+  MIXED
+}
+
+enum SalaryStatus {
+  DRAFT
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum ExpenseCategory {
+  UTILITIES
+  FOOD
+  SUPPLIES
+  MAINTENANCE
+  OTHER
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  ARCHIVE
+  RESTORE
+  PAYMENT
+  CANCEL
+}
+
+model SalaryRate {
+  id                    String     @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId            String     @db.ObjectId
+  type                  SalaryType
+  baseAmount            BigInt     @default(0)
+  perChildAmount        BigInt     @default(0)
+  childThreshold        Int?
+  extraChildBonusAmount BigInt     @default(0)
+  validFrom             DateTime
+  validTo               DateTime?
+  createdAt             DateTime   @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId, validFrom])
+  @@map("salary_rates")
+}
+
+model SalaryCalculation {
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId         String       @db.ObjectId
+  periodYear         Int
+  periodMonth        Int
+  childrenCount      Int          @default(0)
+  baseAmount         BigInt
+  perChildTotal      BigInt       @default(0)
+  extraChildrenCount Int          @default(0)
+  bonusAmount        BigInt       @default(0)
+  totalAmount        BigInt
+  rateSnapshot       Json?
+  status             SalaryStatus @default(DRAFT)
+  calculatedAt       DateTime     @default(now())
+  approvedAt         DateTime?
+  paidAt             DateTime?
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, periodYear, periodMonth])
+  @@map("salary_calculations")
+}
+
+model Expense {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  category    ExpenseCategory
+  description String
+  amount      BigInt
+  expenseDate DateTime
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([category, expenseDate])
+  @@map("expenses")
+}
+
+model AuditLog {
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  actorId    String?     @db.ObjectId
+  action     AuditAction
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  createdAt  DateTime    @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  PARENT
+  TEACHER
+  EDUCATOR
+  ASSISTANT
 }
