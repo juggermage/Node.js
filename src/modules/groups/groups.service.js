@@ -12,8 +12,7 @@ function ageInMonths(birthDate, now = new Date()) {
   const birth = new Date(birthDate);
 
   let months =
-    (now.getUTCFullYear() - birth.getUTCFullYear()) * 12 +
-    now.getUTCMonth() - birth.getUTCMonth();
+    (now.getUTCFullYear() - birth.getUTCFullYear()) * 12 + now.getUTCMonth() - birth.getUTCMonth();
 
   if (now.getUTCDate() < birth.getUTCDate()) {
     months--;
@@ -24,11 +23,7 @@ function ageInMonths(birthDate, now = new Date()) {
 
 function checkAgeRange(from, to) {
   if (from > to) {
-    fail(
-      "Invalid age range",
-      HTTP_STATUS.BAD_REQUEST,
-      "INVALID_AGE_RANGE"
-    );
+    fail("Invalid age range", HTTP_STATUS.BAD_REQUEST, "INVALID_AGE_RANGE");
   }
 }
 
@@ -36,11 +31,7 @@ function checkChildAge(child, group) {
   const age = ageInMonths(child.birthDate);
 
   if (age < group.ageFromMonths || age > group.ageToMonths) {
-    fail(
-      "Child age does not match group",
-      HTTP_STATUS.CONFLICT,
-      "AGE_MISMATCH"
-    );
+    fail("Child age does not match group", HTTP_STATUS.CONFLICT, "AGE_MISMATCH");
   }
 }
 
@@ -50,11 +41,7 @@ async function getExistingGroup(db, id) {
   });
 
   if (!group || group.status === "ARCHIVED") {
-    fail(
-      "Group not found",
-      HTTP_STATUS.NOT_FOUND,
-      "GROUP_NOT_FOUND"
-    );
+    fail("Group not found", HTTP_STATUS.NOT_FOUND, "GROUP_NOT_FOUND");
   }
 
   return group;
@@ -66,19 +53,11 @@ async function getActiveChild(db, childId) {
   });
 
   if (!child) {
-    fail(
-      "Child not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_NOT_FOUND"
-    );
+    fail("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 
   if (child.status !== "ACTIVE") {
-    fail(
-      "Child is not active",
-      HTTP_STATUS.CONFLICT,
-      "CHILD_NOT_ACTIVE"
-    );
+    fail("Child is not active", HTTP_STATUS.CONFLICT, "CHILD_NOT_ACTIVE");
   }
 
   return child;
@@ -98,11 +77,7 @@ async function checkUniqueName(db, name, excludeId) {
   });
 
   if (existing) {
-    fail(
-      "Group name already exists",
-      HTTP_STATUS.CONFLICT,
-      "GROUP_NAME_EXISTS"
-    );
+    fail("Group name already exists", HTTP_STATUS.CONFLICT, "GROUP_NAME_EXISTS");
   }
 }
 
@@ -114,11 +89,7 @@ async function checkMainRoom(db, roomId, excludeId) {
   });
 
   if (!room || room.status !== "ACTIVE") {
-    fail(
-      "Active room not found",
-      HTTP_STATUS.NOT_FOUND,
-      "ROOM_NOT_FOUND"
-    );
+    fail("Active room not found", HTTP_STATUS.NOT_FOUND, "ROOM_NOT_FOUND");
   }
 
   const occupied = await db.group.findFirst({
@@ -132,11 +103,7 @@ async function checkMainRoom(db, roomId, excludeId) {
   });
 
   if (occupied) {
-    fail(
-      "Room is already assigned",
-      HTTP_STATUS.CONFLICT,
-      "ROOM_ALREADY_ASSIGNED"
-    );
+    fail("Room is already assigned", HTTP_STATUS.CONFLICT, "ROOM_ALREADY_ASSIGNED");
   }
 }
 
@@ -188,7 +155,7 @@ async function createGroup(data) {
 
   await checkUniqueName(prisma, data.name);
   await checkMainRoom(prisma, data.mainRoomId);
-  
+
   try {
     return await prisma.group.create({
       data: {
@@ -202,11 +169,7 @@ async function createGroup(data) {
     });
   } catch (error) {
     if (error.code === "P2002") {
-      fail(
-        "Group name already exists",
-        HTTP_STATUS.CONFLICT,
-        "GROUP_NAME_EXISTS"
-      );
+      fail("Group name already exists", HTTP_STATUS.CONFLICT, "GROUP_NAME_EXISTS");
     }
     throw error;
   }
@@ -226,10 +189,7 @@ async function updateGroup(id, data) {
     await checkUniqueName(prisma, data.name, id);
   }
 
-  const roomId =
-    data.mainRoomId !== undefined
-      ? data.mainRoomId
-      : group.mainRoomId;
+  const roomId = data.mainRoomId !== undefined ? data.mainRoomId : group.mainRoomId;
 
   if (nextStatus === "ACTIVE") {
     await checkMainRoom(prisma, roomId, id);
@@ -258,15 +218,8 @@ async function updateGroup(id, data) {
     });
   }
 
-  if (
-    nextStatus === "INACTIVE" &&
-    enrollments.length > 0
-  ) {
-    fail(
-      "Group has active children",
-      HTTP_STATUS.CONFLICT,
-      "GROUP_HAS_ACTIVE_CHILDREN"
-    );
+  if (nextStatus === "INACTIVE" && enrollments.length > 0) {
+    fail("Group has active children", HTTP_STATUS.CONFLICT, "GROUP_HAS_ACTIVE_CHILDREN");
   }
 
   try {
@@ -295,11 +248,7 @@ async function updateGroup(id, data) {
     });
   } catch (error) {
     if (error.code === "P2002") {
-      fail(
-        "Group name already exists",
-        HTTP_STATUS.CONFLICT,
-        "GROUP_NAME_EXISTS"
-      );
+      fail("Group name already exists", HTTP_STATUS.CONFLICT, "GROUP_NAME_EXISTS");
     }
     throw error;
   }
@@ -335,11 +284,7 @@ async function enrollChild(groupId, { childId }) {
     const group = await getExistingGroup(tx, groupId);
 
     if (group.status !== "ACTIVE") {
-      fail(
-        "Group is not active",
-        HTTP_STATUS.CONFLICT,
-        "GROUP_NOT_ACTIVE"
-      );
+      fail("Group is not active", HTTP_STATUS.CONFLICT, "GROUP_NOT_ACTIVE");
     }
 
     const child = await getActiveChild(tx, childId);
@@ -350,11 +295,7 @@ async function enrollChild(groupId, { childId }) {
     });
 
     if (existing) {
-      fail(
-        "Child already enrolled",
-        HTTP_STATUS.CONFLICT,
-        "CHILD_ALREADY_ENROLLED"
-      );
+      fail("Child already enrolled", HTTP_STATUS.CONFLICT, "CHILD_ALREADY_ENROLLED");
     }
 
     const count = await tx.groupEnrollment.count({
@@ -362,13 +303,9 @@ async function enrollChild(groupId, { childId }) {
     });
 
     if (count >= group.capacity) {
-      fail(
-        "Group capacity exceeded",
-        HTTP_STATUS.CONFLICT,
-        "GROUP_CAPACITY_EXCEEDED"
-      );
+      fail("Group capacity exceeded", HTTP_STATUS.CONFLICT, "GROUP_CAPACITY_EXCEEDED");
     }
-    
+
     return tx.groupEnrollment.create({
       data: {
         childId,
@@ -389,19 +326,11 @@ async function completeEnrollment(enrollmentId) {
   });
 
   if (!enrollment) {
-    fail(
-      "Enrollment not found",
-      HTTP_STATUS.NOT_FOUND,
-      "ENROLLMENT_NOT_FOUND"
-    );
+    fail("Enrollment not found", HTTP_STATUS.NOT_FOUND, "ENROLLMENT_NOT_FOUND");
   }
 
   if (enrollment.endDate !== null) {
-    fail(
-      "Enrollment already completed",
-      HTTP_STATUS.CONFLICT,
-      "ENROLLMENT_ALREADY_CLOSED"
-    );
+    fail("Enrollment already completed", HTTP_STATUS.CONFLICT, "ENROLLMENT_ALREADY_CLOSED");
   }
 
   const result = await prisma.groupEnrollment.updateMany({
@@ -413,11 +342,7 @@ async function completeEnrollment(enrollmentId) {
   });
 
   if (result.count !== 1) {
-    fail(
-      "Enrollment already changed",
-      HTTP_STATUS.CONFLICT,
-      "ENROLLMENT_CONFLICT"
-    );
+    fail("Enrollment already changed", HTTP_STATUS.CONFLICT, "ENROLLMENT_CONFLICT");
   }
 
   return prisma.groupEnrollment.findUnique({
@@ -434,29 +359,17 @@ async function transferChild({ childId, toGroupId }) {
     });
 
     if (!current) {
-      fail(
-        "Active enrollment not found",
-        HTTP_STATUS.NOT_FOUND,
-        "ACTIVE_ENROLLMENT_NOT_FOUND"
-      );
+      fail("Active enrollment not found", HTTP_STATUS.NOT_FOUND, "ACTIVE_ENROLLMENT_NOT_FOUND");
     }
 
     if (current.groupId === toGroupId) {
-      fail(
-        "Child already belongs to this group",
-        HTTP_STATUS.CONFLICT,
-        "SAME_GROUP_TRANSFER"
-      );
+      fail("Child already belongs to this group", HTTP_STATUS.CONFLICT, "SAME_GROUP_TRANSFER");
     }
 
     const target = await getExistingGroup(tx, toGroupId);
 
     if (target.status !== "ACTIVE") {
-      fail(
-        "Target group is not active",
-        HTTP_STATUS.CONFLICT,
-        "GROUP_NOT_ACTIVE"
-      );
+      fail("Target group is not active", HTTP_STATUS.CONFLICT, "GROUP_NOT_ACTIVE");
     }
 
     checkChildAge(child, target);
@@ -469,11 +382,7 @@ async function transferChild({ childId, toGroupId }) {
     });
 
     if (count >= target.capacity) {
-      fail(
-        "Target group is full",
-        HTTP_STATUS.CONFLICT,
-        "GROUP_CAPACITY_EXCEEDED"
-      );
+      fail("Target group is full", HTTP_STATUS.CONFLICT, "GROUP_CAPACITY_EXCEEDED");
     }
 
     const now = new Date();
@@ -487,11 +396,7 @@ async function transferChild({ childId, toGroupId }) {
     });
 
     if (closed.count !== 1) {
-      fail(
-        "Enrollment changed",
-        HTTP_STATUS.CONFLICT,
-        "ENROLLMENT_CONFLICT"
-      );
+      fail("Enrollment changed", HTTP_STATUS.CONFLICT, "ENROLLMENT_CONFLICT");
     }
 
     return tx.groupEnrollment.create({
@@ -514,11 +419,7 @@ async function getGroupHistory(groupId) {
   });
 
   if (!group) {
-    fail(
-      "Group not found",
-      HTTP_STATUS.NOT_FOUND,
-      "GROUP_NOT_FOUND"
-    );
+    fail("Group not found", HTTP_STATUS.NOT_FOUND, "GROUP_NOT_FOUND");
   }
 
   return prisma.groupEnrollment.findMany({
@@ -534,11 +435,7 @@ async function getChildHistory(childId) {
   });
 
   if (!child) {
-    fail(
-      "Child not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_NOT_FOUND"
-    );
+    fail("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 
   return prisma.groupEnrollment.findMany({

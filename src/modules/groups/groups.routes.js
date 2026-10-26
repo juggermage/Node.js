@@ -1,4 +1,3 @@
-
 const { Router } = require("express");
 
 const controller = require("./groups.controller");
@@ -17,23 +16,11 @@ const {
 
 const router = Router();
 
-router.get(
-  "/",
-  validate(queryGroupsSchema, "query"),
-  controller.getAll
-);
+router.get("/", validate(queryGroupsSchema, "query"), controller.getAll);
 
-router.post(
-  "/",
-  validate(createGroupSchema, "body"),
-  controller.create
-);
+router.post("/", validate(createGroupSchema, "body"), controller.create);
 
-router.post(
-  "/transfer",
-  validate(transferChildSchema, "body"),
-  controller.transferChild
-);
+router.post("/transfer", validate(transferChildSchema, "body"), controller.transferChild);
 
 router.get(
   "/children/:childId/enrollments",
@@ -47,11 +34,7 @@ router.patch(
   controller.completeEnrollment
 );
 
-router.get(
-  "/:id",
-  validate(idParamsSchema, "params"),
-  controller.getById
-);
+router.get("/:id", validate(idParamsSchema, "params"), controller.getById);
 
 router.patch(
   "/:id",
@@ -60,11 +43,7 @@ router.patch(
   controller.update
 );
 
-router.delete(
-  "/:id",
-  validate(idParamsSchema, "params"),
-  controller.remove
-);
+router.delete("/:id", validate(idParamsSchema, "params"), controller.remove);
 
 router.post(
   "/:id/enrollments",
@@ -73,10 +52,6 @@ router.post(
   controller.enrollChild
 );
 
-router.get(
-  "/:id/enrollments",
-  validate(idParamsSchema, "params"),
-  controller.getGroupHistory
-);
+router.get("/:id/enrollments", validate(idParamsSchema, "params"), controller.getGroupHistory);
 
 module.exports = router;
