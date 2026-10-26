@@ -1,12 +1,29 @@
-const express = require("express");
-const subjectsController = require("./subjects.controller");
+const { Router } = require("express");
+const validate = require("../../middleware/validate.middleware");
+const controller = require("./subjects.controller");
 
-const router = express.Router();
+const {
+  idParamsSchema,
+  createSubjectSchema,
+  updateSubjectSchema,
+  querySubjectsSchema
+} = require("./subjects.validation");
 
-router.get("/", subjectsController.getAll);
-router.get("/:id", subjectsController.getById);
-router.post("/", subjectsController.create);
-router.patch("/:id", subjectsController.update);
-router.delete("/:id", subjectsController.remove);
+const router = Router();
+
+router.get("/", validate(querySubjectsSchema, "query"), controller.getAll);
+
+router.get("/:id", validate(idParamsSchema, "params"), controller.getById);
+
+router.post("/", validate(createSubjectSchema, "body"), controller.create);
+
+router.patch(
+  "/:id",
+  validate(idParamsSchema, "params"),
+  validate(updateSubjectSchema, "body"),
+  controller.update
+);
+
+router.delete("/:id", validate(idParamsSchema, "params"), controller.remove);
 
 module.exports = router;
