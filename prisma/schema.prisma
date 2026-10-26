@@ -226,6 +226,11 @@ enum ScheduleStatus {
   PUBLISHED
 }
 
+enum ScheduleItemStatus {
+  ACTIVE
+  CANCELLED
+}
+
 enum ScheduleItemType {
   LESSON
   BREAKFAST
@@ -236,14 +241,15 @@ enum ScheduleItemType {
 }
 
 model Schedule {
-  id        String         @id @default(auto()) @map("_id") @db.ObjectId
-  groupId   String         @db.ObjectId
-  name      String
-  status    ScheduleStatus @default(DRAFT)
-  validFrom DateTime
-  validTo   DateTime?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  groupId     String         @db.ObjectId
+  name        String
+  status      ScheduleStatus @default(DRAFT)
+  validFrom   DateTime
+  validTo     DateTime?
+  publishedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   group Group          @relation(fields: [groupId], references: [id])
   items ScheduleItem[]
@@ -253,17 +259,20 @@ model Schedule {
 }
 
 model ScheduleItem {
-  id         String           @id @default(auto()) @map("_id") @db.ObjectId
-  scheduleId String           @db.ObjectId
-  subjectId  String?          @db.ObjectId
-  teacherId  String?          @db.ObjectId
-  roomId     String?          @db.ObjectId
-  type       ScheduleItemType
-  dayOfWeek  Int
-  startTime  String
-  endTime    String
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  id           String             @id @default(auto()) @map("_id") @db.ObjectId
+  scheduleId   String             @db.ObjectId
+  subjectId    String?            @db.ObjectId
+  teacherId    String?            @db.ObjectId
+  roomId       String?            @db.ObjectId
+  type         ScheduleItemType
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  status       ScheduleItemStatus @default(ACTIVE)
+  cancelledAt  DateTime?
+  cancelReason String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   schedule Schedule  @relation(fields: [scheduleId], references: [id])
   subject  Subject?  @relation(fields: [subjectId], references: [id])
