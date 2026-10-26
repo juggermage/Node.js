@@ -34,6 +34,7 @@ enum ParentRelation {
   MOTHER
   FATHER
   GUARDIAN
+  GRANDPARENT
   OTHER
 }
 
@@ -80,16 +81,20 @@ model Parent {
 }
 
 model ChildParent {
-  id       String         @id @default(auto()) @map("_id") @db.ObjectId
-  childId  String         @db.ObjectId
-  parentId String         @db.ObjectId
-  relation ParentRelation
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  childId   String         @db.ObjectId
+  parentId  String         @db.ObjectId
+  relation  ParentRelation
+  startDate DateTime       @default(now())
+  endDate   DateTime?
 
   child  Child  @relation(fields: [childId], references: [id])
   parent Parent @relation(fields: [parentId], references: [id])
 
+  // One record per child-parent pair; endDate marks a finished relationship.
   @@unique([childId, parentId])
-  @@index([parentId])
+  @@index([parentId, endDate])
+  @@index([childId, endDate])
   @@map("child_parents")
 }
 
@@ -316,7 +321,7 @@ model MealRate {
 
 model Discount {
   id          String       @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
+  name        String       @unique
   type        DiscountType
   percentage  Int?
   fixedAmount BigInt?
