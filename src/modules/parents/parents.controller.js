@@ -1,168 +1,47 @@
-const parentsService = require("./parents.service");
+const service = require("./parents.service");
+const { HTTP_STATUS } = require("../../utils/http-status");
 
-const FIELDS = ["firstName", "lastName", "middleName", "phone", "email"];
-const PHONE_REGEX = /^\+380\d{9}$/;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+async function getAll(req, res) {
+  const data = await service.getAll(res.locals.validated.query);
 
-const DUPLICATE_MESSAGES = {
-  DUPLICATE_EMAIL: "Батько з таким email вже існує",
-  DUPLICATE_PHONE: "Батько з таким телефоном вже існує"
-};
-
-function sendSuccess(res, status, data) {
-  return res.status(status).json({ success: true, data });
+  return res.status(HTTP_STATUS.OK).json({ success: true, data });
 }
 
-function sendError(res, status, code, message) {
-  return res.status(status).json({ success: false, error: { code, message } });
+async function getById(req, res) {
+  const data = await service.getById(res.locals.validated.params.id);
+
+  return res.status(HTTP_STATUS.OK).json({ success: true, data });
 }
 
-function sendNotFound(res) {
-  return sendError(res, 404, "PARENT_NOT_FOUND", "Батька не знайдено");
+async function create(req, res) {
+  const data = await service.create(res.locals.validated.body);
+
+  return res.status(HTTP_STATUS.CREATED).json({ success: true, data });
 }
 
-function isPlainObject(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+async function update(req, res) {
+  const data = await service.update(res.locals.validated.params.id, res.locals.validated.body);
+
+  return res.status(HTTP_STATUS.OK).json({ success: true, data });
 }
 
-function validateParentData(body, { requireAll }) {
-  const errors = [];
-  const data = {};
+async function remove(req, res) {
+  await service.remove(res.locals.validated.params.id);
 
-  const unknownFields = Object.keys(body).filter((key) => !FIELDS.includes(key));
-
-  if (unknownFields.length > 0) {
-    errors.push(`Недозволені поля: ${unknownFields.join(", ")}`);
-  }
-
-  for (const field of FIELDS) {
-    if (!Object.hasOwn(body, field)) {
-      if (requireAll) {
-        errors.push(`Поле ${field} є обов'язковим`);
-      }
-      continue;
-    }
-
-    const value = body[field];
-
-    if (typeof value !== "string") {
-      errors.push(`Поле ${field} має бути рядком`);
-      continue;
-    }
-
-    const trimmed = value.trim();
-
-    if (trimmed === "") {
-      errors.push(`Поле ${field} не може бути порожнім`);
-      continue;
-    }
-
-    if (field === "phone" && !PHONE_REGEX.test(trimmed)) {
-      errors.push("Телефон має бути у форматі +380XXXXXXXXX");
-      continue;
-    }
-
-    if (field === "email" && !EMAIL_REGEX.test(trimmed)) {
-      errors.push("Email має некоректний формат");
-      continue;
-    }
-
-    data[field] = trimmed;
-  }
-
-  if (!requireAll && Object.keys(body).length === 0) {
-    errors.push("Не передано жодного поля для оновлення");
-  }
-
-  return { errors, data };
+  return res.status(HTTP_STATUS.NO_CONTENT).send();
 }
 
-function getParents(req, res) {
-  const { search } = req.query;
+async function getChildren(req, res) {
+  const data = await service.getChildren(res.locals.validated.params.id);
 
-  if (search !== undefined && typeof search !== "string") {
-    return sendError(res, 400, "INVALID_REQUEST", "Параметр search має бути рядком");
-  }
-
-  const parents = parentsService.getAll(search ? search.trim() : "");
-
-  return sendSuccess(res, 200, parents);
-}
-
-function getParentById(req, res) {
-  const parent = parentsService.getById(req.params.id);
-
-  if (!parent) {
-    return sendNotFound(res);
-  }
-
-  return sendSuccess(res, 200, parent);
-}
-
-function createParent(req, res) {
-  if (!isPlainObject(req.body)) {
-    return sendError(res, 400, "INVALID_REQUEST", "Тіло запиту має бути JSON-об'єктом");
-  }
-
-  const { errors, data } = validateParentData(req.body, { requireAll: true });
-
-  if (errors.length > 0) {
-    return sendError(res, 422, "VALIDATION_ERROR", errors.join("; "));
-  }
-
-  const duplicate = parentsService.findDuplicate(data);
-
-  if (duplicate) {
-    return sendError(res, 409, duplicate, DUPLICATE_MESSAGES[duplicate]);
-  }
-
-  const parent = parentsService.create(data);
-
-  return sendSuccess(res, 201, parent);
-}
-
-function updateParent(req, res) {
-  if (!isPlainObject(req.body)) {
-    return sendError(res, 400, "INVALID_REQUEST", "Тіло запиту має бути JSON-об'єктом");
-  }
-
-  const { errors, data } = validateParentData(req.body, { requireAll: false });
-
-  if (errors.length > 0) {
-    return sendError(res, 422, "VALIDATION_ERROR", errors.join("; "));
-  }
-
-  const { id } = req.params;
-
-  if (!parentsService.getById(id)) {
-    return sendNotFound(res);
-  }
-
-  const duplicate = parentsService.findDuplicate(data, id);
-
-  if (duplicate) {
-    return sendError(res, 409, duplicate, DUPLICATE_MESSAGES[duplicate]);
-  }
-
-  const parent = parentsService.update(id, data);
-
-  return sendSuccess(res, 200, parent);
-}
-
-function deleteParent(req, res) {
-  const deleted = parentsService.remove(req.params.id);
-
-  if (!deleted) {
-    return sendNotFound(res);
-  }
-
-  return res.status(204).end();
+  return res.status(HTTP_STATUS.OK).json({ success: true, data });
 }
 
 module.exports = {
-  getParents,
-  getParentById,
-  createParent,
-  updateParent,
-  deleteParent
+  getAll,
+  getById,
+  create,
+  update,
+  remove,
+  getChildren
 };

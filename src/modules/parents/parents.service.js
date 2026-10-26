@@ -1,82 +1,156 @@
-const { randomUUID } = require("node:crypto");
+const prisma = require("../../config/prisma");
+const AppError = require("../../utils/AppError");
+const { HTTP_STATUS } = require("../../utils/http-status");
 
-const parents = [];
+function fail(message, status, code) {
+  throw new AppError(message, status, code);
+}
 
-function getAll(search) {
-  if (!search) {
-    return parents.map((parent) => ({ ...parent }));
+async function getParentOrFail(id, includeArchived = false) {
+  const parent = await prisma.parent.findUnique({
+    where: { id }
+  });
+
+  if (!parent || (!includeArchived && parent.status === "ARCHIVED")) {
+    fail("Parent not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
   }
 
-  const query = search.toLowerCase();
-
-  return parents
-    .filter((parent) => parent.lastName.toLowerCase().includes(query))
-    .map((parent) => ({ ...parent }));
+  return parent;
 }
 
-function getById(id) {
-  const parent = parents.find((item) => item.id === id);
+async function ensureUniqueEmail(email, excludeId) {
+  if (!email) return;
 
-  return parent ? { ...parent } : null;
-}
-
-function findDuplicate(data, excludeId) {
-  const others = parents.filter((parent) => parent.id !== excludeId);
-
-  if (data.email !== undefined) {
-    const email = data.email.toLowerCase();
-
-    if (others.some((parent) => parent.email.toLowerCase() === email)) {
-      return "DUPLICATE_EMAIL";
+  const existing = await prisma.parent.findFirst({
+    where: {
+      email: { equals: email, mode: "insensitive" },
+      ...(excludeId ? { id: { not: excludeId } } : {})
     }
-  }
+  });
 
-  if (data.phone !== undefined) {
-    if (others.some((parent) => parent.phone === data.phone)) {
-      return "DUPLICATE_PHONE";
-    }
+  if (existing) {
+    fail("Email is already registered", HTTP_STATUS.CONFLICT, "PARENT_EMAIL_EXISTS");
   }
-
-  return null;
 }
 
-function create(data) {
-  const parent = {
-    id: randomUUID(),
-    firstName: data.firstName,
-    lastName: data.lastName,
-    middleName: data.middleName,
-    phone: data.phone,
-    email: data.email
+function handlePrismaError(error) {
+  if (error.code === "P2002") {
+    fail(
+      "A record with these unique fields already exists",
+      HTTP_STATUS.CONFLICT,
+      "DUPLICATE_RECORD"
+    );
+  }
+
+  if (error.code === "P2025") {
+    fail("Parent not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
+  }
+
+  throw error;
+}
+
+async function getAll(query = {}) {
+  const where = {
+    status: query.status || { not: "ARCHIVED" }
   };
 
-  parents.push(parent);
+  if (query.search) {
+    const search = query.search.trim();
 
-  return { ...parent };
-}
-
-function update(id, data) {
-  const parent = parents.find((item) => item.id === id);
-
-  if (!parent) {
-    return null;
+    where.OR = [
+      { firstName: { contains: search, mode: "insensitive" } },
+      { lastName: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } },
+      { phone: { contains: search } }
+    ];
   }
 
-  Object.assign(parent, data);
-
-  return { ...parent };
+  return prisma.parent.findMany({
+    where,
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }]
+  });
 }
 
-function remove(id) {
-  const index = parents.findIndex((item) => item.id === id);
+async function getById(id) {
+  return getParentOrFail(id);
+}
 
-  if (index === -1) {
-    return false;
+async function create(data) {
+  const email = data.email?.trim().toLowerCase() || null;
+
+  await ensureUniqueEmail(email);
+
+  try {
+    return await prisma.parent.create({
+      data: {
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        phone: data.phone,
+        email,
+        status: "ACTIVE"
+      }
+    });
+  } catch (error) {
+    handlePrismaError(error);
+  }
+}
+
+async function update(id, data) {
+  await getParentOrFail(id);
+
+  const updateData = { ...data };
+
+  if (data.firstName !== undefined) {
+    updateData.firstName = data.firstName.trim();
   }
 
-  parents.splice(index, 1);
+  if (data.lastName !== undefined) {
+    updateData.lastName = data.lastName.trim();
+  }
 
-  return true;
+  if (data.email !== undefined) {
+    updateData.email = data.email?.trim().toLowerCase() || null;
+    await ensureUniqueEmail(updateData.email, id);
+  }
+
+  try {
+    return await prisma.parent.update({
+      where: { id },
+      data: updateData
+    });
+  } catch (error) {
+    handlePrismaError(error);
+  }
 }
 
-module.exports = { getAll, getById, findDuplicate, create, update, remove };
+async function remove(id) {
+  await getParentOrFail(id);
+
+  // Не видаляємо зв'язки з дітьми та фінансову історію.
+  return prisma.parent.update({
+    where: { id },
+    data: {
+      status: "ARCHIVED",
+      archivedAt: new Date()
+    }
+  });
+}
+
+async function getChildren(id) {
+  await getParentOrFail(id);
+
+  return prisma.childParent.findMany({
+    where: { parentId: id },
+    include: { child: true },
+    orderBy: { startDate: "desc" }
+  });
+}
+
+module.exports = {
+  getAll,
+  getById,
+  create,
+  update,
+  remove,
+  getChildren
+};
