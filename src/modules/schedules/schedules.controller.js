@@ -1,117 +1,101 @@
-// src/modules/schedules/schedules.controller.js
-const scheduleService = require("./schedules.service");
+const schedulesService = require("./schedules.service");
+const HTTP_STATUS = require("../../utils/http-status");
 
-class ScheduleController {
-  getAll(req, res) {
-    try {
-      const { date } = req.query;
-      const data = scheduleService.getAll(date);
+async function getAll(req, res) {
+  const filters = res.locals.validated.query;
 
-      res.status(200).json({ success: true, data });
-    } catch (error) {
-      if (error.code === "INVALID_DATE_FORMAT") {
-        return res.status(422).json({ success: false, error });
-      }
-      res.status(500).json({
-        success: false,
-        error: { code: "INTERNAL_SERVER_ERROR", message: "Внутрішня помилка сервера" }
-      });
-    }
-  }
+  const schedules = await schedulesService.getAll(filters);
 
-  getById(req, res) {
-    const { id } = req.params;
-    const data = scheduleService.getById(id);
-
-    if (!data) {
-      return res.status(404).json({
-        success: false,
-        error: { code: "SCHEDULE_NOT_FOUND", message: "Заняття не знайдено" }
-      });
-    }
-
-    res.status(200).json({ success: true, data });
-  }
-
-  create(req, res) {
-    try {
-      const newLesson = scheduleService.create(req.body);
-      res.status(201).json({ success: true, data: newLesson });
-    } catch (error) {
-      // ВИПРАВЛЕНО: додано оператори ||
-      if (error.code === "SCHEDULE_CONFLICT") {
-        return res.status(409).json({ success: false, error });
-      }
-
-      if (
-        error.code === "INVALID_DATE_FORMAT" ||
-        error.code === "INVALID_TIME_FORMAT" ||
-        error.code === "INVALID_TIME_RANGE" ||
-        error.code === "EMPTY_BODY" ||
-        error.code === "ID_NOT_ALLOWED" ||
-        error.code === "INVALID_TITLE_TYPE"
-      ) {
-        return res.status(422).json({ success: false, error });
-      }
-
-      res.status(500).json({
-        success: false,
-        error: { code: "INTERNAL_SERVER_ERROR", message: "Внутрішня помилка сервера" }
-      });
-    }
-  }
-
-  update(req, res) {
-    const { id } = req.params;
-
-    try {
-      const updatedLesson = scheduleService.update(id, req.body);
-
-      if (!updatedLesson) {
-        return res.status(404).json({
-          success: false,
-          error: { code: "SCHEDULE_NOT_FOUND", message: "Заняття не знайдено" }
-        });
-      }
-
-      res.status(200).json({ success: true, data: updatedLesson });
-    } catch (error) {
-      // ВИПРАВЛЕНО: додано оператори ||
-      if (error.code === "SCHEDULE_CONFLICT") {
-        return res.status(409).json({ success: false, error });
-      }
-
-      if (
-        error.code === "INVALID_DATE_FORMAT" ||
-        error.code === "INVALID_TIME_FORMAT" ||
-        error.code === "INVALID_TIME_RANGE" ||
-        error.code === "EMPTY_BODY" ||
-        error.code === "ID_NOT_ALLOWED" ||
-        error.code === "INVALID_TITLE_TYPE"
-      ) {
-        return res.status(422).json({ success: false, error });
-      }
-
-      res.status(500).json({
-        success: false,
-        error: { code: "INTERNAL_SERVER_ERROR", message: "Внутрішня помилка сервера" }
-      });
-    }
-  }
-
-  delete(req, res) {
-    const { id } = req.params;
-    const isDeleted = scheduleService.delete(id);
-
-    if (!isDeleted) {
-      return res.status(404).json({
-        success: false,
-        error: { code: "SCHEDULE_NOT_FOUND", message: "Заняття не знайдено" }
-      });
-    }
-
-    res.status(204).send();
-  }
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: schedules
+  });
 }
 
-module.exports = new ScheduleController();
+async function getById(req, res) {
+  const { id } = res.locals.validated.params;
+
+  const schedule = await schedulesService.getById(id);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: schedule
+  });
+}
+
+async function create(req, res) {
+  const data = res.locals.validated.body;
+
+  const schedule = await schedulesService.create(data);
+
+  return res.status(HTTP_STATUS.CREATED).json({
+    success: true,
+    data: schedule
+  });
+}
+
+async function update(req, res) {
+  const { id } = res.locals.validated.params;
+  const data = res.locals.validated.body;
+
+  const schedule = await schedulesService.update(id, data);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: schedule
+  });
+}
+
+async function publish(req, res) {
+  const { id } = res.locals.validated.params;
+
+  const schedule = await schedulesService.publish(id);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: schedule
+  });
+}
+
+async function createItem(req, res) {
+  const { id } = res.locals.validated.params;
+  const data = res.locals.validated.body;
+
+  const item = await schedulesService.createItem(id, data);
+
+  return res.status(HTTP_STATUS.CREATED).json({
+    success: true,
+    data: item
+  });
+}
+
+async function updateItem(req, res) {
+  const { id, itemId } = res.locals.validated.params;
+  const data = res.locals.validated.body;
+
+  const item = await schedulesService.updateItem(id, itemId, data);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: item
+  });
+}
+
+async function removeItem(req, res) {
+  const { id, itemId } = res.locals.validated.params;
+
+  await schedulesService.removeItem(id, itemId);
+
+  return res.status(HTTP_STATUS.NO_CONTENT).send();
+}
+
+module.exports = {
+  getAll,
+  getById,
+  create,
+  update,
+  publish,
+  createItem,
+  updateItem,
+  removeItem
+};
