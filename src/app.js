@@ -37,7 +37,7 @@ app.use(express.json());
 app.get("/api/v1/health", (req, res) => {
   res.status(HTTP_STATUS.OK).json({
     success: true,
-    message: "API is running",
+    message: "API is running"
   });
 });
 
@@ -79,11 +79,10 @@ app.use((req, res) => {
     success: false,
     error: {
       code: "ROUTE_NOT_FOUND",
-      message: "Route not found",
-    },
+      message: "Route not found"
+    }
   });
 });
-
 
 app.use(errorHandler);
 
