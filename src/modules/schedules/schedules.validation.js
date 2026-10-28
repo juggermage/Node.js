@@ -118,6 +118,10 @@ const updateItemSchema = Joi.object({
   .min(1)
   .custom(ensureTimeOrder);
 
+const cancelItemSchema = Joi.object({
+  reason: Joi.string().trim().min(1).max(500).required()
+});
+
 module.exports = {
   scheduleIdSchema,
   itemParamsSchema,
@@ -125,5 +129,6 @@ module.exports = {
   createScheduleSchema,
   updateScheduleSchema,
   createItemSchema,
-  updateItemSchema
+  updateItemSchema,
+  cancelItemSchema
 };

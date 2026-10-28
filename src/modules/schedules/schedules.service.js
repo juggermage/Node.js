@@ -135,6 +135,7 @@ async function loadOtherPublishedItems(schedule, items) {
   const found = await prisma.scheduleItem.findMany({
     where: {
       scheduleId: { not: schedule.id },
+      status: "ACTIVE",
       schedule: { status: "PUBLISHED" },
       OR: conditions
     },
@@ -149,7 +150,7 @@ function assertNoConflicts(item, ownItems, otherItems, excludeItemId = null) {
     throw new AppError(
       "Group already has an item at this time",
       HTTP_STATUS.CONFLICT,
-      "GROUP_TIME_CONFLICT"
+      "SCHEDULE_CONFLICT"
     );
   }
 
@@ -159,7 +160,7 @@ function assertNoConflicts(item, ownItems, otherItems, excludeItemId = null) {
     throw new AppError(
       "Teacher is already busy at this time",
       HTTP_STATUS.CONFLICT,
-      "TEACHER_TIME_CONFLICT"
+      "SCHEDULE_CONFLICT"
     );
   }
 
@@ -167,7 +168,7 @@ function assertNoConflicts(item, ownItems, otherItems, excludeItemId = null) {
     throw new AppError(
       "Room is already occupied at this time",
       HTTP_STATUS.CONFLICT,
-      "ROOM_TIME_CONFLICT"
+      "SCHEDULE_CONFLICT"
     );
   }
 }
@@ -176,7 +177,9 @@ async function validateItem(schedule, item, excludeItemId = null) {
   assertDayRules(item);
   await assertReferences(item, schedule);
 
-  const ownItems = await prisma.scheduleItem.findMany({ where: { scheduleId: schedule.id } });
+  const ownItems = await prisma.scheduleItem.findMany({
+    where: { scheduleId: schedule.id, status: "ACTIVE" }
+  });
   const otherItems = await loadOtherPublishedItems(schedule, [item]);
 
   assertNoConflicts(item, ownItems, otherItems, excludeItemId);
@@ -250,6 +253,17 @@ async function update(id, data) {
     },
     include: scheduleInclude
   });
+}
+
+// Видалення дозволене лише для чернетки. Заняття видаляються разом із розкладом.
+async function remove(id) {
+  const schedule = await findScheduleOrThrow(id);
+  assertDraft(schedule);
+
+  await prisma.$transaction([
+    prisma.scheduleItem.deleteMany({ where: { scheduleId: id } }),
+    prisma.schedule.delete({ where: { id } })
+  ]);
 }
 
 async function createItem(scheduleId, data) {
@@ -330,6 +344,40 @@ async function removeItem(scheduleId, itemId) {
   }
 }
 
+// Контрольоване скасування: заняття опублікованого розкладу не видаляється,
+// а позначається як CANCELLED з причиною й часом.
+async function cancelItem(scheduleId, itemId, { reason }) {
+  const schedule = await findScheduleOrThrow(scheduleId);
+
+  if (schedule.status !== "PUBLISHED") {
+    throw new AppError(
+      "Only items of a published schedule can be cancelled",
+      HTTP_STATUS.CONFLICT,
+      "SCHEDULE_NOT_PUBLISHED"
+    );
+  }
+
+  const item = await prisma.scheduleItem.findFirst({ where: { id: itemId, scheduleId } });
+
+  if (!item) {
+    throw new AppError("Schedule item not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_ITEM_NOT_FOUND");
+  }
+
+  if (item.status === "CANCELLED") {
+    throw new AppError(
+      "Schedule item is already cancelled",
+      HTTP_STATUS.CONFLICT,
+      "SCHEDULE_ITEM_ALREADY_CANCELLED"
+    );
+  }
+
+  return prisma.scheduleItem.update({
+    where: { id: itemId },
+    data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason },
+    include: itemInclude
+  });
+}
+
 // Повна перевірка перед публікацією.
 async function publish(id) {
   const schedule = await prisma.schedule.findUnique({
@@ -382,7 +430,7 @@ async function publish(id) {
 
   return prisma.schedule.update({
     where: { id },
-    data: { status: "PUBLISHED" },
+    data: { status: "PUBLISHED", publishedAt: new Date() },
     include: scheduleInclude
   });
 }
@@ -392,8 +440,10 @@ module.exports = {
   getById,
   create,
   update,
+  remove,
   publish,
   createItem,
   updateItem,
-  removeItem
+  removeItem,
+  cancelItem
 };

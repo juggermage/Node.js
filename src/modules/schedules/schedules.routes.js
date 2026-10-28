@@ -10,7 +10,8 @@ const {
   createScheduleSchema,
   updateScheduleSchema,
   createItemSchema,
-  updateItemSchema
+  updateItemSchema,
+  cancelItemSchema
 } = require("./schedules.validation");
 
 const router = express.Router();
@@ -27,6 +28,8 @@ router.patch(
   validate(updateScheduleSchema),
   schedulesController.update
 );
+
+router.delete("/:id", validate(scheduleIdSchema, "params"), schedulesController.remove);
 
 router.post("/:id/publish", validate(scheduleIdSchema, "params"), schedulesController.publish);
 
@@ -48,6 +51,13 @@ router.delete(
   "/:id/items/:itemId",
   validate(itemParamsSchema, "params"),
   schedulesController.removeItem
+);
+
+router.post(
+  "/:id/items/:itemId/cancel",
+  validate(itemParamsSchema, "params"),
+  validate(cancelItemSchema),
+  schedulesController.cancelItem
 );
 
 module.exports = router;

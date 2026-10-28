@@ -46,6 +46,14 @@ async function update(req, res) {
   });
 }
 
+async function remove(req, res) {
+  const { id } = res.locals.validated.params;
+
+  await schedulesService.remove(id);
+
+  return res.status(HTTP_STATUS.NO_CONTENT).send();
+}
+
 async function publish(req, res) {
   const { id } = res.locals.validated.params;
 
@@ -89,13 +97,27 @@ async function removeItem(req, res) {
   return res.status(HTTP_STATUS.NO_CONTENT).send();
 }
 
+async function cancelItem(req, res) {
+  const { id, itemId } = res.locals.validated.params;
+  const data = res.locals.validated.body;
+
+  const item = await schedulesService.cancelItem(id, itemId, data);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: item
+  });
+}
+
 module.exports = {
   getAll,
   getById,
   create,
   update,
+  remove,
   publish,
   createItem,
   updateItem,
-  removeItem
+  removeItem,
+  cancelItem
 };
