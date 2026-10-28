@@ -4,7 +4,7 @@ const { HTTP_STATUS } = require("../../utils/http-status");
 async function create(req, res) {
   const data = await service.createOrRestore(res.locals.validated.body);
 
-  return res.status(HTTP_STATUS.OK).json({ success: true, data });
+  return res.status(HTTP_STATUS.CREATED).json({ success: true, data });
 }
 
 async function getById(req, res) {

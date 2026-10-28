@@ -141,8 +141,7 @@ async function getChildren(id) {
 
   return prisma.childParent.findMany({
     where: { parentId: id },
-    include: { child: true },
-    orderBy: { startDate: "desc" }
+    include: { child: true }
   });
 }
 

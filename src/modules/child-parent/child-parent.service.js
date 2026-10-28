@@ -6,27 +6,39 @@ function fail(message, status, code) {
   throw new AppError(message, status, code);
 }
 
+function handlePrismaError(error) {
+  if (error.code === "P2003" || error.code === "P2025") {
+    fail("Child or parent not found", HTTP_STATUS.NOT_FOUND, "RELATED_RECORD_NOT_FOUND");
+  }
+
+  if (error.code === "P2002") {
+    fail("This child-parent relationship already exists", HTTP_STATUS.CONFLICT, "CHILD_PARENT_EXISTS");
+  }
+
+  throw error;
+}
+
 async function createOrRestore({ childId, parentId, relation }) {
-  return prisma.$transaction(async (tx) => {
-    const [child, parent] = await Promise.all([
-      tx.child.findUnique({ where: { id: childId } }),
-      tx.parent.findUnique({ where: { id: parentId } })
-    ]);
+  const [child, parent] = await Promise.all([
+    prisma.child.findUnique({ where: { id: childId } }),
+    prisma.parent.findUnique({ where: { id: parentId } })
+  ]);
 
-    if (!child || child.status === "ARCHIVED") {
-      fail("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
+  if (!child || child.status === "ARCHIVED") {
+    fail("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
+  }
+
+  if (!parent || parent.status !== "ACTIVE") {
+    fail("Active parent not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
+  }
+
+  const existing = await prisma.childParent.findUnique({
+    where: {
+      childId_parentId: { childId, parentId }
     }
+  });
 
-    if (!parent || parent.status !== "ACTIVE") {
-      fail("Active parent not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
-    }
-
-    const existing = await tx.childParent.findUnique({
-      where: {
-        childId_parentId: { childId, parentId }
-      }
-    });
-
+  try {
     if (existing && existing.endDate === null) {
       fail(
         "This child-parent relationship is already active",
@@ -36,7 +48,7 @@ async function createOrRestore({ childId, parentId, relation }) {
     }
 
     if (existing) {
-      return tx.childParent.update({
+      return await prisma.childParent.update({
         where: { id: existing.id },
         data: {
           relation,
@@ -47,11 +59,14 @@ async function createOrRestore({ childId, parentId, relation }) {
       });
     }
 
-    return tx.childParent.create({
+    return await prisma.childParent.create({
       data: { childId, parentId, relation },
       include: { child: true, parent: true }
     });
-  });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    handlePrismaError(error);
+  }
 }
 
 async function getById(id) {
@@ -115,22 +130,22 @@ async function complete(id) {
   }
 
   if (link.endDate !== null) {
-    fail("Relationship already ended", HTTP_STATUS.CONFLICT, "RELATIONSHIP_ALREADY_ENDED");
+    fail(
+      "Relationship already ended",
+      HTTP_STATUS.CONFLICT,
+      "RELATIONSHIP_ALREADY_ENDED"
+    );
   }
 
-  const result = await prisma.childParent.updateMany({
-    where: { id, endDate: null },
-    data: { endDate: new Date() }
-  });
-
-  if (result.count !== 1) {
-    fail("Relationship has already changed", HTTP_STATUS.CONFLICT, "RELATIONSHIP_CONFLICT");
+  try {
+    return await prisma.childParent.update({
+      where: { id },
+      data: { endDate: new Date() },
+      include: { child: true, parent: true }
+    });
+  } catch (error) {
+    handlePrismaError(error);
   }
-
-  return prisma.childParent.findUnique({
-    where: { id },
-    include: { child: true, parent: true }
-  });
 }
 
 module.exports = {
