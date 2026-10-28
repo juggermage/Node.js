@@ -12,7 +12,11 @@ function handlePrismaError(error) {
   }
 
   if (error.code === "P2002") {
-    fail("This child-parent relationship already exists", HTTP_STATUS.CONFLICT, "CHILD_PARENT_EXISTS");
+    fail(
+      "This child-parent relationship already exists",
+      HTTP_STATUS.CONFLICT,
+      "CHILD_PARENT_EXISTS"
+    );
   }
 
   throw error;
@@ -130,11 +134,7 @@ async function complete(id) {
   }
 
   if (link.endDate !== null) {
-    fail(
-      "Relationship already ended",
-      HTTP_STATUS.CONFLICT,
-      "RELATIONSHIP_ALREADY_ENDED"
-    );
+    fail("Relationship already ended", HTTP_STATUS.CONFLICT, "RELATIONSHIP_ALREADY_ENDED");
   }
 
   try {

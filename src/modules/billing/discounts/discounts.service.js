@@ -8,19 +8,11 @@ function fail(message, status, code) {
 
 function handlePrismaError(error) {
   if (error.code === "P2002") {
-    fail(
-      "Discount name already exists",
-      HTTP_STATUS.CONFLICT,
-      "DISCOUNT_NAME_EXISTS"
-    );
+    fail("Discount name already exists", HTTP_STATUS.CONFLICT, "DISCOUNT_NAME_EXISTS");
   }
 
   if (error.code === "P2025") {
-    fail(
-      "Discount not found",
-      HTTP_STATUS.NOT_FOUND,
-      "DISCOUNT_NOT_FOUND"
-    );
+    fail("Discount not found", HTTP_STATUS.NOT_FOUND, "DISCOUNT_NOT_FOUND");
   }
 
   throw error;
@@ -47,11 +39,7 @@ async function create({ name, value }) {
   });
 
   if (existing) {
-    fail(
-      "Discount name already exists",
-      HTTP_STATUS.CONFLICT,
-      "DISCOUNT_NAME_EXISTS"
-    );
+    fail("Discount name already exists", HTTP_STATUS.CONFLICT, "DISCOUNT_NAME_EXISTS");
   }
 
   try {
@@ -81,11 +69,7 @@ async function getById(id) {
   });
 
   if (!discount) {
-    fail(
-      "Discount not found",
-      HTTP_STATUS.NOT_FOUND,
-      "DISCOUNT_NOT_FOUND"
-    );
+    fail("Discount not found", HTTP_STATUS.NOT_FOUND, "DISCOUNT_NOT_FOUND");
   }
 
   return discount;
