@@ -21,8 +21,8 @@ const expensesRoutes = require("./modules/billing/expenses/expenses.routes");
 // TeacherSubject, StaffAssignment
 const subjectsRoutes = require("./modules/subjects/subjects.routes");
 const employeesRoutes = require("./modules/employees/employees.routes");
-const teacherSubjectRoutes = require("./modules/teacher-subject/teacher-subject.routes");
-const staffAssignmentRoutes = require("./modules/staff-assignment/staff-assignment.routes");
+const teacherSubjectRoutes = require("./modules/teacher-subjects/teacher-subjects.routes");
+const staffAssignmentRoutes = require("./modules/staff-assignments/staff-assignments.routes");
 
 // Спільні компоненти
 const HTTP_STATUS = require("./utils/http-status");
