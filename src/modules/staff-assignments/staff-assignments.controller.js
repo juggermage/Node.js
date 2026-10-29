@@ -1,5 +1,5 @@
 const service = require("./staff-assignments.service");
-const { HTTP_STATUS } = require("../../utils/http-status");
+const  HTTP_STATUS  = require("../../utils/http-status");
 
 async function getAll(req, res) {
   const data = await service.getAll();
