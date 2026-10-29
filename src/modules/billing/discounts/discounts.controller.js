@@ -1,5 +1,5 @@
 const service = require("./discounts.service");
-const { HTTP_STATUS } = require("../../../utils/http-status");
+const HTTP_STATUS = require("../../../utils/http-status");
 
 async function create(req, res) {
   const data = await service.create(res.locals.validated.body);
