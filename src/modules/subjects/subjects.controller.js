@@ -1,101 +1,46 @@
-const subjectsService = require("./subjects.service");
+const service = require("./subjects.service");
+const HTTP_STATUS = require("../../utils/http-status");
 
-function handleError(error, res, next) {
-  if (error.status && error.code) {
-    return res.status(error.status).json({
-      success: false,
-      error: {
-        code: error.code,
-        message: error.message
-      }
-    });
-  }
+async function getAll(req, res) {
+  const data = await service.getAll(res.locals.validated.query);
 
-  return next(error);
-}
-
-function getAll(req, res, next) {
-  try {
-    const data = subjectsService.getAll(req.query.search);
-
-    return res.status(200).json({
-      success: true,
-      data
-    });
-  } catch (error) {
-    return handleError(error, res, next);
-  }
-}
-
-function getById(req, res) {
-  const subject = subjectsService.getById(req.params.id);
-
-  if (!subject) {
-    return res.status(404).json({
-      success: false,
-      error: {
-        code: "SUBJECT_NOT_FOUND",
-        message: "Subject not found"
-      }
-    });
-  }
-
-  return res.status(200).json({
+  return res.status(HTTP_STATUS.OK).json({
     success: true,
-    data: subject
+    data
   });
 }
 
-function create(req, res, next) {
-  try {
-    const subject = subjectsService.create(req.body);
+async function getById(req, res) {
+  const data = await service.getById(res.locals.validated.params.id);
 
-    return res.status(201).json({
-      success: true,
-      data: subject
-    });
-  } catch (error) {
-    return handleError(error, res, next);
-  }
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data
+  });
 }
 
-function update(req, res, next) {
-  try {
-    const subject = subjectsService.update(req.params.id, req.body);
+async function create(req, res) {
+  const data = await service.create(res.locals.validated.body);
 
-    if (!subject) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: "SUBJECT_NOT_FOUND",
-          message: "Subject not found"
-        }
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: subject
-    });
-  } catch (error) {
-    return handleError(error, res, next);
-  }
+  return res.status(HTTP_STATUS.CREATED).json({
+    success: true,
+    data
+  });
 }
 
-function remove(req, res) {
-  const deleted = subjectsService.remove(req.params.id);
+async function update(req, res) {
+  const data = await service.update(res.locals.validated.params.id, res.locals.validated.body);
 
-  if (!deleted) {
-    return res.status(404).json({
-      success: false,
-      error: {
-        code: "SUBJECT_NOT_FOUND",
-        message: "Subject not found"
-      }
-    });
-  }
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data
+  });
+}
 
-  return res.status(204).send();
+async function remove(req, res) {
+  await service.remove(res.locals.validated.params.id);
+
+  return res.status(HTTP_STATUS.NO_CONTENT).send();
 }
 
 module.exports = {

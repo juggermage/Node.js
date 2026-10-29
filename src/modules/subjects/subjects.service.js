@@ -1,139 +1,123 @@
-const { randomUUID } = require("node:crypto");
+const prisma = require("../../config/prisma");
+const AppError = require("../../utils/app-error");
+const HTTP_STATUS = require("../../utils/http-status");
 
-const subjects = [];
-
-const ALLOWED_FIELDS = ["name", "description"];
-
-function createError(code, message, status) {
-  const error = new Error(message);
-  error.code = code;
-  error.status = status;
-  return error;
+function fail(message, status, code) {
+  throw new AppError(message, status, code);
 }
 
-function normalizeName(name) {
-  return name.trim().toLocaleLowerCase();
-}
+async function getSubjectOrFail(id) {
+  const subject = await prisma.subject.findUnique({
+    where: { id }
+  });
 
-function validateSubject(data, partial = false) {
-  if (data === null || typeof data !== "object" || Array.isArray(data)) {
-    throw createError("VALIDATION_ERROR", "Request body must be an object", 422);
+  if (!subject || subject.status === "ARCHIVED") {
+    fail("Subject not found", HTTP_STATUS.NOT_FOUND, "SUBJECT_NOT_FOUND");
   }
-
-  const fields = Object.keys(data);
-
-  if (partial && fields.length === 0) {
-    throw createError("VALIDATION_ERROR", "At least one field is required", 422);
-  }
-
-  for (const field of fields) {
-    if (!ALLOWED_FIELDS.includes(field)) {
-      throw createError("VALIDATION_ERROR", `Unknown or read-only field: ${field}`, 422);
-    }
-  }
-
-  if (!partial && !Object.hasOwn(data, "name")) {
-    throw createError("VALIDATION_ERROR", "Name is required", 422);
-  }
-
-  if (Object.hasOwn(data, "name")) {
-    if (typeof data.name !== "string" || data.name.trim().length === 0) {
-      throw createError("VALIDATION_ERROR", "Name must be a non-empty string", 422);
-    }
-  }
-
-  if (Object.hasOwn(data, "description")) {
-    if (typeof data.description !== "string") {
-      throw createError("VALIDATION_ERROR", "Description must be a string", 422);
-    }
-  }
-
-  if (!partial && !Object.hasOwn(data, "description")) {
-    throw createError("VALIDATION_ERROR", "Description is required", 422);
-  }
-}
-
-function checkDuplicate(name, excludeId = null) {
-  const normalized = normalizeName(name);
-
-  const duplicate = subjects.find(
-    (subject) => subject.id !== excludeId && normalizeName(subject.name) === normalized
-  );
-
-  if (duplicate) {
-    throw createError("DUPLICATE_SUBJECT", "Subject with this name already exists", 409);
-  }
-}
-
-function getAll(search) {
-  if (search === undefined) {
-    return [...subjects];
-  }
-
-  if (typeof search !== "string") {
-    throw createError("INVALID_SEARCH", "Search parameter must be a string", 400);
-  }
-
-  const query = normalizeName(search);
-
-  return subjects.filter((subject) => normalizeName(subject.name).includes(query));
-}
-
-function getById(id) {
-  return subjects.find((subject) => subject.id === id) || null;
-}
-
-function create(data) {
-  validateSubject(data);
-  checkDuplicate(data.name);
-
-  const subject = {
-    id: randomUUID(),
-    name: data.name.trim(),
-    description: data.description.trim()
-  };
-
-  subjects.push(subject);
 
   return subject;
 }
 
-function update(id, data) {
-  const subject = getById(id);
+async function checkUniqueName(name, excludeId) {
+  const subject = await prisma.subject.findFirst({
+    where: {
+      name: {
+        equals: name.trim(),
+        mode: "insensitive"
+      },
+      ...(excludeId && { id: { not: excludeId } })
+    }
+  });
 
-  if (!subject) {
-    return null;
+  if (subject) {
+    fail("Subject name already exists", HTTP_STATUS.CONFLICT, "SUBJECT_NAME_EXISTS");
   }
-
-  validateSubject(data, true);
-
-  if (Object.hasOwn(data, "name")) {
-    checkDuplicate(data.name, id);
-  }
-
-  const updatedSubject = {
-    ...subject,
-    ...(Object.hasOwn(data, "name") ? { name: data.name.trim() } : {}),
-    ...(Object.hasOwn(data, "description") ? { description: data.description.trim() } : {})
-  };
-
-  const index = subjects.findIndex((item) => item.id === id);
-
-  subjects[index] = updatedSubject;
-
-  return updatedSubject;
 }
 
-function remove(id) {
-  const index = subjects.findIndex((subject) => subject.id === id);
-
-  if (index === -1) {
-    return false;
+function handleUniqueError(error) {
+  if (error.code === "P2002") {
+    fail("Subject name already exists", HTTP_STATUS.CONFLICT, "SUBJECT_NAME_EXISTS");
   }
 
-  subjects.splice(index, 1);
+  throw error;
+}
 
-  return true;
+async function getAll(query = {}) {
+  const where = {
+    status: query.status || { not: "ARCHIVED" }
+  };
+
+  if (query.search) {
+    where.name = {
+      contains: query.search.trim(),
+      mode: "insensitive"
+    };
+  }
+
+  return prisma.subject.findMany({
+    where,
+    orderBy: { name: "asc" }
+  });
+}
+
+async function getById(id) {
+  return getSubjectOrFail(id);
+}
+
+async function create(data) {
+  await checkUniqueName(data.name);
+
+  try {
+    return await prisma.subject.create({
+      data: {
+        name: data.name.trim(),
+        description: data.description ?? null,
+        status: "ACTIVE"
+      }
+    });
+  } catch (error) {
+    handleUniqueError(error);
+  }
+}
+
+async function update(id, data) {
+  await getSubjectOrFail(id);
+
+  if (data.name !== undefined) {
+    await checkUniqueName(data.name, id);
+  }
+
+  try {
+    return await prisma.subject.update({
+      where: { id },
+      data
+    });
+  } catch (error) {
+    handleUniqueError(error);
+  }
+}
+
+async function remove(id) {
+  await getSubjectOrFail(id);
+
+  const activeAssignments = await prisma.teacherSubject.count({
+    where: {
+      subjectId: id,
+      employee: { status: "ACTIVE" }
+    }
+  });
+
+  if (activeAssignments > 0) {
+    fail("Subject has assigned active teachers", HTTP_STATUS.CONFLICT, "SUBJECT_HAS_TEACHERS");
+  }
+
+  return prisma.subject.update({
+    where: { id },
+    data: {
+      status: "ARCHIVED",
+      archivedAt: new Date()
+    }
+  });
 }
 
 module.exports = {
