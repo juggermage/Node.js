@@ -1,6 +1,6 @@
 const prisma = require("../../config/prisma");
 const AppError = require("../../utils/app-error");
-const  HTTP_STATUS  = require("../../utils/http-status");
+const HTTP_STATUS = require("../../utils/http-status");
 
 function fail(message, status, code) {
   throw new AppError(message, status, code);
