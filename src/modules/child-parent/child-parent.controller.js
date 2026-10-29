@@ -1,5 +1,5 @@
 const service = require("./child-parent.service");
-const { HTTP_STATUS } = require("../../utils/http-status");
+const HTTP_STATUS = require("../../utils/http-status");
 
 async function create(req, res) {
   const data = await service.createOrRestore(res.locals.validated.body);
