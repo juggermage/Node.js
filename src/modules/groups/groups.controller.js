@@ -1,5 +1,5 @@
 const service = require("./groups.service");
-const { HTTP_STATUS } = require("../../utils/http-status");
+const HTTP_STATUS = require("../../utils/http-status");
 
 async function getAll(req, res) {
   const data = await service.getAllGroups(res.locals.validated.query);

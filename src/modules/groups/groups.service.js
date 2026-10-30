@@ -1,6 +1,6 @@
 const prisma = require("../../config/prisma");
-const AppError = require("../../utils/AppError");
-const { HTTP_STATUS } = require("../../utils/http-status");
+const AppError = require("../../utils/app-error");
+const HTTP_STATUS = require("../../utils/http-status");
 
 const MAX_CAPACITY = 20;
 
@@ -164,7 +164,7 @@ async function createGroup(data) {
         ageToMonths: data.ageToMonths,
         capacity: data.capacity ?? MAX_CAPACITY,
         mainRoomId: data.mainRoomId ?? null,
-        status: "ACTIVE"
+        status: data.status ?? "ACTIVE"
       }
     });
   } catch (error) {
