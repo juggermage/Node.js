@@ -24,6 +24,9 @@ const employeesRoutes = require("./modules/employees/employees.routes");
 const teacherSubjectRoutes = require("./modules/teacher-subjects/teacher-subjects.routes");
 const staffAssignmentRoutes = require("./modules/staff-assignments/staff-assignments.routes");
 
+// Audit
+const auditRoutes = require("./modules/audit/audit.routes");
+
 // Спільні компоненти
 const HTTP_STATUS = require("./utils/http-status");
 const errorHandler = require("./middleware/error.middleware");
@@ -65,6 +68,9 @@ app.use("/api/v1/subjects", subjectsRoutes);
 
 // Employees
 app.use("/api/v1/employees", employeesRoutes);
+
+// Audit
+app.use("/api/v1/audit", auditRoutes);
 
 // Зв'язки працівників
 app.use("/api/v1/teacher-subject", teacherSubjectRoutes);
