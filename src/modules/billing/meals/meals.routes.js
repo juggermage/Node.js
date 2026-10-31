@@ -4,7 +4,11 @@ const validate = require("../../../middleware/validate.middleware");
 
 const controller = require("./meals.controller");
 
-const { createMealRateSchema, rateQuerySchema, calculateMealSchema } = require("./meals.validation");
+const {
+  createMealRateSchema,
+  rateQuerySchema,
+  calculateMealSchema
+} = require("./meals.validation");
 
 const router = Router();
 router.get("/rates", validate(rateQuerySchema, "query"), controller.getRates);

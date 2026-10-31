@@ -19,15 +19,24 @@ function parseDay(value) {
 
 function checkAge(ageYears) {
   if (!Number.isInteger(ageYears) || ageYears < 2 || ageYears > 5) {
-    throw new AppError("Age category must be A2-A5", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_AGE_CATEGORY");
+    throw new AppError(
+      "Age category must be A2-A5",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "INVALID_AGE_CATEGORY"
+    );
   }
 }
 
 function calculateAge(birthDate, date) {
   const birth = new Date(birthDate);
-  if (Number.isNaN(birth.getTime()) || birth > date) throw new AppError("Invalid birth date", 422, "INVALID_BIRTH_DATE");
+  if (Number.isNaN(birth.getTime()) || birth > date)
+    throw new AppError("Invalid birth date", 422, "INVALID_BIRTH_DATE");
   let age = date.getUTCFullYear() - birth.getUTCFullYear();
-  if (date.getUTCMonth() < birth.getUTCMonth() || (date.getUTCMonth() === birth.getUTCMonth() && date.getUTCDate() < birth.getUTCDate())) age--;
+  if (
+    date.getUTCMonth() < birth.getUTCMonth() ||
+    (date.getUTCMonth() === birth.getUTCMonth() && date.getUTCDate() < birth.getUTCDate())
+  )
+    age--;
   return age;
 }
 
@@ -63,7 +72,10 @@ async function getAllRates({ ageYears, onDate } = {}) {
     where.validFrom = { lte: date };
     where.OR = [{ validTo: null }, { validTo: { gte: date } }];
   }
-  const rates = await prisma.mealRate.findMany({ where, orderBy: [{ ageYears: "asc" }, { validFrom: "desc" }] });
+  const rates = await prisma.mealRate.findMany({
+    where,
+    orderBy: [{ ageYears: "asc" }, { validFrom: "desc" }]
+  });
   return rates.map(serializeRate);
 }
 
@@ -71,7 +83,11 @@ async function getApplicableRate(ageYears, onDate) {
   checkAge(ageYears);
   const date = parseDay(onDate);
   const rate = await prisma.mealRate.findFirst({
-    where: { ageYears, validFrom: { lte: date }, OR: [{ validTo: null }, { validTo: { gte: date } }] },
+    where: {
+      ageYears,
+      validFrom: { lte: date },
+      OR: [{ validTo: null }, { validTo: { gte: date } }]
+    },
     orderBy: { validFrom: "desc" }
   });
   if (!rate) throw new AppError("Meal rate not found", 404, "MEAL_RATE_NOT_FOUND");
@@ -80,31 +96,64 @@ async function getApplicableRate(ageYears, onDate) {
 
 async function createRate({ ageYears, amount, validFrom, validTo = null }) {
   checkAge(ageYears);
-  if (!Number.isSafeInteger(amount) || amount <= 0) throw new AppError("Invalid meal rate", 422, "INVALID_MEAL_RATE");
+  if (!Number.isSafeInteger(amount) || amount <= 0)
+    throw new AppError("Invalid meal rate", 422, "INVALID_MEAL_RATE");
   const from = parseDay(validFrom);
   const to = validTo === null ? null : parseDay(validTo);
   if (to && to < from) throw new AppError("Invalid rate period", 422, "INVALID_PERIOD");
   const overlap = await prisma.mealRate.findFirst({
-    where: { ageYears, validFrom: { lte: to || new Date("9999-12-31T00:00:00.000Z") }, OR: [{ validTo: null }, { validTo: { gte: from } }] }
+    where: {
+      ageYears,
+      validFrom: { lte: to || new Date("9999-12-31T00:00:00.000Z") },
+      OR: [{ validTo: null }, { validTo: { gte: from } }]
+    }
   });
   if (overlap) throw new AppError("Overlapping meal rate", 409, "MEAL_RATE_CONFLICT");
-  const rate = await prisma.mealRate.create({ data: { ageYears, amount: BigInt(amount), validFrom: from, validTo: to } });
+  const rate = await prisma.mealRate.create({
+    data: { ageYears, amount: BigInt(amount), validFrom: from, validTo: to }
+  });
   return serializeRate(rate);
 }
 
 async function calculateMealCost({ childId, periodStart, periodEnd, attendedDays, ageYears }) {
   const { from, to, days } = validatePeriod(periodStart, periodEnd);
-  if (!Number.isInteger(attendedDays) || attendedDays < 0 || attendedDays > days) throw new AppError("Invalid attendance days", 422, "INVALID_ATTENDANCE_DAYS");
-  const child = await prisma.child.findUnique({ where: { id: childId }, select: { id: true, birthDate: true, status: true } });
-  if (!child || child.status === "ARCHIVED") throw new AppError("Child not found", 404, "CHILD_NOT_FOUND");
+  if (!Number.isInteger(attendedDays) || attendedDays < 0 || attendedDays > days)
+    throw new AppError("Invalid attendance days", 422, "INVALID_ATTENDANCE_DAYS");
+  const child = await prisma.child.findUnique({
+    where: { id: childId },
+    select: { id: true, birthDate: true, status: true }
+  });
+  if (!child || child.status === "ARCHIVED")
+    throw new AppError("Child not found", 404, "CHILD_NOT_FOUND");
   const actualAge = calculateAge(child.birthDate, from);
-  if (ageYears !== undefined && ageYears !== actualAge) throw new AppError("Age category does not match child", 422, "AGE_CATEGORY_MISMATCH");
+  if (ageYears !== undefined && ageYears !== actualAge)
+    throw new AppError("Age category does not match child", 422, "AGE_CATEGORY_MISMATCH");
   const category = actualAge;
   checkAge(category);
   const rate = await getApplicableRate(category, from);
-  if (parseDay(rate.validFrom) > from || (rate.validTo && parseDay(rate.validTo) < to)) throw new AppError("Rate changes during period", 409, "RATE_PERIOD_CONFLICT");
+  if (parseDay(rate.validFrom) > from || (rate.validTo && parseDay(rate.validTo) < to))
+    throw new AppError("Rate changes during period", 409, "RATE_PERIOD_CONFLICT");
   const total = calculateAmount(rate.amount, attendedDays, days);
-  return { childId, ageYears: category, periodStart: from.toISOString().slice(0, 10), periodEnd: to.toISOString().slice(0, 10), attendedDays, rateId: rate.id, dailyRate: rate.amount.toString(), total: total.toString(), currency: "UAH" };
+  return {
+    childId,
+    ageYears: category,
+    periodStart: from.toISOString().slice(0, 10),
+    periodEnd: to.toISOString().slice(0, 10),
+    attendedDays,
+    rateId: rate.id,
+    dailyRate: rate.amount.toString(),
+    total: total.toString(),
+    currency: "UAH"
+  };
 }
 
-module.exports = { DEFAULT_RATES, calculateAge, validatePeriod, calculateAmount, getAllRates, getApplicableRate, createRate, calculateMealCost };
+module.exports = {
+  DEFAULT_RATES,
+  calculateAge,
+  validatePeriod,
+  calculateAmount,
+  getAllRates,
+  getApplicableRate,
+  createRate,
+  calculateMealCost
+};
