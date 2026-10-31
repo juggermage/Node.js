@@ -1,4 +1,3 @@
-
 const Joi = require("joi");
 
 // Дозволені типи дій із prisma/schema.prisma.

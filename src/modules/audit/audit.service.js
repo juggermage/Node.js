@@ -1,22 +1,12 @@
-
 const prisma = require("../../config/prisma");
 const AppError = require("../../utils/app-error");
 const HTTP_STATUS = require("../../utils/http-status");
 
 // Дозволені типи дій із Prisma-схеми.
-const AUDIT_ACTIONS = [
-  "CREATE",
-  "UPDATE",
-  "DELETE",
-  "ARCHIVE",
-  "RESTORE",
-  "PAYMENT",
-  "CANCEL"
-];
+const AUDIT_ACTIONS = ["CREATE", "UPDATE", "DELETE", "ARCHIVE", "RESTORE", "PAYMENT", "CANCEL"];
 
 // Поля, які не можна зберігати в журналі.
-const SECRET_FIELD_PATTERN =
-  /password|token|secret|authorization|cookie|api.?key|credential/i;
+const SECRET_FIELD_PATTERN = /password|token|secret|authorization|cookie|api.?key|credential/i;
 
 // Очищує дані від конфіденційної інформації.
 function prepareSnapshot(value) {
@@ -88,11 +78,7 @@ async function createLog({
 
   // actorId необов'язковий, поки немає Auth.
   // Якщо він переданий, перевіряємо формат ObjectId.
-  if (
-    actorId !== null &&
-    (typeof actorId !== "string" ||
-      !/^[0-9a-fA-F]{24}$/.test(actorId))
-  ) {
+  if (actorId !== null && (typeof actorId !== "string" || !/^[0-9a-fA-F]{24}$/.test(actorId))) {
     throw new AppError(
       "Invalid audit actor ID",
       HTTP_STATUS.UNPROCESSABLE_ENTITY,
