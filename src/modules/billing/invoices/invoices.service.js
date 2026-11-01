@@ -35,7 +35,9 @@ function parseDate(value) {
 }
 
 function serializeInvoice(invoice, paidAmount = 0n) {
-  const { allocations, ...data } = invoice;
+  const data = { ...invoice };
+  delete data.allocations;
+
   const amountDue = BigInt(invoice.amountDue);
   const balance = amountDue - paidAmount;
 
