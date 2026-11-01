@@ -11,11 +11,18 @@ const groupsRoutes = require("./modules/groups/groups.routes");
 // Parents, ChildParent, Discounts
 const parentsRoutes = require("./modules/parents/parents.routes");
 const childParentRoutes = require("./modules/child-parent/child-parent.routes");
-const discountsRoutes = require("./modules/billing/discounts/discounts.routes");
+
 
 //Schedules, Expenses
 const schedulesRoutes = require("./modules/schedules/schedules.routes");
+// Billing
+const discountsRoutes = require("./modules/billing/discounts/discounts.routes");
 const expensesRoutes = require("./modules/billing/expenses/expenses.routes");
+const invoicesRoutes = require("./modules/billing/invoices/invoices.routes");
+const paymentsRoutes = require("./modules/billing/payments/payments.routes");
+const salariesRoutes = require("./modules/billing/salaries/salaries.routes");
+const tuitionRoutes = require("./modules/billing/tuition/tuition.routes");
+const mealsRoutes = require("./modules/billing/meals/meals.routes");
 
 // Subjects, Employees,
 // TeacherSubject, StaffAssignment
@@ -26,6 +33,10 @@ const staffAssignmentRoutes = require("./modules/staff-assignments/staff-assignm
 
 // Audit
 const auditRoutes = require("./modules/audit/audit.routes");
+
+
+// Analytics
+const analyticsRoutes = require("./modules/analytics/analytics.routes");
 
 // Спільні компоненти
 const HTTP_STATUS = require("./utils/http-status");
@@ -58,10 +69,18 @@ app.use("/api/v1/parents", parentsRoutes);
 
 // Зв'язки батьків із дітьми
 app.use("/api/v1/child-parent", childParentRoutes);
+// Analytics
+app.use("/api/v1/analytics", analyticsRoutes);
+
 
 // Billing
 app.use("/api/v1/billing/discounts", discountsRoutes);
 app.use("/api/v1/billing/expenses", expensesRoutes);
+app.use("/api/v1/billing/invoices", invoicesRoutes);
+app.use("/api/v1/billing/payments", paymentsRoutes);
+app.use("/api/v1/billing/salaries", salariesRoutes);
+app.use("/api/v1/billing/tuition", tuitionRoutes);
+app.use("/api/v1/meals", mealsRoutes);
 
 // Subjects
 app.use("/api/v1/subjects", subjectsRoutes);

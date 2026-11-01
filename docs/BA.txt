@@ -1,0 +1,153 @@
+23.10.2026 BA Олександр Дубецький
+
+[23.10.2026 21:56] Ivan Nezamay: Платежі не міняємо - дитина з тим віком ходить в ту саму групу , множаться
+[23.10.2026 21:56] Ivan Nezamay: вихователі не хворіють
+[23.10.2026 21:56] Ivan Nezamay: 1 на групу
+[23.10.2026 21:57] Ivan Nezamay: 1 група на приміщення
+
+## MongoDB: структура колекцій та зв'язки (узгоджено, версія 1)
+
+### Принципи
+
+1. **Нормалізована модель.** Документи посилаються один на одного через `ObjectId`, а не дублюють дані. Це стандартний підхід Prisma для MongoDB і дозволяє використовувати `include`/`select` як у реляційній БД.
+2. **Фінансові документи не видаляються фізично.** `Invoice`, `Payment`, `SalaryCalculation` ніколи не видаляються — скасування виконується через зміну статусу.
+3. **Тарифи версіонуються.** Кожна зміна ціни — новий документ `Tariff` із полем `validFrom`. Старі записи не редагуються.
+4. **Рахунки зберігають snapshot ціни.** `InvoiceLine` містить копію тарифу на момент створення рахунку, тому зміна тарифу не впливає на старі рахунки.
+5. **Soft delete для довідників.** Діти, працівники, групи, приміщення не видаляються фізично — переводиться в архів (`status` / `isActive`), щоб зберегти історію.
+6. **M-N дитина↔батько — явна колекція.** `ChildParent` містить поле `relation` (mother/father/guardian), тому це окрема колекція, а не вбудований масив.
+7. **Розклад — окрема сутність.** `Schedule` — самостійна колекція, а не вбудований масив у `Group`, бо має власні зв'язки з `Activity`, `Employee`, `Room`.
+
+---
+
+### Колекції, обов'язкові та унікальні поля
+
+| Колекція | Призначення | Обов'язкові поля | Унікальні поля |
+|---|---|---|---|
+| **Child** | Дитина | `firstName`, `lastName`, `birthDate`, `status` (active/archived) | `childCode` |
+| **Parent** | Батько/мати/опікун | `firstName`, `lastName`, `phone`, `email` | `email` |
+| **ChildParent** | Зв'язок M-N дитина↔батько | `childId`, `parentId`, `relation` | композитний `(childId, parentId)` |
+| **Group** | Група | `name`, `ageFromMonths`, `ageToMonths`, `capacity` | `name` |
+| **GroupEnrollment** | Історія перебування дитини в групі | `childId`, `groupId`, `startDate` | — (дозволяємо кілька записів для історії) |
+| **Employee** | Працівник | `firstName`, `lastName`, `role`, `salaryBase` | `employeeCode` |
+| **Room** | Приміщення | `name`, `capacity` | `name` |
+| **Activity** | Заняття (довідник) | `name`, `type` | `name` |
+| **Schedule** | Розклад занять | `groupId`, `activityId`, `employeeId`, `roomId`, `dayOfWeek`, `startTime`, `endTime` | — |
+| **Tariff** | Тариф (харчування/навчання) | `type`, `amount`, `validFrom` | композитний `(type, validFrom)` |
+| **Invoice** | Рахунок | `childId`, `periodYear`, `periodMonth`, `type` (monthly/annual), `amountDue`, `status` | композитний `(childId, periodYear, periodMonth, type)` |
+| **InvoiceLine** | Деталізація рахунку | `invoiceId`, `description`, `amount`, `tariffSnapshot` | — |
+| **Payment** | Платіж | `invoiceId`, `amount`, `paidAt`, `method` | `externalPaymentId` (якщо є) |
+| **SalaryCalculation** | Розрахунок зарплати | `employeeId`, `periodYear`, `periodMonth`, `baseAmount`, `finalAmount` | композитний `(employeeId, periodYear, periodMonth)` |
+
+---
+
+### Зв'язки між сутностями
+
+**Один-до-багатьох (1-N):**
+- `Child` → `Invoice` — одна дитина, багато рахунків
+- `Child` → `GroupEnrollment` — одна дитина, багато записів перебування в групах
+- `Group` → `GroupEnrollment` — одна група, багато дітей (поточно й історично)
+- `Employee` → `SalaryCalculation` — один працівник, багато нарахувань
+- `Employee` → `Schedule` — один вихователь, багато занять
+- `Room` → `Schedule` — одне приміщення, багато занять
+- `Invoice` → `InvoiceLine` — один рахунок, багато рядків
+- `Invoice` → `Payment` — один рахунок, багато платежів (часткова оплата)
+
+**Багато-до-багатьох (M-N):**
+- `Child` ↔ `Parent` → проміжна колекція `ChildParent` (поле `relation`)
+- `Group` ↔ `Activity` → проміжна сутність `Schedule` (день, час, вихователь, приміщення)
+
+**Один-до-одного (1-1):**
+- У поточній моделі немає обов'язкових 1-1. Якщо з'явиться `User` для працівника — буде `Employee` ↔ `User` 1-1.
+
+---
+
+### Що можна видаляти, а що зберігаємо для історії
+
+| Колекція | Дія | Обґрунтування |
+|---|---|---|
+| `Child` | Soft delete (`status = archived`, `archivedAt`) | Історія зарахувань, рахунків, платежів має залишатися |
+| `Parent` | Soft delete або залишаємо, якщо є історія платежів | Фінансова історія |
+| `Group` | Soft delete (`isActive = false`) | На неї посилаються старі `GroupEnrollment` та `Schedule` |
+| `Employee` | Soft delete (`isActive = false`) | Зарплатна історія має зберігатися |
+| `Room` | Soft delete | Історія розкладу |
+| `Invoice` | Ніколи не видаляємо | Фінансовий документ; скасування — `status = cancelled` |
+| `Payment` | Ніколи не видаляємо | Фінансовий аудит |
+| `SalaryCalculation` | Ніколи не видаляємо | Історія нарахувань |
+| `Tariff` | Ніколи не видаляємо | Старі рахунки посилаються на тариф; зміна — новий запис із новою `validFrom` |
+
+**Правило:** фінансові документи (`Invoice`, `Payment`, `SalaryCalculation`) не підлягають фізичному видаленню. Для скасування використовується статус.
+
+---
+
+### Історичні тарифи та фінансові розрахунки
+
+**Проблема:** якщо ціна харчування змінюється з 50 на 60 грн, рахунок за минулий місяць не повинен перерахуватися на 60.
+
+**Рішення:**
+
+1. **`Tariff` — версійна колекція.** Кожна зміна ціни = новий документ із полем `validFrom`. Старий запис не редагується.
+2. **`InvoiceLine` зберігає `tariffSnapshot`.** При створенні рахунку копіюємо `{ tariffId, amount, validFrom }` у рядок рахунку.
+3. **`Invoice` зберігає `amountDue` як число**, а не як посилання на тариф. Перерахунок — лише через окрему операцію коригування (credit note), а не через зміну тарифу.
+
+**Приклад:**
+Tariff: { type: "meals", amount: 50, validFrom: "2026-01-01" }
+Tariff: { type: "meals", amount: 60, validFrom: "2026-06-01" }
+
+Invoice за травень 2026 → InvoiceLine.tariffSnapshot = { amount: 50, validFrom: "2026-01-01" }
+Invoice за червень 2026 → InvoiceLine.tariffSnapshot = { amount: 60, validFrom: "2026-06-01" }
+
+text
+
+Зміна тарифу в липні **не торкається** травневого чи червневого рахунку.
+
+---
+
+### Захист від дублювання
+
+**Рахунки:**
+```prisma
+@@unique([childId, periodYear, periodMonth, type])
+Гарантує, що на одну дитину за один місяць одного типу (місячний/річний) не може бути двох рахунків. Спроба створити дубль → помилка унікальності → застосунок обробляє як «рахунок уже існує».
+
+Платежі:
+
+Якщо платежі надходять із зовнішньої системи (банк, платіжний шлюз) — зберігаємо externalPaymentId з @unique.
+
+Якщо ручні — застосунок перевіряє invoiceId + amount + paidAt перед вставкою (на рівні бізнес-логіки).
+
+Приклад зв'язків (для перевірки розуміння)
+Дитина → батьки → рахунки:
+
+text
+Child (Марія, childCode: "C-001")
+  ├── ChildParent → Parent (Олена, relation: mother)
+  ├── ChildParent → Parent (Іван, relation: father)
+  ├── GroupEnrollment → Group (Молодша, startDate: 2026-09-01)
+  └── Invoice (2026-10, monthly, amountDue: 5000)
+        ├── InvoiceLine (meals, tariffSnapshot: {amount: 50})
+        ├── InvoiceLine (education, tariffSnapshot: {amount: 4500})
+        └── Payment (amount: 2500, paidAt: 2026-10-10) — часткова оплата
+Група → розклад → працівники та приміщення:
+
+text
+Group (Молодша)
+  └── Schedule (dayOfWeek: 1, startTime: "09:00", endTime: "09:30")
+        ├── Activity (Малювання)
+        ├── Employee (Оксана, role: teacher)
+        └── Room (Кабінет №1)
+Питання до ментора (погодити з Team Lead)
+Чи потрібен User для працівників (логін у систему), чи авторизація лише для адміністратора?
+
+Чи зберігаємо externalPaymentId обов'язковим для ручних платежів (генерувати внутрішній UUID)?
+
+Чи потрібна окрема колекція CreditNote для коригувань, чи достатньо InvoiceLine зі знаком мінус?
+
+Чи є вимога зберігати історію змін тарифу з автором (хто змінив і коли)?
+
+Статус: структура узгоджена з розробником, відповідальним за Prisma. Версія 1. Детальна логіка розкладу, розподіл витрат між групами, фінансова аналітика та прогнозування — на наступні кола.
+
+text
+
+---
+
+Це можна вставляти в README як окремий розділ. Хочете, щоб я ще додав приклад Prisma-схеми для ключових моделей (`Child`, `Invoice`, `Tariff`, `ChildParent`) — щоб розробник одразу бачив, як це виглядає в коді?
