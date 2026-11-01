@@ -1,4 +1,3 @@
-
 const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
 const paymentsService = require("../../src/modules/billing/payments/payments.service");
@@ -91,8 +90,9 @@ describe("Payments service", () => {
     test("rejects duplicate idempotency key", async () => {
       tx.payment.findUnique.mockResolvedValue({ id: "existing-payment" });
 
-      await expect(paymentsService.create(paymentData))
-        .rejects.toMatchObject({ code: "DUPLICATE_PAYMENT" });
+      await expect(paymentsService.create(paymentData)).rejects.toMatchObject({
+        code: "DUPLICATE_PAYMENT"
+      });
 
       expect(tx.payment.create).not.toHaveBeenCalled();
     });
@@ -100,44 +100,44 @@ describe("Payments service", () => {
     test("rejects payment when payer does not exist", async () => {
       tx.parent.findUnique.mockResolvedValue(null);
 
-      await expect(paymentsService.create(paymentData))
-        .rejects.toMatchObject({ code: "PAYER_NOT_FOUND" });
+      await expect(paymentsService.create(paymentData)).rejects.toMatchObject({
+        code: "PAYER_NOT_FOUND"
+      });
     });
 
     test("rejects payment when invoice does not exist", async () => {
       tx.invoice.findMany.mockResolvedValue([]);
 
-      await expect(paymentsService.create(paymentData))
-        .rejects.toMatchObject({ code: "INVOICE_NOT_FOUND" });
+      await expect(paymentsService.create(paymentData)).rejects.toMatchObject({
+        code: "INVOICE_NOT_FOUND"
+      });
     });
 
     test("rejects payment when payer does not match invoice payer", async () => {
-      tx.invoice.findMany.mockResolvedValue([
-        { ...invoice, payerId: "another-parent" }
-      ]);
+      tx.invoice.findMany.mockResolvedValue([{ ...invoice, payerId: "another-parent" }]);
 
-      await expect(paymentsService.create(paymentData))
-        .rejects.toMatchObject({ code: "PAYER_MISMATCH" });
+      await expect(paymentsService.create(paymentData)).rejects.toMatchObject({
+        code: "PAYER_MISMATCH"
+      });
     });
 
     test("rejects payment for an invoice that is not payable", async () => {
-      tx.invoice.findMany.mockResolvedValue([
-        { ...invoice, status: "DRAFT" }
-      ]);
+      tx.invoice.findMany.mockResolvedValue([{ ...invoice, status: "DRAFT" }]);
 
-      await expect(paymentsService.create(paymentData))
-        .rejects.toMatchObject({ code: "INVOICE_NOT_PAYABLE" });
+      await expect(paymentsService.create(paymentData)).rejects.toMatchObject({
+        code: "INVOICE_NOT_PAYABLE"
+      });
     });
 
     test("rejects allocation exceeding outstanding balance", async () => {
-      tx.paymentAllocation.findMany.mockResolvedValue([
-        { amount: 800n }
-      ]);
+      tx.paymentAllocation.findMany.mockResolvedValue([{ amount: 800n }]);
 
-      await expect(paymentsService.create({
-        ...paymentData,
-        allocations: [{ invoiceId: "invoice-1", amount: 300 }]
-      })).rejects.toMatchObject({
+      await expect(
+        paymentsService.create({
+          ...paymentData,
+          allocations: [{ invoiceId: "invoice-1", amount: 300 }]
+        })
+      ).rejects.toMatchObject({
         code: "ALLOCATION_EXCEEDS_BALANCE"
       });
     });
@@ -185,8 +185,9 @@ describe("Payments service", () => {
     test("rejects when payment does not exist", async () => {
       prisma.payment.findUnique.mockResolvedValue(null);
 
-      await expect(paymentsService.getById("missing"))
-        .rejects.toMatchObject({ code: "PAYMENT_NOT_FOUND" });
+      await expect(paymentsService.getById("missing")).rejects.toMatchObject({
+        code: "PAYMENT_NOT_FOUND"
+      });
     });
   });
 
@@ -219,8 +220,9 @@ describe("Payments service", () => {
     test("rejects when payment does not exist", async () => {
       tx.payment.findUnique.mockResolvedValue(null);
 
-      await expect(paymentsService.cancel("missing"))
-        .rejects.toMatchObject({ code: "PAYMENT_NOT_FOUND" });
+      await expect(paymentsService.cancel("missing")).rejects.toMatchObject({
+        code: "PAYMENT_NOT_FOUND"
+      });
     });
 
     test("rejects when payment is already cancelled", async () => {
@@ -230,8 +232,9 @@ describe("Payments service", () => {
         allocations: []
       });
 
-      await expect(paymentsService.cancel("payment-1"))
-        .rejects.toMatchObject({ code: "PAYMENT_ALREADY_CANCELLED" });
+      await expect(paymentsService.cancel("payment-1")).rejects.toMatchObject({
+        code: "PAYMENT_ALREADY_CANCELLED"
+      });
     });
 
     test("rejects when payment is not completed", async () => {
@@ -241,8 +244,9 @@ describe("Payments service", () => {
         allocations: []
       });
 
-      await expect(paymentsService.cancel("payment-1"))
-        .rejects.toMatchObject({ code: "PAYMENT_NOT_COMPLETED" });
+      await expect(paymentsService.cancel("payment-1")).rejects.toMatchObject({
+        code: "PAYMENT_NOT_COMPLETED"
+      });
     });
   });
 });

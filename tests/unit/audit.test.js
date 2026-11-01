@@ -58,10 +58,7 @@ describe("Audit service", () => {
           { name: "First", password: "secret" },
           { name: "Second", token: "secret" }
         ])
-      ).toEqual([
-        { name: "First" },
-        { name: "Second" }
-      ]);
+      ).toEqual([{ name: "First" }, { name: "Second" }]);
     });
   });
 

@@ -1,4 +1,3 @@
-
 const prisma = require("../../src/config/prisma");
 const expensesService = require("../../src/modules/billing/expenses/expenses.service");
 
@@ -32,10 +31,7 @@ describe("Expenses service", () => {
 
       expect(prisma.expense.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
 
       expect(result).toHaveLength(1);
@@ -50,10 +46,7 @@ describe("Expenses service", () => {
 
       expect(prisma.expense.findMany).toHaveBeenCalledWith({
         where: { category: "FOOD" },
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
     });
 
@@ -72,10 +65,7 @@ describe("Expenses service", () => {
             lt: new Date("2026-11-01T00:00:00.000Z")
           }
         },
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
     });
 
@@ -90,10 +80,7 @@ describe("Expenses service", () => {
             gte: new Date("2026-10-01T00:00:00.000Z")
           }
         },
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
     });
 
@@ -108,10 +95,7 @@ describe("Expenses service", () => {
             lt: new Date("2026-11-01T00:00:00.000Z")
           }
         },
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
     });
 
@@ -140,9 +124,7 @@ describe("Expenses service", () => {
     test("rejects when expense does not exist", async () => {
       prisma.expense.findUnique.mockResolvedValue(null);
 
-      await expect(
-        expensesService.getById("missing")
-      ).rejects.toMatchObject({
+      await expect(expensesService.getById("missing")).rejects.toMatchObject({
         code: "EXPENSE_NOT_FOUND"
       });
     });

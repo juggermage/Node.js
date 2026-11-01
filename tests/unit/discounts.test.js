@@ -1,4 +1,3 @@
-
 const prisma = require("../../src/config/prisma");
 const discountsService = require("../../src/modules/billing/discounts/discounts.service");
 
@@ -63,15 +62,15 @@ describe("Discounts service", () => {
         percentage: value
       });
 
-      await expect(
-        discountsService.create({ name: "Discount", value })
-      ).resolves.toMatchObject({ percentage: value });
+      await expect(discountsService.create({ name: "Discount", value })).resolves.toMatchObject({
+        percentage: value
+      });
     });
 
     test("rejects unsupported discount value", async () => {
-      await expect(
-        discountsService.create({ name: "Discount", value: 15 })
-      ).rejects.toMatchObject({ code: "INVALID_DISCOUNT_VALUE" });
+      await expect(discountsService.create({ name: "Discount", value: 15 })).rejects.toMatchObject({
+        code: "INVALID_DISCOUNT_VALUE"
+      });
 
       expect(prisma.discount.create).not.toHaveBeenCalled();
     });
@@ -90,9 +89,9 @@ describe("Discounts service", () => {
       prisma.discount.findFirst.mockResolvedValue(null);
       prisma.discount.create.mockRejectedValue({ code: "P2002" });
 
-      await expect(
-        discountsService.create({ name: "Discount", value: 10 })
-      ).rejects.toMatchObject({ code: "DISCOUNT_NAME_EXISTS" });
+      await expect(discountsService.create({ name: "Discount", value: 10 })).rejects.toMatchObject({
+        code: "DISCOUNT_NAME_EXISTS"
+      });
     });
   });
 
@@ -138,9 +137,9 @@ describe("Discounts service", () => {
     test("rejects when discount does not exist", async () => {
       prisma.discount.findUnique.mockResolvedValue(null);
 
-      await expect(
-        discountsService.getById("missing")
-      ).rejects.toMatchObject({ code: "DISCOUNT_NOT_FOUND" });
+      await expect(discountsService.getById("missing")).rejects.toMatchObject({
+        code: "DISCOUNT_NOT_FOUND"
+      });
     });
   });
 
@@ -165,9 +164,9 @@ describe("Discounts service", () => {
     test("rejects when discount does not exist", async () => {
       prisma.discount.findUnique.mockResolvedValue(null);
 
-      await expect(
-        discountsService.deactivate("missing")
-      ).rejects.toMatchObject({ code: "DISCOUNT_NOT_FOUND" });
+      await expect(discountsService.deactivate("missing")).rejects.toMatchObject({
+        code: "DISCOUNT_NOT_FOUND"
+      });
 
       expect(prisma.discount.update).not.toHaveBeenCalled();
     });
@@ -176,9 +175,9 @@ describe("Discounts service", () => {
       prisma.discount.findUnique.mockResolvedValue(discount);
       prisma.discount.update.mockRejectedValue({ code: "P2025" });
 
-      await expect(
-        discountsService.deactivate("discount-1")
-      ).rejects.toMatchObject({ code: "DISCOUNT_NOT_FOUND" });
+      await expect(discountsService.deactivate("discount-1")).rejects.toMatchObject({
+        code: "DISCOUNT_NOT_FOUND"
+      });
     });
   });
 });

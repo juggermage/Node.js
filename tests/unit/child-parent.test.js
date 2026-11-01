@@ -31,10 +31,7 @@ const link = {
 };
 
 const activeRelationshipFilter = {
-  OR: [
-    { endDate: null },
-    { endDate: { isSet: false } }
-  ]
+  OR: [{ endDate: null }, { endDate: { isSet: false } }]
 };
 
 beforeEach(() => {
@@ -207,9 +204,9 @@ describe("Child-Parent service", () => {
     test("rejects when relationship does not exist", async () => {
       prisma.childParent.findUnique.mockResolvedValue(null);
 
-      await expect(
-        childParentService.getById("missing")
-      ).rejects.toMatchObject({ code: "CHILD_PARENT_NOT_FOUND" });
+      await expect(childParentService.getById("missing")).rejects.toMatchObject({
+        code: "CHILD_PARENT_NOT_FOUND"
+      });
     });
   });
 
@@ -246,9 +243,9 @@ describe("Child-Parent service", () => {
     test("rejects when child does not exist", async () => {
       prisma.child.findUnique.mockResolvedValue(null);
 
-      await expect(
-        childParentService.getForChild("missing")
-      ).rejects.toMatchObject({ code: "CHILD_NOT_FOUND" });
+      await expect(childParentService.getForChild("missing")).rejects.toMatchObject({
+        code: "CHILD_NOT_FOUND"
+      });
 
       expect(prisma.childParent.findMany).not.toHaveBeenCalled();
     });
@@ -287,9 +284,9 @@ describe("Child-Parent service", () => {
     test("rejects when parent does not exist", async () => {
       prisma.parent.findUnique.mockResolvedValue(null);
 
-      await expect(
-        childParentService.getForParent("missing")
-      ).rejects.toMatchObject({ code: "PARENT_NOT_FOUND" });
+      await expect(childParentService.getForParent("missing")).rejects.toMatchObject({
+        code: "PARENT_NOT_FOUND"
+      });
 
       expect(prisma.childParent.findMany).not.toHaveBeenCalled();
     });
@@ -317,9 +314,9 @@ describe("Child-Parent service", () => {
     test("rejects when relationship does not exist", async () => {
       prisma.childParent.findUnique.mockResolvedValue(null);
 
-      await expect(
-        childParentService.complete("missing")
-      ).rejects.toMatchObject({ code: "CHILD_PARENT_NOT_FOUND" });
+      await expect(childParentService.complete("missing")).rejects.toMatchObject({
+        code: "CHILD_PARENT_NOT_FOUND"
+      });
     });
 
     test("rejects when relationship has already ended", async () => {
@@ -328,9 +325,9 @@ describe("Child-Parent service", () => {
         endDate: new Date("2026-05-01")
       });
 
-      await expect(
-        childParentService.complete("link-1")
-      ).rejects.toMatchObject({ code: "RELATIONSHIP_ALREADY_ENDED" });
+      await expect(childParentService.complete("link-1")).rejects.toMatchObject({
+        code: "RELATIONSHIP_ALREADY_ENDED"
+      });
 
       expect(prisma.childParent.update).not.toHaveBeenCalled();
     });

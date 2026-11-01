@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => {
   const mockTx = {
     invoice: {
@@ -230,9 +229,7 @@ describe("Invoices module", () => {
         dueDate: "2026-02-30"
       });
 
-      expect(result.error.message).toContain(
-        "Date must be a valid calendar date"
-      );
+      expect(result.error.message).toContain("Date must be a valid calendar date");
     });
 
     test("accepts valid invoice query filters", () => {
@@ -303,9 +300,9 @@ describe("Invoices module", () => {
         id: invoiceId
       });
 
-      await expect(
-        invoiceService.createMonthly(monthlyData)
-      ).rejects.toThrow("Invoice already exists for this period");
+      await expect(invoiceService.createMonthly(monthlyData)).rejects.toThrow(
+        "Invoice already exists for this period"
+      );
 
       expect(tx.invoice.create).not.toHaveBeenCalled();
     });
@@ -313,25 +310,23 @@ describe("Invoices module", () => {
     test("rejects when child is not active", async () => {
       tx.child.findUnique.mockResolvedValue(null);
 
-      await expect(
-        invoiceService.createMonthly(monthlyData)
-      ).rejects.toThrow("Active child not found");
+      await expect(invoiceService.createMonthly(monthlyData)).rejects.toThrow(
+        "Active child not found"
+      );
     });
 
     test("rejects when payer is not active", async () => {
       tx.parent.findUnique.mockResolvedValue(null);
 
-      await expect(
-        invoiceService.createMonthly(monthlyData)
-      ).rejects.toThrow("Active payer not found");
+      await expect(invoiceService.createMonthly(monthlyData)).rejects.toThrow(
+        "Active payer not found"
+      );
     });
 
     test("rejects when payer is not related to child", async () => {
       tx.childParent.findFirst.mockResolvedValue(null);
 
-      await expect(
-        invoiceService.createMonthly(monthlyData)
-      ).rejects.toThrow(
+      await expect(invoiceService.createMonthly(monthlyData)).rejects.toThrow(
         "Payer is not an active parent or guardian of this child"
       );
     });
@@ -365,9 +360,7 @@ describe("Invoices module", () => {
           periodMonth: 2,
           attendedDays: 29
         })
-      ).rejects.toThrow(
-        "Attended days exceed the number of days in the month"
-      );
+      ).rejects.toThrow("Attended days exceed the number of days in the month");
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -407,9 +400,9 @@ describe("Invoices module", () => {
         id: invoiceId
       });
 
-      await expect(
-        invoiceService.createAnnual(annualData)
-      ).rejects.toThrow("Invoice already exists for this period");
+      await expect(invoiceService.createAnnual(annualData)).rejects.toThrow(
+        "Invoice already exists for this period"
+      );
 
       expect(tx.invoice.create).not.toHaveBeenCalled();
     });
@@ -419,10 +412,7 @@ describe("Invoices module", () => {
     test("returns invoices with calculated payment amounts", async () => {
       prisma.invoice.findMany.mockResolvedValue([
         createInvoiceResult({
-          allocations: [
-            { amount: 5000n },
-            { amount: 2000n }
-          ]
+          allocations: [{ amount: 5000n }, { amount: 2000n }]
         })
       ]);
 
@@ -501,9 +491,7 @@ describe("Invoices module", () => {
     test("throws error when invoice does not exist", async () => {
       prisma.invoice.findUnique.mockResolvedValue(null);
 
-      await expect(
-        invoiceService.getById(invoiceId)
-      ).rejects.toThrow("Invoice not found");
+      await expect(invoiceService.getById(invoiceId)).rejects.toThrow("Invoice not found");
     });
   });
 
@@ -535,9 +523,7 @@ describe("Invoices module", () => {
     test("throws error when invoice does not exist", async () => {
       tx.invoice.findUnique.mockResolvedValue(null);
 
-      await expect(
-        invoiceService.cancel(invoiceId)
-      ).rejects.toThrow("Invoice not found");
+      await expect(invoiceService.cancel(invoiceId)).rejects.toThrow("Invoice not found");
 
       expect(tx.invoice.update).not.toHaveBeenCalled();
     });
@@ -549,9 +535,9 @@ describe("Invoices module", () => {
         })
       );
 
-      await expect(
-        invoiceService.cancel(invoiceId)
-      ).rejects.toThrow("Invoice is already cancelled");
+      await expect(invoiceService.cancel(invoiceId)).rejects.toThrow(
+        "Invoice is already cancelled"
+      );
     });
 
     test("rejects cancellation of paid invoice", async () => {
@@ -561,9 +547,7 @@ describe("Invoices module", () => {
         })
       );
 
-      await expect(
-        invoiceService.cancel(invoiceId)
-      ).rejects.toThrow(
+      await expect(invoiceService.cancel(invoiceId)).rejects.toThrow(
         "Paid or partially paid invoice cannot be cancelled"
       );
     });
@@ -575,9 +559,7 @@ describe("Invoices module", () => {
         })
       );
 
-      await expect(
-        invoiceService.cancel(invoiceId)
-      ).rejects.toThrow(
+      await expect(invoiceService.cancel(invoiceId)).rejects.toThrow(
         "Paid or partially paid invoice cannot be cancelled"
       );
     });
@@ -589,13 +571,11 @@ describe("Invoices module", () => {
         })
       );
 
-      tx.paymentAllocation.findMany.mockResolvedValue([
-        { amount: 5000n }
-      ]);
+      tx.paymentAllocation.findMany.mockResolvedValue([{ amount: 5000n }]);
 
-      await expect(
-        invoiceService.cancel(invoiceId)
-      ).rejects.toThrow("Invoice has completed payments");
+      await expect(invoiceService.cancel(invoiceId)).rejects.toThrow(
+        "Invoice has completed payments"
+      );
 
       expect(tx.invoice.update).not.toHaveBeenCalled();
     });

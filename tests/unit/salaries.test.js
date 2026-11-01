@@ -90,10 +90,7 @@ describe("Salaries service", () => {
   }
 
   test("calculates fixed salary for manager", async () => {
-    const result = await calculateForEmployee(
-      mockEmployee("MANAGER"),
-      mockRate()
-    );
+    const result = await calculateForEmployee(mockEmployee("MANAGER"), mockRate());
 
     expect(result[0].totalAmount).toBe(80000);
     expect(result[0].baseAmount).toBe(80000);
@@ -228,9 +225,7 @@ describe("Salaries service", () => {
   });
 
   test("rejects calculation when salary rate is missing", async () => {
-    tx.employee.findMany.mockResolvedValue([
-      mockEmployee("MANAGER")
-    ]);
+    tx.employee.findMany.mockResolvedValue([mockEmployee("MANAGER")]);
     tx.salaryRate.findFirst.mockResolvedValue(null);
 
     await expect(
@@ -243,9 +238,7 @@ describe("Salaries service", () => {
   });
 
   test("rejects duplicate salary calculation", async () => {
-    tx.employee.findMany.mockResolvedValue([
-      mockEmployee("MANAGER")
-    ]);
+    tx.employee.findMany.mockResolvedValue([mockEmployee("MANAGER")]);
     tx.salaryRate.findFirst.mockResolvedValue(mockRate());
 
     tx.salaryCalculation.create.mockRejectedValue({

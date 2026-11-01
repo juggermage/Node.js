@@ -19,15 +19,11 @@ describe("Meals service", () => {
 
   describe("calculateAge", () => {
     test("calculates child's age correctly", () => {
-      expect(
-        mealsService.calculateAge("2022-05-10", new Date("2026-05-10T00:00:00.000Z"))
-      ).toBe(4);
+      expect(mealsService.calculateAge("2022-05-10", new Date("2026-05-10T00:00:00.000Z"))).toBe(4);
     });
 
     test("does not increase age before birthday", () => {
-      expect(
-        mealsService.calculateAge("2022-05-10", new Date("2026-05-09T00:00:00.000Z"))
-      ).toBe(3);
+      expect(mealsService.calculateAge("2022-05-10", new Date("2026-05-09T00:00:00.000Z"))).toBe(3);
     });
 
     test("rejects invalid birth date", () => {
@@ -51,15 +47,13 @@ describe("Meals service", () => {
     });
 
     test("rejects period when start is after end", () => {
-      expect(() =>
-        mealsService.validatePeriod("2026-05-20", "2026-05-10")
-      ).toThrow("Period start is after period end");
+      expect(() => mealsService.validatePeriod("2026-05-20", "2026-05-10")).toThrow(
+        "Period start is after period end"
+      );
     });
 
     test("rejects invalid date format", () => {
-      expect(() =>
-        mealsService.validatePeriod("10.05.2026", "2026-05-20")
-      ).toThrow("Invalid date");
+      expect(() => mealsService.validatePeriod("10.05.2026", "2026-05-20")).toThrow("Invalid date");
     });
   });
 
@@ -73,28 +67,20 @@ describe("Meals service", () => {
     ])(
       "calculates amount for rate %i and %i attended days",
       (rate, attendedDays, maximumDays, expected) => {
-        expect(
-          mealsService.calculateAmount(rate, attendedDays, maximumDays)
-        ).toBe(expected);
+        expect(mealsService.calculateAmount(rate, attendedDays, maximumDays)).toBe(expected);
       }
     );
 
     test("rejects negative attendance days", () => {
-      expect(() =>
-        mealsService.calculateAmount(300, -1, 31)
-      ).toThrow("Invalid attendance days");
+      expect(() => mealsService.calculateAmount(300, -1, 31)).toThrow("Invalid attendance days");
     });
 
     test("rejects attendance days exceeding period", () => {
-      expect(() =>
-        mealsService.calculateAmount(300, 32, 31)
-      ).toThrow("Invalid attendance days");
+      expect(() => mealsService.calculateAmount(300, 32, 31)).toThrow("Invalid attendance days");
     });
 
     test("rejects invalid meal rate", () => {
-      expect(() =>
-        mealsService.calculateAmount(0, 10, 31)
-      ).toThrow("Invalid meal rate");
+      expect(() => mealsService.calculateAmount(0, 10, 31)).toThrow("Invalid meal rate");
     });
   });
 

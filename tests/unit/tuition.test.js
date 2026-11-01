@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   tuitionRate: {
     findMany: jest.fn(),
@@ -232,10 +231,7 @@ describe("Tuition service", () => {
       expect(prisma.tuitionRate.findMany).toHaveBeenCalledWith({
         where: {
           validFrom: { lte: date },
-          OR: [
-            { validTo: null },
-            { validTo: { gte: date } }
-          ]
+          OR: [{ validTo: null }, { validTo: { gte: date } }]
         },
         orderBy: { validFrom: "desc" }
       });
@@ -252,9 +248,7 @@ describe("Tuition service", () => {
     });
 
     test("should throw when rate is not found", async () => {
-      await expect(
-        service.getApplicableRate("2026-01-15")
-      ).rejects.toMatchObject({
+      await expect(service.getApplicableRate("2026-01-15")).rejects.toMatchObject({
         statusCode: HTTP_STATUS.NOT_FOUND,
         code: "TUITION_RATE_NOT_FOUND"
       });
@@ -345,24 +339,15 @@ describe("Tuition service", () => {
 
   describe("validatePeriod", () => {
     test("should return valid period with number of days", () => {
-      const result = service.validatePeriod(
-        "2026-01-01",
-        "2026-01-31"
-      );
+      const result = service.validatePeriod("2026-01-01", "2026-01-31");
 
       expect(result.days).toBe(31);
-      expect(result.from).toEqual(
-        new Date("2026-01-01T00:00:00.000Z")
-      );
-      expect(result.to).toEqual(
-        new Date("2026-01-31T00:00:00.000Z")
-      );
+      expect(result.from).toEqual(new Date("2026-01-01T00:00:00.000Z"));
+      expect(result.to).toEqual(new Date("2026-01-31T00:00:00.000Z"));
     });
 
     test("should reject invalid date", () => {
-      expect(() =>
-        service.validatePeriod("2026-02-30", "2026-03-01")
-      ).toThrow(
+      expect(() => service.validatePeriod("2026-02-30", "2026-03-01")).toThrow(
         expect.objectContaining({
           code: "INVALID_DATE"
         })
@@ -370,9 +355,7 @@ describe("Tuition service", () => {
     });
 
     test("should reject reversed period", () => {
-      expect(() =>
-        service.validatePeriod("2026-02-01", "2026-01-01")
-      ).toThrow(
+      expect(() => service.validatePeriod("2026-02-01", "2026-01-01")).toThrow(
         expect.objectContaining({
           code: "INVALID_PERIOD"
         })

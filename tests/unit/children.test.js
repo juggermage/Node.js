@@ -1,4 +1,3 @@
-
 const prisma = require("../../src/config/prisma");
 const childrenService = require("../../src/modules/children/children.service");
 
@@ -142,9 +141,9 @@ describe("Children service", () => {
     test("rejects when child does not exist", async () => {
       prisma.child.findFirst.mockResolvedValue(null);
 
-      await expect(
-        childrenService.getById("missing")
-      ).rejects.toMatchObject({ code: "CHILD_NOT_FOUND" });
+      await expect(childrenService.getById("missing")).rejects.toMatchObject({
+        code: "CHILD_NOT_FOUND"
+      });
     });
   });
 
@@ -220,9 +219,9 @@ describe("Children service", () => {
     test("rejects when child does not exist", async () => {
       prisma.child.updateMany.mockResolvedValue({ count: 0 });
 
-      await expect(
-        childrenService.update("missing", { firstName: "Petro" })
-      ).rejects.toMatchObject({ code: "CHILD_NOT_FOUND" });
+      await expect(childrenService.update("missing", { firstName: "Petro" })).rejects.toMatchObject(
+        { code: "CHILD_NOT_FOUND" }
+      );
 
       expect(prisma.child.findFirst).not.toHaveBeenCalled();
     });
@@ -249,9 +248,9 @@ describe("Children service", () => {
     test("rejects when child does not exist or is already archived", async () => {
       prisma.child.updateMany.mockResolvedValue({ count: 0 });
 
-      await expect(
-        childrenService.remove("missing")
-      ).rejects.toMatchObject({ code: "CHILD_NOT_FOUND" });
+      await expect(childrenService.remove("missing")).rejects.toMatchObject({
+        code: "CHILD_NOT_FOUND"
+      });
     });
   });
 });

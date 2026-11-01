@@ -1,4 +1,3 @@
-
 const prisma = require("../../src/config/prisma");
 const employeesService = require("../../src/modules/employees/employees.service");
 
@@ -102,9 +101,9 @@ describe("Employees service", () => {
     test("rejects when employee does not exist", async () => {
       prisma.employee.findUnique.mockResolvedValue(null);
 
-      await expect(
-        employeesService.getById("missing")
-      ).rejects.toMatchObject({ code: "EMPLOYEE_NOT_FOUND" });
+      await expect(employeesService.getById("missing")).rejects.toMatchObject({
+        code: "EMPLOYEE_NOT_FOUND"
+      });
     });
 
     test("rejects archived employee", async () => {
@@ -113,9 +112,9 @@ describe("Employees service", () => {
         status: "ARCHIVED"
       });
 
-      await expect(
-        employeesService.getById("employee-1")
-      ).rejects.toMatchObject({ code: "EMPLOYEE_NOT_FOUND" });
+      await expect(employeesService.getById("employee-1")).rejects.toMatchObject({
+        code: "EMPLOYEE_NOT_FOUND"
+      });
     });
   });
 
@@ -327,9 +326,7 @@ describe("Employees service", () => {
       prisma.employee.findUnique.mockResolvedValue(employee);
       prisma.staffAssignment.count.mockResolvedValue(1);
 
-      await expect(
-        employeesService.remove("employee-1")
-      ).rejects.toMatchObject({
+      await expect(employeesService.remove("employee-1")).rejects.toMatchObject({
         code: "EMPLOYEE_HAS_RESPONSIBILITIES"
       });
 
@@ -339,9 +336,9 @@ describe("Employees service", () => {
     test("rejects removal when employee does not exist", async () => {
       prisma.employee.findUnique.mockResolvedValue(null);
 
-      await expect(
-        employeesService.remove("missing")
-      ).rejects.toMatchObject({ code: "EMPLOYEE_NOT_FOUND" });
+      await expect(employeesService.remove("missing")).rejects.toMatchObject({
+        code: "EMPLOYEE_NOT_FOUND"
+      });
 
       expect(prisma.employee.update).not.toHaveBeenCalled();
     });
