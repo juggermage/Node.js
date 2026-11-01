@@ -1,0 +1,16 @@
+info:
+  name: Get Deleted Subject
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/subjects/62a9bd77-e723-47d7-812b-9127db2bb4aa
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

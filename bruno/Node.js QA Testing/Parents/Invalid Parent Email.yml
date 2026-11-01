@@ -1,0 +1,26 @@
+info:
+  name: Invalid Parent Email
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/parents
+  body:
+    type: json
+    data: |-
+      {
+        "firstName": "QA",
+        "lastName": "TestParent",
+        "middleName": "Testing",
+        "phone": "+380991234567",
+        "email": "invalid-email"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,16 @@
+info:
+  name: Reject Invalid Tuition Period Date
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/tuition/calculate/monthly
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

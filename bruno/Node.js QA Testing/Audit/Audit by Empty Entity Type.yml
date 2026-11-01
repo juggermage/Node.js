@@ -1,0 +1,20 @@
+info:
+  name: Audit by Empty Entity Type
+  type: http
+  seq: 9
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/audit?entityType=
+  params:
+    - name: entityType
+      value: ""
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

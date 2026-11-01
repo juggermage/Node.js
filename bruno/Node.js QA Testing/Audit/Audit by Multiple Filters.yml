@@ -1,0 +1,29 @@
+info:
+  name: Audit by Multiple Filters
+  type: http
+  seq: 11
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/audit?from=2026-01-01T00:00:00.000Z&to=2026-12-31T23:59:59.999Z&entityType=Payment&action=CREATE
+  params:
+    - name: from
+      value: 2026-01-01T00:00:00.000Z
+      type: query
+    - name: to
+      value: 2026-12-31T23:59:59.999Z
+      type: query
+    - name: entityType
+      value: Payment
+      type: query
+    - name: action
+      value: CREATE
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

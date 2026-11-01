@@ -1,0 +1,22 @@
+info:
+  name: Create Discount - Missing Value
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/discounts
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Тестова знижка"
+      }Create Discount - Empty Name
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

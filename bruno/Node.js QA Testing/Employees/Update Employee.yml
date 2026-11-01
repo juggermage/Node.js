@@ -1,0 +1,24 @@
+info:
+  name: Update Employee
+  type: http
+  seq: 2
+
+http:
+  method: PATCH
+  url: http://localhost:3000/api/v1/employees/6ae1f19dd7c5c4b1f8c92a36
+  body:
+    type: json
+    data: |-
+      {
+        "firstName": "Іван",
+        "lastName": "Коваленко",
+        "phone": "+380671112233"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

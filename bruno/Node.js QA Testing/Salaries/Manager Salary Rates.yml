@@ -1,0 +1,20 @@
+info:
+  name: Manager Salary Rates
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/billing/salaries/rates?employeeId=6ae627dffbadd32832f57a47
+  params:
+    - name: employeeId
+      value: 6ae627dffbadd32832f57a47
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,26 @@
+info:
+  name: Calculate — Invalid Child ID
+  type: http
+  seq: 14
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/meals/calculate
+  body:
+    type: json
+    data: |-
+      {
+        "childId": "12345",
+        "periodStart": "2026-10-31",
+        "periodEnd": "2026-10-31",
+        "attendedDays": 1,
+        "ageYears": 4
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

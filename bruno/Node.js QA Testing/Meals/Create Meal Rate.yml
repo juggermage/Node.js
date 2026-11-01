@@ -1,0 +1,28 @@
+info:
+  name: Create Meal Rate
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/meals/rates
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "ageYears": 5,
+        "amount": 650,
+        "validFrom": "2026-10-01",
+        "validTo": "2026-10-30"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,20 @@
+info:
+  name: Get Expenses - Filter by Category
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/billing/expenses?category=FOOD
+  params:
+    - name: category
+      value: FOOD
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

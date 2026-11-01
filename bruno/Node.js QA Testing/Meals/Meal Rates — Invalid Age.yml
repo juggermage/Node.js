@@ -1,0 +1,20 @@
+info:
+  name: Meal Rates — Invalid Age
+  type: http
+  seq: 10
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/meals/rates?ageYears=6
+  params:
+    - name: ageYears
+      value: "6"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,23 @@
+info:
+  name: Create Assignment
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/teacher-subject
+  body:
+    type: json
+    data: |-
+      {
+        "employeeId": "123",
+        "subjectId": "456"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

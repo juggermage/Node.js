@@ -1,0 +1,24 @@
+info:
+  name: Create Assignment With Invalid Group ID
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/staff-assignments
+  body:
+    type: json
+    data: |-
+      {
+        "employeeId": "000000000000000000000000",
+        "groupId": "invalid-id",
+        "role": "EDUCATOR"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

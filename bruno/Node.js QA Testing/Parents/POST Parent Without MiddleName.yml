@@ -1,0 +1,25 @@
+info:
+  name: POST Parent Without MiddleName
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/parents
+  body:
+    type: json
+    data: |-
+      {
+        "firstName": "QA",
+        "lastName": "TestParent",
+        "phone": "+380671234598",
+        "email": "qa.parent.nomiddle@example.com"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

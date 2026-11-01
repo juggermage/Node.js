@@ -1,0 +1,7 @@
+info:
+  name: Staff Assignments
+  type: folder
+  seq: 10
+
+request:
+  auth: inherit

@@ -1,0 +1,7 @@
+info:
+  name: Teacher Subjects
+  type: folder
+  seq: 12
+
+request:
+  auth: inherit

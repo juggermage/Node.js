@@ -1,0 +1,24 @@
+info:
+  name: Create Educator Salary Rate
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/salaries/calculations
+  body:
+    type: json
+    data: |-
+      {
+        "periodYear": 2026,
+        "periodMonth": 11,
+        "employeeId": "6ae62a37fbadd32832f57a4d"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

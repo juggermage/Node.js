@@ -1,0 +1,16 @@
+info:
+  name: Get Expense - Valid ID
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/billing/expenses/6ae1d865d21fd97e1d28dc61
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

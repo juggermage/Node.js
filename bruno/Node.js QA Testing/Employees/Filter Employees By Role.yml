@@ -1,0 +1,20 @@
+info:
+  name: Filter Employees By Role
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/employees?role=MANAGER
+  params:
+    - name: role
+      value: MANAGER
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

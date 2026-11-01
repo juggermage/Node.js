@@ -1,0 +1,25 @@
+info:
+  name: Create Group - Invalid Age
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/groups
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Invalid Age Group",
+        "ageFromMonths": 48,
+        "ageToMonths": 36,
+        "capacity": 15
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

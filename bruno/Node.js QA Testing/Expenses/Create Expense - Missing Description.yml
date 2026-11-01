@@ -1,0 +1,24 @@
+info:
+  name: Create Expense - Missing Description
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/expenses
+  body:
+    type: json
+    data: |-
+      {
+        "category": "FOOD",
+        "amount": 15000,
+        "expenseDate": "2026-10-28"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

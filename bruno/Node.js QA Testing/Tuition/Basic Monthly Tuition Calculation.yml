@@ -1,0 +1,24 @@
+info:
+  name: Basic Monthly Tuition Calculation
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/tuition/calculate/monthly
+  body:
+    type: json
+    data: |-
+      {
+        "childId": "6ae63ddb0fb5760ceeae99f0",
+        "periodStart": "2026-11-01",
+        "periodEnd": "2026-11-30"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

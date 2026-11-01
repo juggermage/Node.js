@@ -1,0 +1,16 @@
+info:
+  name: Get Parent Before Restart
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/parents/82550c36-e638-4107-a6d9-1fec8b6b919f
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

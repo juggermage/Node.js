@@ -1,0 +1,24 @@
+info:
+  name: Create ChildParent - Parent UUID
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/child-parent
+  body:
+    type: json
+    data: |-
+      {
+        "childId": "6adcec157343d39eb310b159",
+        "parentId": "d8e33c3e-b9ba-4b7d-9518-32ce1aabfb92",
+        "relation": "FATHER"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

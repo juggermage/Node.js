@@ -1,0 +1,24 @@
+info:
+  name: Select Applicable Tuition Rate
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/tuition/calculate/monthly
+  body:
+    type: json
+    data: |-
+      {
+        "childId": "6ae63ddb0fb5760ceeae99f0",
+        "periodStart": "2026-10-01",
+        "periodEnd": "2026-10-31"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

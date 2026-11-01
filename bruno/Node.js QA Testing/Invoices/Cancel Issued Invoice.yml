@@ -1,0 +1,16 @@
+info:
+  name: Cancel Issued Invoice
+  type: http
+  seq: 6
+
+http:
+  method: PATCH
+  url: http://localhost:3000/api/v1/billing/invoices/6ae73e139991055461cb1d6f/cancel
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

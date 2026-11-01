@@ -1,0 +1,24 @@
+info:
+  name: Assistant Salary Calculation (15 Children)
+  type: http
+  seq: 17
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/salaries/calculations
+  body:
+    type: json
+    data: |-
+      {
+        "periodYear": 2027,
+        "periodMonth": 3,
+        "employeeId": "6ae63c290fb5760ceeae99e7"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

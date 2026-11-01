@@ -1,0 +1,16 @@
+info:
+  name: Reject Annual Calculation with Rate Change During Period
+  type: http
+  seq: 15
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/tuition/calculate/annual
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

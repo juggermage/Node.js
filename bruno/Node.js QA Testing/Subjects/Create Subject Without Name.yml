@@ -1,0 +1,22 @@
+info:
+  name: Create Subject Without Name
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/subjects
+  body:
+    type: json
+    data: |-
+      {
+        "description": "Тестовий предмет без назви"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

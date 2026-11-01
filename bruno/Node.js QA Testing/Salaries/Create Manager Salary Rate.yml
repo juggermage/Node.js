@@ -1,0 +1,24 @@
+info:
+  name: Create Manager Salary Rate
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/salaries/rates
+  body:
+    type: json
+    data: |-
+      {
+        "employeeId": "6ae627dffbadd32832f57a47",
+        "validFrom": "2026-10-01",
+        "validTo": null
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
