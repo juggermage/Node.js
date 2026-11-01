@@ -86,7 +86,7 @@ async function getChildAndPayer(tx, childId, payerId) {
       where: {
         childId,
         parentId: payerId,
-        endDate: null
+        OR: [{ endDate: null }, { endDate: { isSet: false } }]
       }
     })
   ]);
