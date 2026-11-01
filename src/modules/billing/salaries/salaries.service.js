@@ -236,13 +236,16 @@ async function getEmployeeRate(tx, employeeId, periodStart) {
 }
 
 async function getChildrenCount(tx, groupId, periodStart) {
-  return tx.groupEnrollment.count({
+  const enrollments = await tx.groupEnrollment.findMany({
     where: {
       groupId,
-      startDate: { lte: periodStart },
-      OR: [{ endDate: null }, { endDate: { gt: periodStart } }]
+      startDate: { lte: periodStart }
     }
   });
+
+  return enrollments.filter(
+    (enrollment) => enrollment.endDate == null || enrollment.endDate > periodStart
+  ).length;
 }
 
 async function getEmployeeChildrenCount(tx, employee, periodStart) {
@@ -254,12 +257,15 @@ async function getEmployeeChildrenCount(tx, employee, periodStart) {
     where: {
       employeeId: employee.id,
       role: employee.role,
-      startDate: { lte: periodStart },
-      OR: [{ endDate: null }, { endDate: { gt: periodStart } }]
+      startDate: { lte: periodStart }
     }
   });
 
-  if (assignments.length === 0) {
+  const activeAssignments = assignments.filter(
+    (assignment) => assignment.endDate == null || assignment.endDate > periodStart
+  );
+
+  if (activeAssignments.length === 0) {
     fail(
       "Staff assignment not found for the calculation period",
       HTTP_STATUS.UNPROCESSABLE_ENTITY,
@@ -267,7 +273,7 @@ async function getEmployeeChildrenCount(tx, employee, periodStart) {
     );
   }
 
-  if (assignments.length > 1) {
+  if (activeAssignments.length > 1) {
     fail(
       "Employee has multiple active group assignments for the calculation period",
       HTTP_STATUS.CONFLICT,
@@ -275,9 +281,8 @@ async function getEmployeeChildrenCount(tx, employee, periodStart) {
     );
   }
 
-  return getChildrenCount(tx, assignments[0].groupId, periodStart);
+  return getChildrenCount(tx, activeAssignments[0].groupId, periodStart);
 }
-
 async function calculateEmployeeSalary(tx, employee, periodYear, periodMonth, periodStart) {
   const rate = await getEmployeeRate(tx, employee.id, periodStart);
   const childrenCount = await getEmployeeChildrenCount(tx, employee, periodStart);
