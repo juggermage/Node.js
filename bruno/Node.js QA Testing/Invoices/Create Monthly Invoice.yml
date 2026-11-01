@@ -1,0 +1,16 @@
+info:
+  name: Create Monthly Invoice
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/invoices/monthly
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

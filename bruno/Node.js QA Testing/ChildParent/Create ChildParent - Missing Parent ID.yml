@@ -1,0 +1,23 @@
+info:
+  name: Create ChildParent - Missing Parent ID
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/child-parent
+  body:
+    type: json
+    data: |-
+      {
+        "childId": "507f1f77bcf86cd799439011",
+        "relation": "MOTHER"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

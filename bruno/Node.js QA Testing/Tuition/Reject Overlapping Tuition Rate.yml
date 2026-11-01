@@ -1,0 +1,25 @@
+info:
+  name: Reject Overlapping Tuition Rate
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/tuition/rates
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Overlapping November Rate",
+        "amount": 16000,
+        "validFrom": "2026-11-15",
+        "validTo": "2026-12-15"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,20 @@
+info:
+  name: Audit by Invalid Entity Type
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/audit?entityType=ааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааа
+  params:
+    - name: entityType
+      value: ааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааа
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

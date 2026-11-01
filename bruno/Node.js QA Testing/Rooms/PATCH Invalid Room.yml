@@ -1,0 +1,22 @@
+info:
+  name: PATCH Invalid Room
+  type: http
+  seq: 1
+
+http:
+  method: PATCH
+  url: http://localhost:3000/api/v1/rooms/6ade2ee20180c333fd863408
+  body:
+    type: json
+    data: |-
+      {
+        "capacity": -10
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

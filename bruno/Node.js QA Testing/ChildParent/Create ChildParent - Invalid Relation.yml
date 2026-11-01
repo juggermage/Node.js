@@ -1,0 +1,24 @@
+info:
+  name: Create ChildParent - Invalid Relation
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/child-parent
+  body:
+    type: json
+    data: |-
+      {
+        "childId": "507f1f77bcf86cd799439011",
+        "parentId": "507f191e810c19729de860ea",
+        "relation": "BROTHER"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

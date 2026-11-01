@@ -1,0 +1,19 @@
+info:
+  name: Create ChildParent - Empty Body
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/child-parent
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

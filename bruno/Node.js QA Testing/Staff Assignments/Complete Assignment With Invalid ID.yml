@@ -1,0 +1,16 @@
+info:
+  name: Complete Assignment With Invalid ID
+  type: http
+  seq: 3
+
+http:
+  method: PATCH
+  url: http://localhost:3000/api/v1/staff-assignments/invalid-id/complete
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

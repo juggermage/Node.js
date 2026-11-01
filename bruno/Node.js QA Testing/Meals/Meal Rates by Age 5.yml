@@ -1,0 +1,20 @@
+info:
+  name: Meal Rates by Age 5
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/meals/rates?ageYears=5
+  params:
+    - name: ageYears
+      value: "5"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

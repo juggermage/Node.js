@@ -1,0 +1,25 @@
+info:
+  name: Create Employee With New Code
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/employees
+  body:
+    type: json
+    data: |-
+      {
+        "employeeCode": "QA_EDUCATOR_20261028_01",
+        "firstName": "Марія",
+        "lastName": "Коваль",
+        "role": "EDUCATOR"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

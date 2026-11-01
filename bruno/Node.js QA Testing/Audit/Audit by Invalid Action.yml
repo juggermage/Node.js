@@ -1,0 +1,20 @@
+info:
+  name: Audit by Invalid Action
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/audit?action=INVALID
+  params:
+    - name: action
+      value: INVALID
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,16 @@
+info:
+  name: тетс
+  type: http
+  seq: 13
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/billing/salaries/calculations/6ae636680fb5760ceeae99d5
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

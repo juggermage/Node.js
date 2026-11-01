@@ -1,0 +1,16 @@
+info:
+  name: PATCH Meal Rate
+  type: http
+  seq: 20
+
+http:
+  method: PATCH
+  url: http://localhost:3000/api/v1/meals/rates/6ae61f3558aca50205d60000
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

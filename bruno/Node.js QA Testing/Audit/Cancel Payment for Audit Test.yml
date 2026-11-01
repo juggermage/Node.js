@@ -1,0 +1,16 @@
+info:
+  name: Cancel Payment for Audit Test
+  type: http
+  seq: 15
+
+http:
+  method: PATCH
+  url: http://localhost:3000/api/v1/billing/payments/6ae748f8788588473266aa5f/cancel
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

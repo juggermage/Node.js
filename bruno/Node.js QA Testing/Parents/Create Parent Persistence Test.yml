@@ -1,0 +1,26 @@
+info:
+  name: Create Parent Persistence Test
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/parents
+  body:
+    type: json
+    data: |-
+      {
+        "firstName": "QA",
+        "lastName": "PersistenceTest",
+        "middleName": "Test",
+        "phone": "+380671234598",
+        "email": "qa.persistence.28@example.com"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

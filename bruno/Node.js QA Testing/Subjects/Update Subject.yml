@@ -1,0 +1,23 @@
+info:
+  name: Update Subject
+  type: http
+  seq: 7
+
+http:
+  method: PATCH
+  url: http://localhost:3000/api/v1/subjects/62a9bd77-e723-47d7-812b-9127db2bb4aa
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Математика QA Updated",
+        "description": "Оновлений опис тестового предмета"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

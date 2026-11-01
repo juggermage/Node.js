@@ -1,0 +1,26 @@
+info:
+  name: Duplicate Parent Phone
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/parents
+  body:
+    type: json
+    data: |-
+      {
+        "firstName": "Олег",
+        "lastName": "Мельник",
+        "middleName": "Петрович",
+        "phone": "+380671234600",
+        "email": "qa.duplicatephone@example.com"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

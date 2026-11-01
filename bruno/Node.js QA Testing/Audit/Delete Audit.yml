@@ -1,0 +1,16 @@
+info:
+  name: Delete Audit
+  type: http
+  seq: 13
+
+http:
+  method: DELETE
+  url: http://localhost:3000/api/v1/audit/507f1f77bcf86cd799439011
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

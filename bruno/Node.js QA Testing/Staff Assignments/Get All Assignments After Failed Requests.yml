@@ -1,0 +1,25 @@
+info:
+  name: Get All Assignments After Failed Requests
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/staff-assignments
+  body:
+    type: json
+    data: |-
+      {
+        "employeeId": "000000000000000000000000",
+        "groupId": "000000000000000000000000",
+        "role": "EDUCATOR",
+        "salary": 25000
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

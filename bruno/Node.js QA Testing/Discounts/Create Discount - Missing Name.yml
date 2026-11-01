@@ -1,0 +1,22 @@
+info:
+  name: Create Discount - Missing Name
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/discounts
+  body:
+    type: json
+    data: |-
+      {
+        "value": 20
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

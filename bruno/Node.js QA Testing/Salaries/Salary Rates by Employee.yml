@@ -1,0 +1,20 @@
+info:
+  name: Salary Rates by Employee
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://localhost:3000/api/v1/billing/salaries/rates?employeeId=6ae37dfef11454967dc23a59
+  params:
+    - name: employeeId
+      value: 6ae37dfef11454967dc23a59
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

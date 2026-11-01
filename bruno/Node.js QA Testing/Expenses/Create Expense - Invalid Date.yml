@@ -1,0 +1,25 @@
+info:
+  name: Create Expense - Invalid Date
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/expenses
+  body:
+    type: json
+    data: |-
+      {
+        "category": "FOOD",
+        "description": "Закупівля продуктів",
+        "amount": 15000,
+        "expenseDate": "2026-02-30"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

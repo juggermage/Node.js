@@ -1,0 +1,16 @@
+info:
+  name: Reject Annual Tuition Calculation with Invalid Start Date
+  type: http
+  seq: 12
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/tuition/calculate/annual
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

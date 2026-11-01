@@ -1,0 +1,25 @@
+info:
+  name: " Create Meal Rate — Invalid Date Range"
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/meals/rates
+  body:
+    type: json
+    data: |-
+      {
+        "ageYears": 5,
+        "amount": 700,
+        "validFrom": "2026-11-10",
+        "validTo": "2026-11-01"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
