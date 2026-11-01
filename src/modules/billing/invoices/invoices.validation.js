@@ -7,10 +7,7 @@ const isoDate = Joi.string()
   .custom((value, helpers) => {
     const date = new Date(`${value}T00:00:00.000Z`);
 
-    if (
-      Number.isNaN(date.getTime()) ||
-      date.toISOString().slice(0, 10) !== value
-    ) {
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
       return helpers.error("date.invalid");
     }
 
@@ -32,19 +29,19 @@ const periodFields = {
 const createMonthlyInvoiceSchema = Joi.object({
   ...periodFields,
   attendedDays: Joi.number().integer().min(0).max(31).required()
-}).custom((value, helpers) => {
-  const daysInMonth = new Date(
-    Date.UTC(value.periodYear, value.periodMonth, 0)
-  ).getUTCDate();
+})
+  .custom((value, helpers) => {
+    const daysInMonth = new Date(Date.UTC(value.periodYear, value.periodMonth, 0)).getUTCDate();
 
-  if (value.attendedDays > daysInMonth) {
-    return helpers.error("any.custom");
-  }
+    if (value.attendedDays > daysInMonth) {
+      return helpers.error("any.custom");
+    }
 
-  return value;
-}).messages({
-  "any.custom": "Attended days exceed the number of days in the month"
-});
+    return value;
+  })
+  .messages({
+    "any.custom": "Attended days exceed the number of days in the month"
+  });
 
 const createAnnualInvoiceSchema = Joi.object(periodFields);
 
@@ -54,13 +51,7 @@ const invoiceQuerySchema = Joi.object({
   periodYear: Joi.number().integer().min(2000).max(2100),
   periodMonth: Joi.number().integer().min(1).max(12),
   type: Joi.string().valid("MONTHLY", "ANNUAL", "ADJUSTMENT"),
-  status: Joi.string().valid(
-    "DRAFT",
-    "ISSUED",
-    "PARTIALLY_PAID",
-    "PAID",
-    "CANCELLED"
-  )
+  status: Joi.string().valid("DRAFT", "ISSUED", "PARTIALLY_PAID", "PAID", "CANCELLED")
 });
 
 const invoiceIdSchema = Joi.object({

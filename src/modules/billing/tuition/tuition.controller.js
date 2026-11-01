@@ -20,9 +20,7 @@ async function createRate(req, res) {
 }
 
 async function calculateMonthly(req, res) {
-  const data = await service.calculateMonthlyTuitionCost(
-    res.locals.validated.body
-  );
+  const data = await service.calculateMonthlyTuitionCost(res.locals.validated.body);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -31,9 +29,7 @@ async function calculateMonthly(req, res) {
 }
 
 async function calculateAnnual(req, res) {
-  const data = await service.calculateAnnualTuitionCost(
-    res.locals.validated.body
-  );
+  const data = await service.calculateAnnualTuitionCost(res.locals.validated.body);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,

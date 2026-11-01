@@ -12,34 +12,14 @@ const {
 
 const router = Router();
 
-router.get(
-  "/",
-  validate(invoiceQuerySchema, "query"),
-  controller.getAll
-);
+router.get("/", validate(invoiceQuerySchema, "query"), controller.getAll);
 
-router.post(
-  "/monthly",
-  validate(createMonthlyInvoiceSchema, "body"),
-  controller.createMonthly
-);
+router.post("/monthly", validate(createMonthlyInvoiceSchema, "body"), controller.createMonthly);
 
-router.post(
-  "/annual",
-  validate(createAnnualInvoiceSchema, "body"),
-  controller.createAnnual
-);
+router.post("/annual", validate(createAnnualInvoiceSchema, "body"), controller.createAnnual);
 
-router.get(
-  "/:id",
-  validate(invoiceIdSchema, "params"),
-  controller.getById
-);
+router.get("/:id", validate(invoiceIdSchema, "params"), controller.getById);
 
-router.patch(
-  "/:id/cancel",
-  validate(invoiceIdSchema, "params"),
-  controller.cancel
-);
+router.patch("/:id/cancel", validate(invoiceIdSchema, "params"), controller.cancel);
 
 module.exports = router;

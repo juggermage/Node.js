@@ -7,10 +7,7 @@ const isoDate = Joi.string()
   .custom((value, helpers) => {
     const date = new Date(`${value}T00:00:00.000Z`);
 
-    if (
-      Number.isNaN(date.getTime()) ||
-      date.toISOString().slice(0, 10) !== value
-    ) {
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
       return helpers.error("date.invalid");
     }
 
@@ -23,11 +20,7 @@ const isoDate = Joi.string()
 
 const createTuitionRateSchema = Joi.object({
   name: Joi.string().trim().min(2).max(100).required(),
-  amount: Joi.number()
-    .integer()
-    .positive()
-    .max(Number.MAX_SAFE_INTEGER)
-    .default(15000),
+  amount: Joi.number().integer().positive().max(Number.MAX_SAFE_INTEGER).default(15000),
   validFrom: isoDate.required(),
   validTo: isoDate.allow(null)
 })

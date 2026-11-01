@@ -27,10 +27,7 @@ function periodBounds(year, month) {
 function parseDate(value) {
   const date = new Date(`${value}T00:00:00.000Z`);
 
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.toISOString().slice(0, 10) !== value
-  ) {
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
     fail("Invalid date", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_DATE");
   }
 
@@ -56,10 +53,7 @@ function serializeInvoice(invoice, paidAmount = 0n) {
 }
 
 function getPaidAmountFromAllocations(allocations = []) {
-  return allocations.reduce(
-    (sum, allocation) => sum + BigInt(allocation.amount),
-    0n
-  );
+  return allocations.reduce((sum, allocation) => sum + BigInt(allocation.amount), 0n);
 }
 
 async function getPaidAmount(tx, invoiceId) {
@@ -121,10 +115,7 @@ async function createInvoice(data, type) {
     parseDate(data.dueDate);
   }
 
-  if (
-    type === "MONTHLY" &&
-    data.attendedDays > end.getUTCDate()
-  ) {
+  if (type === "MONTHLY" && data.attendedDays > end.getUTCDate()) {
     fail(
       "Attended days exceed the number of days in the month",
       HTTP_STATUS.UNPROCESSABLE_ENTITY,
@@ -153,24 +144,23 @@ async function createInvoice(data, type) {
 
       await getChildAndPayer(tx, data.childId, data.payerId);
 
-      const tuition = type === "MONTHLY"
-        ? await tuitionService.calculateMonthlyTuitionCost({
-            childId: data.childId,
-            periodStart: start.toISOString().slice(0, 10),
-            periodEnd: end.toISOString().slice(0, 10)
-          })
-        : await tuitionService.calculateAnnualTuitionCost({
-            childId: data.childId,
-            periodStart: start.toISOString().slice(0, 10)
-          });
+      const tuition =
+        type === "MONTHLY"
+          ? await tuitionService.calculateMonthlyTuitionCost({
+              childId: data.childId,
+              periodStart: start.toISOString().slice(0, 10),
+              periodEnd: end.toISOString().slice(0, 10)
+            })
+          : await tuitionService.calculateAnnualTuitionCost({
+              childId: data.childId,
+              periodStart: start.toISOString().slice(0, 10)
+            });
 
       const lines = [];
       const tuitionAmount = BigInt(tuition.total);
 
       lines.push({
-        description: type === "ANNUAL"
-          ? "Навчання — річна передоплата"
-          : "Навчання",
+        description: type === "ANNUAL" ? "Навчання — річна передоплата" : "Навчання",
         quantity: 1,
         unitAmount: tuitionAmount,
         amount: tuitionAmount,
@@ -197,10 +187,7 @@ async function createInvoice(data, type) {
         });
       }
 
-      const amountDue = lines.reduce(
-        (sum, line) => sum + line.amount,
-        0n
-      );
+      const amountDue = lines.reduce((sum, line) => sum + line.amount, 0n);
 
       const createdInvoice = await tx.invoice.create({
         data: {
@@ -224,21 +211,24 @@ async function createInvoice(data, type) {
         }
       });
 
-      await auditService.createLog({
-        action: "CREATE",
-        entityType: "Invoice",
-        entityId: createdInvoice.id,
-        before: null,
-        after: {
-          childId: createdInvoice.childId,
-          payerId: createdInvoice.payerId,
-          periodYear: createdInvoice.periodYear,
-          periodMonth: createdInvoice.periodMonth,
-          type: createdInvoice.type,
-          amountDue: createdInvoice.amountDue.toString(),
-          status: createdInvoice.status
-        }
-      }, tx);
+      await auditService.createLog(
+        {
+          action: "CREATE",
+          entityType: "Invoice",
+          entityId: createdInvoice.id,
+          before: null,
+          after: {
+            childId: createdInvoice.childId,
+            payerId: createdInvoice.payerId,
+            periodYear: createdInvoice.periodYear,
+            periodMonth: createdInvoice.periodMonth,
+            type: createdInvoice.type,
+            amountDue: createdInvoice.amountDue.toString(),
+            status: createdInvoice.status
+          }
+        },
+        tx
+      );
 
       return createdInvoice;
     });
@@ -309,11 +299,7 @@ async function getAll(filters = {}) {
         }
       }
     },
-    orderBy: [
-      { periodYear: "desc" },
-      { periodMonth: "desc" },
-      { createdAt: "desc" }
-    ]
+    orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }, { createdAt: "desc" }]
   });
 
   return invoices.map((invoice) => {
@@ -366,17 +352,10 @@ async function cancel(id) {
     }
 
     if (invoice.status === "CANCELLED") {
-      fail(
-        "Invoice is already cancelled",
-        HTTP_STATUS.CONFLICT,
-        "INVOICE_ALREADY_CANCELLED"
-      );
+      fail("Invoice is already cancelled", HTTP_STATUS.CONFLICT, "INVOICE_ALREADY_CANCELLED");
     }
 
-    if (
-      invoice.status === "PAID" ||
-      invoice.status === "PARTIALLY_PAID"
-    ) {
+    if (invoice.status === "PAID" || invoice.status === "PARTIALLY_PAID") {
       fail(
         "Paid or partially paid invoice cannot be cancelled",
         HTTP_STATUS.CONFLICT,
@@ -387,11 +366,7 @@ async function cancel(id) {
     const paidAmount = await getPaidAmount(tx, id);
 
     if (paidAmount > 0n) {
-      fail(
-        "Invoice has completed payments",
-        HTTP_STATUS.CONFLICT,
-        "INVOICE_HAS_PAYMENTS"
-      );
+      fail("Invoice has completed payments", HTTP_STATUS.CONFLICT, "INVOICE_HAS_PAYMENTS");
     }
 
     const updatedInvoice = await tx.invoice.update({
@@ -406,17 +381,20 @@ async function cancel(id) {
       }
     });
 
-    await auditService.createLog({
-      action: "CANCEL",
-      entityType: "Invoice",
-      entityId: id,
-      before: {
-        status: invoice.status
+    await auditService.createLog(
+      {
+        action: "CANCEL",
+        entityType: "Invoice",
+        entityId: id,
+        before: {
+          status: invoice.status
+        },
+        after: {
+          status: updatedInvoice.status
+        }
       },
-      after: {
-        status: updatedInvoice.status
-      }
-    }, tx);
+      tx
+    );
 
     return serializeInvoice(updatedInvoice);
   });

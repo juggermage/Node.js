@@ -19,10 +19,7 @@ function parseDay(value) {
   const validFormat = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
   const date = validFormat ? new Date(`${value}T00:00:00.000Z`) : new Date(NaN);
 
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.toISOString().slice(0, 10) !== value
-  ) {
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
     fail("Invalid date", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_DATE");
   }
 
@@ -66,10 +63,7 @@ async function getAllRates({ onDate } = {}) {
     const date = parseDay(onDate);
 
     where.validFrom = { lte: date };
-    where.OR = [
-      { validTo: null },
-      { validTo: { gte: date } }
-    ];
+    where.OR = [{ validTo: null }, { validTo: { gte: date } }];
   }
 
   const rates = await prisma.tuitionRate.findMany({
@@ -86,10 +80,7 @@ async function getApplicableRate(onDate) {
   const rate = await prisma.tuitionRate.findFirst({
     where: {
       validFrom: { lte: date },
-      OR: [
-        { validTo: null },
-        { validTo: { gte: date } }
-      ]
+      OR: [{ validTo: null }, { validTo: { gte: date } }]
     },
     orderBy: { validFrom: "desc" }
   });
@@ -134,10 +125,7 @@ async function createRate({ name, amount, validFrom, validTo = null }) {
       validFrom: {
         lte: to || new Date("9999-12-31T00:00:00.000Z")
       },
-      OR: [
-        { validTo: null },
-        { validTo: { gte: from } }
-      ]
+      OR: [{ validTo: null }, { validTo: { gte: from } }]
     }
   });
 
@@ -162,10 +150,7 @@ async function getApplicableDiscount(childId, from, to) {
     where: {
       childId,
       validFrom: { lte: to },
-      OR: [
-        { validTo: null },
-        { validTo: { gte: from } }
-      ],
+      OR: [{ validTo: null }, { validTo: { gte: from } }],
       discount: {
         isActive: true
       }
@@ -185,11 +170,7 @@ async function getApplicableDiscount(childId, from, to) {
   });
 
   if (applicable.length > 1) {
-    fail(
-      "More than one applicable discount assigned to child",
-      409,
-      "MULTIPLE_DISCOUNTS"
-    );
+    fail("More than one applicable discount assigned to child", 409, "MULTIPLE_DISCOUNTS");
   }
 
   return applicable.length ? applicable[0].discount : null;
@@ -237,10 +218,7 @@ function buildCalculation({
     : baseAmount;
 
   const annualDiscountAmount = annualPrepayment
-    ? afterRegularDiscount - roundPercentage(
-        afterRegularDiscount,
-        ANNUAL_PREPAYMENT_DISCOUNT
-      )
+    ? afterRegularDiscount - roundPercentage(afterRegularDiscount, ANNUAL_PREPAYMENT_DISCOUNT)
     : 0n;
 
   const total = afterRegularDiscount - annualDiscountAmount;
@@ -270,29 +248,20 @@ function buildCalculation({
   };
 }
 
-async function calculateMonthlyTuitionCost({
-  childId,
-  periodStart,
-  periodEnd
-}) {
+async function calculateMonthlyTuitionCost({ childId, periodStart, periodEnd }) {
   const { from, to } = validatePeriod(periodStart, periodEnd);
 
   await getActiveChild(childId);
 
   const isFullMonth =
     from.getUTCDate() === 1 &&
-    to.getUTCDate() === new Date(
-      Date.UTC(to.getUTCFullYear(), to.getUTCMonth() + 1, 0)
-    ).getUTCDate() &&
+    to.getUTCDate() ===
+      new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth() + 1, 0)).getUTCDate() &&
     from.getUTCMonth() === to.getUTCMonth() &&
     from.getUTCFullYear() === to.getUTCFullYear();
 
   if (!isFullMonth) {
-    fail(
-      "Tuition calculation requires a full calendar month",
-      422,
-      "INVALID_TUITION_PERIOD"
-    );
+    fail("Tuition calculation requires a full calendar month", 422, "INVALID_TUITION_PERIOD");
   }
 
   const rate = await getRateForPeriod(from, to);
@@ -309,25 +278,14 @@ async function calculateMonthlyTuitionCost({
   });
 }
 
-async function calculateAnnualTuitionCost({
-  childId,
-  periodStart
-}) {
+async function calculateAnnualTuitionCost({ childId, periodStart }) {
   const from = parseDay(periodStart);
 
   if (from.getUTCDate() !== 1) {
-    fail(
-      "Annual period must start on the first day of a month",
-      422,
-      "INVALID_TUITION_PERIOD"
-    );
+    fail("Annual period must start on the first day of a month", 422, "INVALID_TUITION_PERIOD");
   }
 
-  const to = new Date(Date.UTC(
-    from.getUTCFullYear() + 1,
-    from.getUTCMonth(),
-    0
-  ));
+  const to = new Date(Date.UTC(from.getUTCFullYear() + 1, from.getUTCMonth(), 0));
 
   await getActiveChild(childId);
 

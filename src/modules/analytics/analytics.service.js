@@ -9,10 +9,7 @@ function fail(message, status, code) {
 function parseDate(value) {
   const date = new Date(`${value}T00:00:00.000Z`);
 
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.toISOString().slice(0, 10) !== value
-  ) {
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
     fail("Invalid date", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_DATE");
   }
 
@@ -24,11 +21,7 @@ function getPeriod(from, to) {
   const end = parseDate(to);
 
   if (start > end) {
-    fail(
-      "Period start is after period end",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_PERIOD"
-    );
+    fail("Period start is after period end", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_PERIOD");
   }
 
   const endExclusive = new Date(end);
@@ -42,10 +35,7 @@ function getPeriod(from, to) {
 }
 
 function sumBigInt(items, field) {
-  return items.reduce(
-    (sum, item) => sum + BigInt(item[field]),
-    0n
-  );
+  return items.reduce((sum, item) => sum + BigInt(item[field]), 0n);
 }
 
 function serializeAmount(value) {
@@ -55,12 +45,7 @@ function serializeAmount(value) {
 async function getSummary({ from, to }) {
   const { start, endExclusive } = getPeriod(from, to);
 
-  const [
-    invoices,
-    payments,
-    salaries,
-    expenses
-  ] = await Promise.all([
+  const [invoices, payments, salaries, expenses] = await Promise.all([
     prisma.invoice.findMany({
       where: {
         issuedAt: {
@@ -139,10 +124,7 @@ async function getSummary({ from, to }) {
   let outstandingBalance = 0n;
 
   for (const invoice of invoices) {
-    const paid = invoice.allocations.reduce(
-      (sum, allocation) => sum + allocation.amount,
-      0n
-    );
+    const paid = invoice.allocations.reduce((sum, allocation) => sum + allocation.amount, 0n);
 
     const balance = invoice.amountDue - paid;
 
@@ -189,23 +171,12 @@ async function getSummary({ from, to }) {
 }
 
 function getInvoicePeriod(invoice) {
-  const start = new Date(Date.UTC(
-    invoice.periodYear,
-    invoice.periodMonth - 1,
-    1
-  ));
+  const start = new Date(Date.UTC(invoice.periodYear, invoice.periodMonth - 1, 1));
 
-  const end = invoice.type === "ANNUAL"
-    ? new Date(Date.UTC(
-        invoice.periodYear + 1,
-        invoice.periodMonth - 1,
-        0
-      ))
-    : new Date(Date.UTC(
-        invoice.periodYear,
-        invoice.periodMonth,
-        0
-      ));
+  const end =
+    invoice.type === "ANNUAL"
+      ? new Date(Date.UTC(invoice.periodYear + 1, invoice.periodMonth - 1, 0))
+      : new Date(Date.UTC(invoice.periodYear, invoice.periodMonth, 0));
 
   return { start, end };
 }
@@ -289,10 +260,7 @@ async function getGroupReport({ from, to }) {
 
     const group = groups.get(groupId);
 
-    const paid = invoice.allocations.reduce(
-      (sum, allocation) => sum + allocation.amount,
-      0n
-    );
+    const paid = invoice.allocations.reduce((sum, allocation) => sum + allocation.amount, 0n);
 
     const balance = invoice.amountDue - paid;
 

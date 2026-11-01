@@ -13,17 +13,9 @@ const {
 
 const router = Router();
 
-router.get(
-  "/rates",
-  validate(rateQuerySchema, "query"),
-  controller.getRates
-);
+router.get("/rates", validate(rateQuerySchema, "query"), controller.getRates);
 
-router.post(
-  "/rates",
-  validate(createTuitionRateSchema, "body"),
-  controller.createRate
-);
+router.post("/rates", validate(createTuitionRateSchema, "body"), controller.createRate);
 
 router.post(
   "/calculate/monthly",
