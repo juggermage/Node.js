@@ -47,14 +47,10 @@ function prepareSnapshot(value) {
 
 // Створює запис аудиту.
 // Функцію викликають інші серверні модулі.
-async function createLog({
-  actorId = null,
-  action,
-  entityType,
-  entityId,
-  before = null,
-  after = null
-} = {}) {
+async function createLog(
+  { actorId = null, action, entityType, entityId, before = null, after = null } = {},
+  tx = prisma
+) {
   if (!AUDIT_ACTIONS.includes(action)) {
     throw new AppError(
       "Invalid audit action",
@@ -76,8 +72,6 @@ async function createLog({
     );
   }
 
-  // actorId необов'язковий, поки немає Auth.
-  // Якщо він переданий, перевіряємо формат ObjectId.
   if (actorId !== null && (typeof actorId !== "string" || !/^[0-9a-fA-F]{24}$/.test(actorId))) {
     throw new AppError(
       "Invalid audit actor ID",
@@ -86,7 +80,7 @@ async function createLog({
     );
   }
 
-  return prisma.auditLog.create({
+  return tx.auditLog.create({
     data: {
       actorId,
       action,
