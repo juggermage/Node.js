@@ -12,7 +12,6 @@ const groupsRoutes = require("./modules/groups/groups.routes");
 const parentsRoutes = require("./modules/parents/parents.routes");
 const childParentRoutes = require("./modules/child-parent/child-parent.routes");
 
-
 //Schedules, Expenses
 const schedulesRoutes = require("./modules/schedules/schedules.routes");
 // Billing
@@ -33,7 +32,6 @@ const staffAssignmentRoutes = require("./modules/staff-assignments/staff-assignm
 
 // Audit
 const auditRoutes = require("./modules/audit/audit.routes");
-
 
 // Analytics
 const analyticsRoutes = require("./modules/analytics/analytics.routes");
@@ -71,7 +69,6 @@ app.use("/api/v1/parents", parentsRoutes);
 app.use("/api/v1/child-parent", childParentRoutes);
 // Analytics
 app.use("/api/v1/analytics", analyticsRoutes);
-
 
 // Billing
 app.use("/api/v1/billing/discounts", discountsRoutes);
