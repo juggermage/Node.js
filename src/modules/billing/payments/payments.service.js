@@ -1,6 +1,7 @@
 const prisma = require("../../../config/prisma");
 const AppError = require("../../../utils/app-error");
 const HTTP_STATUS = require("../../../utils/http-status");
+const auditService = require("../../audit/audit.service");
 
 function fail(message, status, code) {
   throw new AppError(message, status, code);
@@ -169,6 +170,27 @@ async function create(data) {
         await updateInvoiceStatus(tx, invoiceId);
       }
 
+      await auditService.createLog(
+        {
+          action: "PAYMENT",
+          entityType: "Payment",
+          entityId: createdPayment.id,
+          before: null,
+          after: {
+            amount: createdPayment.amount,
+            method: createdPayment.method,
+            status: createdPayment.status,
+            paidAt: createdPayment.paidAt,
+            payerId: createdPayment.payerId,
+            allocations: createdPayment.allocations.map((item) => ({
+              invoiceId: item.invoiceId,
+              amount: item.amount
+            }))
+          }
+        },
+        tx
+      );
+
       return createdPayment;
     });
 
@@ -253,6 +275,21 @@ async function cancel(id) {
     for (const invoiceId of invoiceIds) {
       await updateInvoiceStatus(tx, invoiceId);
     }
+
+    await auditService.createLog(
+      {
+        action: "CANCEL",
+        entityType: "Payment",
+        entityId: updatedPayment.id,
+        before: {
+          status: existingPayment.status
+        },
+        after: {
+          status: updatedPayment.status
+        }
+      },
+      tx
+    );
 
     return updatedPayment;
   });
