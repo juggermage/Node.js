@@ -1,4 +1,3 @@
-
 const { Router } = require("express");
 
 const validate = require("../../middleware/validate.middleware");
@@ -17,26 +16,13 @@ const router = Router();
 
 router.use(requireAuth);
 
-const readAccess = authorizeRoles(
-  "ADMIN",
-  "MANAGER",
-  "TEACHER"
-);
+const readAccess = authorizeRoles("ADMIN", "MANAGER", "TEACHER");
 
 const managementAccess = authorizeRoles("ADMIN", "MANAGER");
 
-router.get(
-  "/",
-  readAccess,
-  controller.getAll
-);
+router.get("/", readAccess, controller.getAll);
 
-router.post(
-  "/",
-  managementAccess,
-  validate(createAssignmentSchema, "body"),
-  controller.create
-);
+router.post("/", managementAccess, validate(createAssignmentSchema, "body"), controller.create);
 
 router.get(
   "/employee/:employeeId",
@@ -45,11 +31,6 @@ router.get(
   controller.getTeacherSubjects
 );
 
-router.delete(
-  "/:id",
-  managementAccess,
-  validate(idParamsSchema, "params"),
-  controller.remove
-);
+router.delete("/:id", managementAccess, validate(idParamsSchema, "params"), controller.remove);
 
 module.exports = router;

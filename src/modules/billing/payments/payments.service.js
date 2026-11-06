@@ -1,4 +1,3 @@
-
 const prisma = require("../../../config/prisma");
 const AppError = require("../../../utils/app-error");
 const HTTP_STATUS = require("../../../utils/http-status");
@@ -9,11 +8,7 @@ function fail(message, status, code) {
 }
 
 function forbid() {
-  fail(
-    "You do not have permission to access this payment",
-    HTTP_STATUS.FORBIDDEN,
-    "FORBIDDEN"
-  );
+  fail("You do not have permission to access this payment", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
 }
 
 async function getParentId(user) {
@@ -27,11 +22,7 @@ async function getParentId(user) {
   });
 
   if (!parent) {
-    fail(
-      "Parent profile not found",
-      HTTP_STATUS.NOT_FOUND,
-      "PARENT_NOT_FOUND"
-    );
+    fail("Parent profile not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
   }
 
   return parent.id;
@@ -66,10 +57,7 @@ async function serializePayment(payment) {
         ]);
 
         if (currentInvoice) {
-          const paidAmount = invoiceAllocations.reduce(
-            (sum, item) => sum + item.amount,
-            0n
-          );
+          const paidAmount = invoiceAllocations.reduce((sum, item) => sum + item.amount, 0n);
 
           const amountDue = currentInvoice.amountDue;
 
@@ -101,11 +89,7 @@ async function calculateInvoiceBalance(tx, invoiceId) {
   });
 
   if (!invoice) {
-    fail(
-      "Invoice not found",
-      HTTP_STATUS.NOT_FOUND,
-      "INVOICE_NOT_FOUND"
-    );
+    fail("Invoice not found", HTTP_STATUS.NOT_FOUND, "INVOICE_NOT_FOUND");
   }
 
   const allocations = await tx.paymentAllocation.findMany({
@@ -120,10 +104,7 @@ async function calculateInvoiceBalance(tx, invoiceId) {
     }
   });
 
-  const paidAmount = allocations.reduce(
-    (sum, item) => sum + item.amount,
-    0n
-  );
+  const paidAmount = allocations.reduce((sum, item) => sum + item.amount, 0n);
 
   const amountDue = invoice.amountDue;
   const balance = amountDue - paidAmount;
@@ -136,16 +117,9 @@ async function calculateInvoiceBalance(tx, invoiceId) {
 }
 
 async function updateInvoiceStatus(tx, invoiceId) {
-  const {
-    invoice,
-    paidAmount,
-    balance
-  } = await calculateInvoiceBalance(tx, invoiceId);
+  const { invoice, paidAmount, balance } = await calculateInvoiceBalance(tx, invoiceId);
 
-  if (
-    invoice.status === "DRAFT" ||
-    invoice.status === "CANCELLED"
-  ) {
+  if (invoice.status === "DRAFT" || invoice.status === "CANCELLED") {
     return {
       invoice,
       paidAmount,
@@ -180,10 +154,7 @@ async function updateInvoiceStatus(tx, invoiceId) {
 async function create(data, user) {
   try {
     const payment = await prisma.$transaction(async (tx) => {
-      if (
-        !Array.isArray(data.allocations) ||
-        data.allocations.length === 0
-      ) {
+      if (!Array.isArray(data.allocations) || data.allocations.length === 0) {
         fail(
           "At least one invoice allocation is required",
           HTTP_STATUS.UNPROCESSABLE_ENTITY,
@@ -201,22 +172,19 @@ async function create(data, user) {
         );
       }
 
-      const allocationTotal = data.allocations.reduce(
-        (sum, item) => {
-          const amount = BigInt(item.amount);
+      const allocationTotal = data.allocations.reduce((sum, item) => {
+        const amount = BigInt(item.amount);
 
-          if (amount <= 0n) {
-            fail(
-              "Allocation amount must be positive",
-              HTTP_STATUS.UNPROCESSABLE_ENTITY,
-              "INVALID_ALLOCATION_AMOUNT"
-            );
-          }
+        if (amount <= 0n) {
+          fail(
+            "Allocation amount must be positive",
+            HTTP_STATUS.UNPROCESSABLE_ENTITY,
+            "INVALID_ALLOCATION_AMOUNT"
+          );
+        }
 
-          return sum + amount;
-        },
-        0n
-      );
+        return sum + amount;
+      }, 0n);
 
       if (allocationTotal !== paymentAmount) {
         fail(
@@ -226,9 +194,7 @@ async function create(data, user) {
         );
       }
 
-      const invoiceIds = data.allocations.map(
-        (item) => item.invoiceId
-      );
+      const invoiceIds = data.allocations.map((item) => item.invoiceId);
 
       if (new Set(invoiceIds).size !== invoiceIds.length) {
         fail(
@@ -259,11 +225,7 @@ async function create(data, user) {
       });
 
       if (!payer) {
-        fail(
-          "Payer not found",
-          HTTP_STATUS.NOT_FOUND,
-          "PAYER_NOT_FOUND"
-        );
+        fail("Payer not found", HTTP_STATUS.NOT_FOUND, "PAYER_NOT_FOUND");
       }
 
       if (user.role === "PARENT" && payer.userId !== user.id) {
@@ -271,11 +233,7 @@ async function create(data, user) {
       }
 
       if (payer.status !== "ACTIVE") {
-        fail(
-          "Payer is not active",
-          HTTP_STATUS.UNPROCESSABLE_ENTITY,
-          "PAYER_NOT_ACTIVE"
-        );
+        fail("Payer is not active", HTTP_STATUS.UNPROCESSABLE_ENTITY, "PAYER_NOT_ACTIVE");
       }
 
       const invoices = await tx.invoice.findMany({
@@ -287,16 +245,10 @@ async function create(data, user) {
       });
 
       if (invoices.length !== invoiceIds.length) {
-        fail(
-          "One or more invoices were not found",
-          HTTP_STATUS.NOT_FOUND,
-          "INVOICE_NOT_FOUND"
-        );
+        fail("One or more invoices were not found", HTTP_STATUS.NOT_FOUND, "INVOICE_NOT_FOUND");
       }
 
-      const invoiceById = new Map(
-        invoices.map((invoice) => [invoice.id, invoice])
-      );
+      const invoiceById = new Map(invoices.map((invoice) => [invoice.id, invoice]));
 
       for (const allocation of data.allocations) {
         const invoice = invoiceById.get(allocation.invoiceId);
@@ -309,10 +261,7 @@ async function create(data, user) {
           );
         }
 
-        if (
-          invoice.status !== "ISSUED" &&
-          invoice.status !== "PARTIALLY_PAID"
-        ) {
+        if (invoice.status !== "ISSUED" && invoice.status !== "PARTIALLY_PAID") {
           fail(
             "Only issued or partially paid invoices can receive payments",
             HTTP_STATUS.UNPROCESSABLE_ENTITY,
@@ -320,10 +269,7 @@ async function create(data, user) {
           );
         }
 
-        const { balance } = await calculateInvoiceBalance(
-          tx,
-          invoice.id
-        );
+        const { balance } = await calculateInvoiceBalance(tx, invoice.id);
 
         if (BigInt(allocation.amount) > balance) {
           fail(
@@ -341,9 +287,7 @@ async function create(data, user) {
           amount: paymentAmount,
           method: data.method,
           status: "COMPLETED",
-          paidAt: data.paidAt
-            ? new Date(data.paidAt)
-            : new Date(),
+          paidAt: data.paidAt ? new Date(data.paidAt) : new Date(),
           allocations: {
             create: data.allocations.map((allocation) => ({
               invoiceId: allocation.invoiceId,
@@ -442,9 +386,7 @@ async function getAll(filters = {}, user) {
     }
   });
 
-  return Promise.all(
-    payments.map(serializePayment)
-  );
+  return Promise.all(payments.map(serializePayment));
 }
 
 async function getById(id, user) {
@@ -463,17 +405,10 @@ async function getById(id, user) {
   });
 
   if (!payment) {
-    fail(
-      "Payment not found",
-      HTTP_STATUS.NOT_FOUND,
-      "PAYMENT_NOT_FOUND"
-    );
+    fail("Payment not found", HTTP_STATUS.NOT_FOUND, "PAYMENT_NOT_FOUND");
   }
 
-  if (
-    user.role === "PARENT" &&
-    payment.payer.userId !== user.id
-  ) {
+  if (user.role === "PARENT" && payment.payer.userId !== user.id) {
     forbid();
   }
 
@@ -492,19 +427,11 @@ async function cancel(id, user) {
     });
 
     if (!existingPayment) {
-      fail(
-        "Payment not found",
-        HTTP_STATUS.NOT_FOUND,
-        "PAYMENT_NOT_FOUND"
-      );
+      fail("Payment not found", HTTP_STATUS.NOT_FOUND, "PAYMENT_NOT_FOUND");
     }
 
     if (existingPayment.status === "CANCELLED") {
-      fail(
-        "Payment is already cancelled",
-        HTTP_STATUS.CONFLICT,
-        "PAYMENT_ALREADY_CANCELLED"
-      );
+      fail("Payment is already cancelled", HTTP_STATUS.CONFLICT, "PAYMENT_ALREADY_CANCELLED");
     }
 
     if (existingPayment.status !== "COMPLETED") {
@@ -531,13 +458,7 @@ async function cancel(id, user) {
       }
     });
 
-    const invoiceIds = [
-      ...new Set(
-        existingPayment.allocations.map(
-          (item) => item.invoiceId
-        )
-      )
-    ];
+    const invoiceIds = [...new Set(existingPayment.allocations.map((item) => item.invoiceId))];
 
     for (const invoiceId of invoiceIds) {
       await updateInvoiceStatus(tx, invoiceId);

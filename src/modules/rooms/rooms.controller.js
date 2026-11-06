@@ -22,10 +22,7 @@ async function getById(req, res) {
 }
 
 async function create(req, res) {
-  const room = await roomsService.create(
-    res.locals.validated.body,
-    req.user
-  );
+  const room = await roomsService.create(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -36,11 +33,7 @@ async function create(req, res) {
 async function update(req, res) {
   const { id } = res.locals.validated.params;
 
-  const room = await roomsService.update(
-    id,
-    res.locals.validated.body,
-    req.user
-  );
+  const room = await roomsService.update(id, res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,

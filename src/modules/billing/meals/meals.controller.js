@@ -1,11 +1,8 @@
-
 const service = require("./meals.service");
 const HTTP_STATUS = require("../../../utils/http-status");
 
 async function getRates(req, res) {
-  const data = await service.getAllRates(
-    res.locals.validated.query
-  );
+  const data = await service.getAllRates(res.locals.validated.query);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -14,10 +11,7 @@ async function getRates(req, res) {
 }
 
 async function createRate(req, res) {
-  const data = await service.createRate(
-    res.locals.validated.body,
-    req.user
-  );
+  const data = await service.createRate(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -26,10 +20,7 @@ async function createRate(req, res) {
 }
 
 async function calculate(req, res) {
-  const data = await service.calculateMealCost(
-    res.locals.validated.body,
-    req.user
-  );
+  const data = await service.calculateMealCost(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,

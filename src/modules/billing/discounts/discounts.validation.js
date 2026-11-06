@@ -12,9 +12,7 @@ const idParamsSchema = Joi.object({
 });
 
 const queryDiscountsSchema = Joi.object({
-  includeInactive: Joi.boolean()
-    .truthy("true")
-    .falsy("false")
+  includeInactive: Joi.boolean().truthy("true").falsy("false")
 });
 
 module.exports = {

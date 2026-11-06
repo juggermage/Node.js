@@ -1,4 +1,3 @@
-
 const prisma = require("../../config/prisma");
 const auditService = require("../audit/audit.service");
 const AppError = require("../../utils/app-error");
@@ -13,32 +12,17 @@ function fail(message, status, code) {
 
 function ensureManagementAccess(user) {
   if (!user || !MANAGEMENT_ROLES.includes(user.role)) {
-    fail(
-      "You do not have permission to perform this action",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+    fail("You do not have permission to perform this action", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 }
 
 function ensureReadAccess(user) {
   if (!user) {
-    fail(
-      "Authentication required",
-      HTTP_STATUS.UNAUTHORIZED,
-      "UNAUTHORIZED"
-    );
+    fail("Authentication required", HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
   }
 
-  if (
-    !MANAGEMENT_ROLES.includes(user.role) &&
-    !EMPLOYEE_ROLES.includes(user.role)
-  ) {
-    fail(
-      "You do not have permission to access employees",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+  if (!MANAGEMENT_ROLES.includes(user.role) && !EMPLOYEE_ROLES.includes(user.role)) {
+    fail("You do not have permission to access employees", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 }
 
@@ -63,11 +47,7 @@ async function getEmployeeOrFail(id, tx = prisma) {
   });
 
   if (!employee || employee.status === "ARCHIVED") {
-    fail(
-      "Employee not found",
-      HTTP_STATUS.NOT_FOUND,
-      "EMPLOYEE_NOT_FOUND"
-    );
+    fail("Employee not found", HTTP_STATUS.NOT_FOUND, "EMPLOYEE_NOT_FOUND");
   }
 
   return employee;
@@ -90,11 +70,7 @@ async function ensureEmployeeAccess(id, user, tx = prisma) {
   });
 
   if (!employee) {
-    fail(
-      "Employee not found",
-      HTTP_STATUS.NOT_FOUND,
-      "EMPLOYEE_NOT_FOUND"
-    );
+    fail("Employee not found", HTTP_STATUS.NOT_FOUND, "EMPLOYEE_NOT_FOUND");
   }
 
   return employee;
@@ -106,11 +82,7 @@ async function checkEmployeeCode(code, excludeId, tx = prisma) {
   });
 
   if (existing && existing.id !== excludeId) {
-    fail(
-      "Employee code already exists",
-      HTTP_STATUS.CONFLICT,
-      "EMPLOYEE_CODE_EXISTS"
-    );
+    fail("Employee code already exists", HTTP_STATUS.CONFLICT, "EMPLOYEE_CODE_EXISTS");
   }
 }
 
@@ -122,19 +94,11 @@ async function ensureUserCanBeLinked(userId, role, excludeEmployeeId, tx) {
   });
 
   if (!account) {
-    fail(
-      "User account not found",
-      HTTP_STATUS.NOT_FOUND,
-      "USER_NOT_FOUND"
-    );
+    fail("User account not found", HTTP_STATUS.NOT_FOUND, "USER_NOT_FOUND");
   }
 
   if (account.role !== role) {
-    fail(
-      "User role must match employee role",
-      HTTP_STATUS.CONFLICT,
-      "USER_ROLE_MISMATCH"
-    );
+    fail("User role must match employee role", HTTP_STATUS.CONFLICT, "USER_ROLE_MISMATCH");
   }
 
   const linkedEmployee = await tx.employee.findFirst({
@@ -165,11 +129,7 @@ function handlePrismaError(error) {
   }
 
   if (error.code === "P2025" || error.code === "P2003") {
-    fail(
-      "Related record not found",
-      HTTP_STATUS.NOT_FOUND,
-      "RELATED_RECORD_NOT_FOUND"
-    );
+    fail("Related record not found", HTTP_STATUS.NOT_FOUND, "RELATED_RECORD_NOT_FOUND");
   }
 
   throw error;
@@ -179,9 +139,7 @@ async function getAll(query = {}, user) {
   ensureReadAccess(user);
 
   const where = {
-    status: MANAGEMENT_ROLES.includes(user.role)
-      ? query.status || { not: "ARCHIVED" }
-      : "ACTIVE"
+    status: MANAGEMENT_ROLES.includes(user.role) ? query.status || { not: "ARCHIVED" } : "ACTIVE"
   };
 
   if (EMPLOYEE_ROLES.includes(user.role)) {
@@ -205,10 +163,7 @@ async function getAll(query = {}, user) {
   return prisma.employee.findMany({
     where,
     include: employeeInclude(),
-    orderBy: [
-      { lastName: "asc" },
-      { firstName: "asc" }
-    ]
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }]
   });
 }
 
@@ -223,12 +178,7 @@ async function create(data, user) {
     return await prisma.$transaction(async (tx) => {
       await checkEmployeeCode(data.employeeCode, null, tx);
 
-      await ensureUserCanBeLinked(
-        data.userId,
-        data.role,
-        null,
-        tx
-      );
+      await ensureUserCanBeLinked(data.userId, data.role, null, tx);
 
       const employee = await tx.employee.create({
         data: {
@@ -283,8 +233,7 @@ async function update(id, data, user) {
 
       const newRole = data.role ?? employee.role;
       const newStatus = data.status ?? employee.status;
-      const newUserId =
-        data.userId !== undefined ? data.userId : employee.userId;
+      const newUserId = data.userId !== undefined ? data.userId : employee.userId;
 
       const activeAssignments = await tx.staffAssignment.count({
         where: {
@@ -293,10 +242,7 @@ async function update(id, data, user) {
         }
       });
 
-      if (
-        activeAssignments > 0 &&
-        (newRole !== employee.role || newStatus !== "ACTIVE")
-      ) {
+      if (activeAssignments > 0 && (newRole !== employee.role || newStatus !== "ACTIVE")) {
         fail(
           "Employee has active group assignments",
           HTTP_STATUS.CONFLICT,
@@ -308,15 +254,8 @@ async function update(id, data, user) {
         where: { employeeId: id }
       });
 
-      if (
-        teachingAssignments > 0 &&
-        (newRole !== "TEACHER" || newStatus !== "ACTIVE")
-      ) {
-        fail(
-          "Employee has assigned subjects",
-          HTTP_STATUS.CONFLICT,
-          "EMPLOYEE_HAS_SUBJECTS"
-        );
+      if (teachingAssignments > 0 && (newRole !== "TEACHER" || newStatus !== "ACTIVE")) {
+        fail("Employee has assigned subjects", HTTP_STATUS.CONFLICT, "EMPLOYEE_HAS_SUBJECTS");
       }
 
       const activeScheduleItems = await tx.scheduleItem.count({
@@ -326,10 +265,7 @@ async function update(id, data, user) {
         }
       });
 
-      if (
-        activeScheduleItems > 0 &&
-        (newRole !== "TEACHER" || newStatus !== "ACTIVE")
-      ) {
+      if (activeScheduleItems > 0 && (newRole !== "TEACHER" || newStatus !== "ACTIVE")) {
         fail(
           "Employee has active scheduled lessons",
           HTTP_STATUS.CONFLICT,
@@ -338,12 +274,7 @@ async function update(id, data, user) {
       }
 
       if (newUserId) {
-        await ensureUserCanBeLinked(
-          newUserId,
-          newRole,
-          id,
-          tx
-        );
+        await ensureUserCanBeLinked(newUserId, newRole, id, tx);
       }
 
       const before = employee;

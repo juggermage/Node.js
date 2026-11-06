@@ -16,22 +16,10 @@ const router = express.Router();
 router.use(requireAuth);
 router.use(authorizeRoles("ADMIN", "MANAGER"));
 
-router.get(
-  "/",
-  validate(listExpensesSchema, "query"),
-  expensesController.getAll
-);
+router.get("/", validate(listExpensesSchema, "query"), expensesController.getAll);
 
-router.get(
-  "/:id",
-  validate(expenseIdSchema, "params"),
-  expensesController.getById
-);
+router.get("/:id", validate(expenseIdSchema, "params"), expensesController.getById);
 
-router.post(
-  "/",
-  validate(createExpenseSchema, "body"),
-  expensesController.create
-);
+router.post("/", validate(createExpenseSchema, "body"), expensesController.create);
 
 module.exports = router;

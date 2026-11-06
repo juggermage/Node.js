@@ -4,13 +4,7 @@ const AppError = require("../../utils/app-error");
 const HTTP_STATUS = require("../../utils/http-status");
 
 const MANAGEMENT_ROLES = ["ADMIN", "MANAGER"];
-const READ_ROLES = [
-  "ADMIN",
-  "MANAGER",
-  "TEACHER",
-  "EDUCATOR",
-  "ASSISTANT"
-];
+const READ_ROLES = ["ADMIN", "MANAGER", "TEACHER", "EDUCATOR", "ASSISTANT"];
 
 function fail(message, status, code) {
   throw new AppError(message, status, code);
@@ -18,47 +12,27 @@ function fail(message, status, code) {
 
 function ensureReadAccess(user) {
   if (!user) {
-    fail(
-      "Authentication required",
-      HTTP_STATUS.UNAUTHORIZED,
-      "UNAUTHORIZED"
-    );
+    fail("Authentication required", HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
   }
 
   if (!READ_ROLES.includes(user.role)) {
-    fail(
-      "You do not have permission to access rooms",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+    fail("You do not have permission to access rooms", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 }
 
 function ensureManagementAccess(user) {
   if (!user || !MANAGEMENT_ROLES.includes(user.role)) {
-    fail(
-      "You do not have permission to perform this action",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+    fail("You do not have permission to perform this action", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 }
 
 function handleRoomError(error) {
   if (error.code === "P2002") {
-    fail(
-      "Room name already exists",
-      HTTP_STATUS.CONFLICT,
-      "ROOM_NAME_EXISTS"
-    );
+    fail("Room name already exists", HTTP_STATUS.CONFLICT, "ROOM_NAME_EXISTS");
   }
 
   if (error.code === "P2025" || error.code === "P2003") {
-    fail(
-      "Related record not found",
-      HTTP_STATUS.NOT_FOUND,
-      "RELATED_RECORD_NOT_FOUND"
-    );
+    fail("Related record not found", HTTP_STATUS.NOT_FOUND, "RELATED_RECORD_NOT_FOUND");
   }
 
   throw error;
@@ -73,11 +47,7 @@ async function getRoomOrFail(id, tx = prisma) {
   });
 
   if (!room) {
-    fail(
-      "Room not found",
-      HTTP_STATUS.NOT_FOUND,
-      "ROOM_NOT_FOUND"
-    );
+    fail("Room not found", HTTP_STATUS.NOT_FOUND, "ROOM_NOT_FOUND");
   }
 
   return room;
@@ -97,11 +67,7 @@ async function ensureUniqueName(name, excludeId, tx = prisma) {
   });
 
   if (existing) {
-    fail(
-      "Room name already exists",
-      HTTP_STATUS.CONFLICT,
-      "ROOM_NAME_EXISTS"
-    );
+    fail("Room name already exists", HTTP_STATUS.CONFLICT, "ROOM_NAME_EXISTS");
   }
 }
 
@@ -171,11 +137,7 @@ async function getById(id, user) {
   });
 
   if (!room) {
-    fail(
-      "Room not found",
-      HTTP_STATUS.NOT_FOUND,
-      "ROOM_NOT_FOUND"
-    );
+    fail("Room not found", HTTP_STATUS.NOT_FOUND, "ROOM_NOT_FOUND");
   }
 
   return room;
@@ -279,11 +241,7 @@ async function remove(id, user) {
     });
 
     if (activeGroupsCount > 0) {
-      fail(
-        "Room is assigned to an active group",
-        HTTP_STATUS.CONFLICT,
-        "ROOM_IN_USE"
-      );
+      fail("Room is assigned to an active group", HTTP_STATUS.CONFLICT, "ROOM_IN_USE");
     }
 
     const archived = await tx.room.update({

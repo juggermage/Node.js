@@ -1,8 +1,6 @@
 const Joi = require("joi");
 
-const objectIdSchema = Joi.string()
-  .hex()
-  .length(24);
+const objectIdSchema = Joi.string().hex().length(24);
 
 const auditActionSchema = Joi.string().valid(
   "CREATE",

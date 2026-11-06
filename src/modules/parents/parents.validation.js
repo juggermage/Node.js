@@ -5,8 +5,7 @@ const objectId = Joi.string().hex().length(24);
 const phoneSchema = Joi.string()
   .pattern(/^\+[1-9]\d{7,14}$/)
   .messages({
-    "string.pattern.base":
-      "Phone must use international E.164 format, e.g. +380XXXXXXXXX"
+    "string.pattern.base": "Phone must use international E.164 format, e.g. +380XXXXXXXXX"
   });
 
 const emailSchema = Joi.string().trim().lowercase().email().max(254);

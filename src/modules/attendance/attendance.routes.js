@@ -1,4 +1,3 @@
-
 const express = require("express");
 
 const attendanceController = require("./attendance.controller");
@@ -17,40 +16,20 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-router.get(
-  "/",
-  validate(listAttendanceSchema, "query"),
-  attendanceController.getAll
-);
+router.get("/", validate(listAttendanceSchema, "query"), attendanceController.getAll);
 
-router.get(
-  "/:id",
-  validate(attendanceIdSchema, "params"),
-  attendanceController.getById
-);
+router.get("/:id", validate(attendanceIdSchema, "params"), attendanceController.getById);
 
 router.post(
   "/",
-  authorizeRoles(
-    "ADMIN",
-    "MANAGER",
-    "TEACHER",
-    "EDUCATOR",
-    "ASSISTANT"
-  ),
+  authorizeRoles("ADMIN", "MANAGER", "TEACHER", "EDUCATOR", "ASSISTANT"),
   validate(createAttendanceSchema),
   attendanceController.create
 );
 
 router.patch(
   "/:id",
-  authorizeRoles(
-    "ADMIN",
-    "MANAGER",
-    "TEACHER",
-    "EDUCATOR",
-    "ASSISTANT"
-  ),
+  authorizeRoles("ADMIN", "MANAGER", "TEACHER", "EDUCATOR", "ASSISTANT"),
   validate(attendanceIdSchema, "params"),
   validate(updateAttendanceSchema),
   attendanceController.update

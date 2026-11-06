@@ -6,11 +6,7 @@ const birthDateSchema = Joi.string()
     const date = new Date(`${value}T00:00:00.000Z`);
     const today = new Date();
 
-    if (
-      Number.isNaN(date.getTime()) ||
-      date.toISOString().slice(0, 10) !== value ||
-      date > today
-    ) {
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value || date > today) {
       return helpers.error("any.invalid");
     }
 
@@ -18,10 +14,7 @@ const birthDateSchema = Joi.string()
 
     const birthdayPassed =
       today.getUTCMonth() > date.getUTCMonth() ||
-      (
-        today.getUTCMonth() === date.getUTCMonth() &&
-        today.getUTCDate() >= date.getUTCDate()
-      );
+      (today.getUTCMonth() === date.getUTCMonth() && today.getUTCDate() >= date.getUTCDate());
 
     if (!birthdayPassed) {
       age--;

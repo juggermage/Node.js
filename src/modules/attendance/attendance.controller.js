@@ -1,12 +1,8 @@
-
 const attendanceService = require("./attendance.service");
 const HTTP_STATUS = require("../../utils/http-status");
 
 async function getAll(req, res) {
-  const records = await attendanceService.getAll(
-    res.locals.validated.query,
-    req.user
-  );
+  const records = await attendanceService.getAll(res.locals.validated.query, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -26,10 +22,7 @@ async function getById(req, res) {
 }
 
 async function create(req, res) {
-  const record = await attendanceService.create(
-    res.locals.validated.body,
-    req.user
-  );
+  const record = await attendanceService.create(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -40,11 +33,7 @@ async function create(req, res) {
 async function update(req, res) {
   const { id } = res.locals.validated.params;
 
-  const record = await attendanceService.update(
-    id,
-    res.locals.validated.body,
-    req.user
-  );
+  const record = await attendanceService.update(id, res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,

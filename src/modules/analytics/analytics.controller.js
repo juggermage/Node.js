@@ -20,9 +20,7 @@ async function getGroupReport(req, res) {
 }
 
 async function getAttendanceReport(req, res) {
-  const data = await service.getAttendanceReport(
-    res.locals.validated.query
-  );
+  const data = await service.getAttendanceReport(res.locals.validated.query);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,

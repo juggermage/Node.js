@@ -1,4 +1,3 @@
-
 const { Router } = require("express");
 
 const validate = require("../../../middleware/validate.middleware");
@@ -17,11 +16,7 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.get(
-  "/rates",
-  validate(rateQuerySchema, "query"),
-  controller.getRates
-);
+router.get("/rates", validate(rateQuerySchema, "query"), controller.getRates);
 
 router.post(
   "/rates",

@@ -8,10 +8,7 @@ const dateSchema = Joi.string()
   .custom((value, helpers) => {
     const date = new Date(`${value}T00:00:00.000Z`);
 
-    if (
-      Number.isNaN(date.getTime()) ||
-      date.toISOString().slice(0, 10) !== value
-    ) {
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
       return helpers.error("any.invalid");
     }
 
@@ -27,22 +24,14 @@ const createExpenseSchema = Joi.object({
     .valid(...CATEGORIES)
     .required(),
 
-  description: Joi.string()
-    .trim()
-    .min(1)
-    .max(500)
-    .required(),
+  description: Joi.string().trim().min(1).max(500).required(),
 
-  amount: Joi.number()
-    .integer()
-    .positive()
-    .required()
-    .messages({
-      "number.base": "amount must be a number (in kopecks)",
-      "number.integer": "amount must be an integer number of kopecks",
-      "number.positive": "amount must be greater than 0",
-      "number.unsafe": "amount is too large"
-    }),
+  amount: Joi.number().integer().positive().required().messages({
+    "number.base": "amount must be a number (in kopecks)",
+    "number.integer": "amount must be an integer number of kopecks",
+    "number.positive": "amount must be greater than 0",
+    "number.unsafe": "amount is too large"
+  }),
 
   expenseDate: dateSchema.required()
 });

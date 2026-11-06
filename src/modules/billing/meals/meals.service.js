@@ -1,4 +1,3 @@
-
 const prisma = require("../../../config/prisma");
 const auditService = require("../../audit/audit.service");
 const AppError = require("../../../utils/app-error");
@@ -15,43 +14,22 @@ const DAY_MS = 86400000;
 
 function parseDay(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return new Date(
-      Date.UTC(
-        value.getUTCFullYear(),
-        value.getUTCMonth(),
-        value.getUTCDate()
-      )
-    );
+    return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
   }
 
-  const validFormat =
-    typeof value === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const validFormat = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
-  const date = validFormat
-    ? new Date(`${value}T00:00:00.000Z`)
-    : new Date(NaN);
+  const date = validFormat ? new Date(`${value}T00:00:00.000Z`) : new Date(NaN);
 
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.toISOString().slice(0, 10) !== value
-  ) {
-    throw new AppError(
-      "Invalid date",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_DATE"
-    );
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    throw new AppError("Invalid date", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_DATE");
   }
 
   return date;
 }
 
 function checkAge(ageYears) {
-  if (
-    !Number.isInteger(ageYears) ||
-    ageYears < 2 ||
-    ageYears > 5
-  ) {
+  if (!Number.isInteger(ageYears) || ageYears < 2 || ageYears > 5) {
     throw new AppError(
       "Age category must be A2-A5",
       HTTP_STATUS.UNPROCESSABLE_ENTITY,
@@ -71,15 +49,11 @@ function calculateAge(birthDate, date) {
     );
   }
 
-  let age =
-    date.getUTCFullYear() - birth.getUTCFullYear();
+  let age = date.getUTCFullYear() - birth.getUTCFullYear();
 
   if (
     date.getUTCMonth() < birth.getUTCMonth() ||
-    (
-      date.getUTCMonth() === birth.getUTCMonth() &&
-      date.getUTCDate() < birth.getUTCDate()
-    )
+    (date.getUTCMonth() === birth.getUTCMonth() && date.getUTCDate() < birth.getUTCDate())
   ) {
     age--;
   }
@@ -107,11 +81,7 @@ function validatePeriod(start, end) {
 }
 
 function calculateAmount(rate, attendedDays, maximumDays) {
-  if (
-    !Number.isInteger(attendedDays) ||
-    attendedDays < 0 ||
-    attendedDays > maximumDays
-  ) {
+  if (!Number.isInteger(attendedDays) || attendedDays < 0 || attendedDays > maximumDays) {
     throw new AppError(
       "Invalid attendance days",
       HTTP_STATUS.UNPROCESSABLE_ENTITY,
@@ -119,25 +89,14 @@ function calculateAmount(rate, attendedDays, maximumDays) {
     );
   }
 
-  if (
-    typeof rate !== "bigint" &&
-    (!Number.isSafeInteger(rate) || rate <= 0)
-  ) {
-    throw new AppError(
-      "Invalid meal rate",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_MEAL_RATE"
-    );
+  if (typeof rate !== "bigint" && (!Number.isSafeInteger(rate) || rate <= 0)) {
+    throw new AppError("Invalid meal rate", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_MEAL_RATE");
   }
 
   const amount = BigInt(rate);
 
   if (amount <= 0n) {
-    throw new AppError(
-      "Invalid meal rate",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_MEAL_RATE"
-    );
+    throw new AppError("Invalid meal rate", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_MEAL_RATE");
   }
 
   return amount * BigInt(attendedDays);
@@ -165,18 +124,12 @@ async function getAllRates({ ageYears, onDate } = {}) {
     const date = parseDay(onDate);
 
     where.validFrom = { lte: date };
-    where.OR = [
-      { validTo: null },
-      { validTo: { gte: date } }
-    ];
+    where.OR = [{ validTo: null }, { validTo: { gte: date } }];
   }
 
   const rates = await prisma.mealRate.findMany({
     where,
-    orderBy: [
-      { ageYears: "asc" },
-      { validFrom: "desc" }
-    ]
+    orderBy: [{ ageYears: "asc" }, { validFrom: "desc" }]
   });
 
   return rates.map(serializeRate);
@@ -191,48 +144,30 @@ async function getApplicableRate(ageYears, onDate) {
     where: {
       ageYears,
       validFrom: { lte: date },
-      OR: [
-        { validTo: null },
-        { validTo: { gte: date } }
-      ]
+      OR: [{ validTo: null }, { validTo: { gte: date } }]
     },
     orderBy: { validFrom: "desc" }
   });
 
   if (!rate) {
-    throw new AppError(
-      "Meal rate not found",
-      HTTP_STATUS.NOT_FOUND,
-      "MEAL_RATE_NOT_FOUND"
-    );
+    throw new AppError("Meal rate not found", HTTP_STATUS.NOT_FOUND, "MEAL_RATE_NOT_FOUND");
   }
 
   return rate;
 }
 
-async function createRate(
-  { ageYears, amount, validFrom, validTo = null },
-  user
-) {
+async function createRate({ ageYears, amount, validFrom, validTo = null }, user) {
   checkAge(ageYears);
 
   if (!Number.isSafeInteger(amount) || amount <= 0) {
-    throw new AppError(
-      "Invalid meal rate",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_MEAL_RATE"
-    );
+    throw new AppError("Invalid meal rate", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_MEAL_RATE");
   }
 
   const from = parseDay(validFrom);
   const to = validTo === null ? null : parseDay(validTo);
 
   if (to && to < from) {
-    throw new AppError(
-      "Invalid rate period",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_PERIOD"
-    );
+    throw new AppError("Invalid rate period", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_PERIOD");
   }
 
   const overlap = await prisma.mealRate.findFirst({
@@ -241,19 +176,12 @@ async function createRate(
       validFrom: {
         lte: to || new Date("9999-12-31T00:00:00.000Z")
       },
-      OR: [
-        { validTo: null },
-        { validTo: { gte: from } }
-      ]
+      OR: [{ validTo: null }, { validTo: { gte: from } }]
     }
   });
 
   if (overlap) {
-    throw new AppError(
-      "Overlapping meal rate",
-      HTTP_STATUS.CONFLICT,
-      "MEAL_RATE_CONFLICT"
-    );
+    throw new AppError("Overlapping meal rate", HTTP_STATUS.CONFLICT, "MEAL_RATE_CONFLICT");
   }
 
   return prisma.$transaction(async (tx) => {
@@ -281,12 +209,7 @@ async function createRate(
   });
 }
 
-async function ensureChildAccess(
-  childId,
-  periodStart,
-  periodEnd,
-  user
-) {
+async function ensureChildAccess(childId, periodStart, periodEnd, user) {
   if (!user || user.role !== "PARENT") {
     return;
   }
@@ -314,10 +237,7 @@ async function ensureChildAccess(
       childId,
       parentId: parent.id,
       startDate: { lte: periodEnd },
-      OR: [
-        { endDate: null },
-        { endDate: { gte: periodStart } }
-      ]
+      OR: [{ endDate: null }, { endDate: { gte: periodStart } }]
     }
   });
 
@@ -330,14 +250,8 @@ async function ensureChildAccess(
   }
 }
 
-async function calculateMealCost(
-  { childId, periodStart, periodEnd, ageYears },
-  user
-) {
-  const { from, to, days } = validatePeriod(
-    periodStart,
-    periodEnd
-  );
+async function calculateMealCost({ childId, periodStart, periodEnd, ageYears }, user) {
+  const { from, to, days } = validatePeriod(periodStart, periodEnd);
 
   const child = await prisma.child.findUnique({
     where: { id: childId },
@@ -349,24 +263,14 @@ async function calculateMealCost(
   });
 
   if (!child || child.status !== "ACTIVE") {
-    throw new AppError(
-      "Active child not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_NOT_FOUND"
-    );
+    throw new AppError("Active child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 
   await ensureChildAccess(childId, from, to, user);
 
-  const actualAgeAtStart = calculateAge(
-    child.birthDate,
-    from
-  );
+  const actualAgeAtStart = calculateAge(child.birthDate, from);
 
-  if (
-    ageYears !== undefined &&
-    ageYears !== actualAgeAtStart
-  ) {
+  if (ageYears !== undefined && ageYears !== actualAgeAtStart) {
     throw new AppError(
       "Age category does not match child",
       HTTP_STATUS.UNPROCESSABLE_ENTITY,
@@ -398,10 +302,7 @@ async function calculateMealCost(
       validFrom: {
         lte: to
       },
-      OR: [
-        { validTo: null },
-        { validTo: { gte: from } }
-      ]
+      OR: [{ validTo: null }, { validTo: { gte: from } }]
     },
     orderBy: {
       validFrom: "desc"
@@ -412,18 +313,13 @@ async function calculateMealCost(
 
   for (const attendance of attendanceRecords) {
     const attendanceDate = parseDay(attendance.date);
-    const currentAge = calculateAge(
-      child.birthDate,
-      attendanceDate
-    );
+    const currentAge = calculateAge(child.birthDate, attendanceDate);
 
     checkAge(currentAge);
 
     const rate = rates.find((item) => {
       const validFrom = parseDay(item.validFrom);
-      const validTo = item.validTo
-        ? parseDay(item.validTo)
-        : null;
+      const validTo = item.validTo ? parseDay(item.validTo) : null;
 
       return (
         item.ageYears === currentAge &&
@@ -460,37 +356,25 @@ async function calculateMealCost(
     item.amount += BigInt(rate.amount);
   }
 
-  const rateBreakdown = Array.from(
-    breakdown.values()
-  ).map((item) => ({
+  const rateBreakdown = Array.from(breakdown.values()).map((item) => ({
     ...item,
     dailyRate: item.dailyRate.toString(),
     amount: item.amount.toString()
   }));
 
-  const total = rateBreakdown.reduce(
-    (sum, item) => sum + BigInt(item.amount),
-    0n
-  );
+  const total = rateBreakdown.reduce((sum, item) => sum + BigInt(item.amount), 0n);
 
   const attendedDays = attendanceRecords.length;
 
-  const singleRate =
-    rateBreakdown.length === 1
-      ? rateBreakdown[0]
-      : null;
+  const singleRate = rateBreakdown.length === 1 ? rateBreakdown[0] : null;
 
   return {
     childId,
     periodStart: from.toISOString().slice(0, 10),
     periodEnd: to.toISOString().slice(0, 10),
     attendedDays,
-    dailyRate: singleRate
-      ? singleRate.dailyRate
-      : null,
-    rateId: singleRate
-      ? singleRate.rateId
-      : null,
+    dailyRate: singleRate ? singleRate.dailyRate : null,
+    rateId: singleRate ? singleRate.rateId : null,
     rateBreakdown,
     total: total.toString(),
     currency: "UAH"

@@ -1,4 +1,3 @@
-
 const prisma = require("../../config/prisma");
 const auditService = require("../audit/audit.service");
 const AppError = require("../../utils/app-error");
@@ -13,32 +12,17 @@ function fail(message, status, code) {
 
 function ensureReadAccess(user) {
   if (!user) {
-    fail(
-      "Authentication required",
-      HTTP_STATUS.UNAUTHORIZED,
-      "UNAUTHORIZED"
-    );
+    fail("Authentication required", HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
   }
 
-  if (
-    !MANAGEMENT_ROLES.includes(user.role) &&
-    !EMPLOYEE_ROLES.includes(user.role)
-  ) {
-    fail(
-      "You do not have permission to access subjects",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+  if (!MANAGEMENT_ROLES.includes(user.role) && !EMPLOYEE_ROLES.includes(user.role)) {
+    fail("You do not have permission to access subjects", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 }
 
 function ensureManagementAccess(user) {
   if (!user || !MANAGEMENT_ROLES.includes(user.role)) {
-    fail(
-      "You do not have permission to perform this action",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+    fail("You do not have permission to perform this action", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 }
 
@@ -48,11 +32,7 @@ async function getSubjectOrFail(id, tx = prisma) {
   });
 
   if (!subject || subject.status === "ARCHIVED") {
-    fail(
-      "Subject not found",
-      HTTP_STATUS.NOT_FOUND,
-      "SUBJECT_NOT_FOUND"
-    );
+    fail("Subject not found", HTTP_STATUS.NOT_FOUND, "SUBJECT_NOT_FOUND");
   }
 
   return subject;
@@ -72,29 +52,17 @@ async function checkUniqueName(name, excludeId, tx = prisma) {
   });
 
   if (subject) {
-    fail(
-      "Subject name already exists",
-      HTTP_STATUS.CONFLICT,
-      "SUBJECT_NAME_EXISTS"
-    );
+    fail("Subject name already exists", HTTP_STATUS.CONFLICT, "SUBJECT_NAME_EXISTS");
   }
 }
 
 function handlePrismaError(error) {
   if (error.code === "P2002") {
-    fail(
-      "Subject name already exists",
-      HTTP_STATUS.CONFLICT,
-      "SUBJECT_NAME_EXISTS"
-    );
+    fail("Subject name already exists", HTTP_STATUS.CONFLICT, "SUBJECT_NAME_EXISTS");
   }
 
   if (error.code === "P2025" || error.code === "P2003") {
-    fail(
-      "Related record not found",
-      HTTP_STATUS.NOT_FOUND,
-      "RELATED_RECORD_NOT_FOUND"
-    );
+    fail("Related record not found", HTTP_STATUS.NOT_FOUND, "RELATED_RECORD_NOT_FOUND");
   }
 
   throw error;
@@ -104,9 +72,7 @@ async function getAll(query = {}, user) {
   ensureReadAccess(user);
 
   const where = {
-    status: MANAGEMENT_ROLES.includes(user.role)
-      ? query.status || { not: "ARCHIVED" }
-      : "ACTIVE"
+    status: MANAGEMENT_ROLES.includes(user.role) ? query.status || { not: "ARCHIVED" } : "ACTIVE"
   };
 
   if (query.search) {
@@ -128,18 +94,12 @@ async function getById(id, user) {
   const subject = await prisma.subject.findFirst({
     where: {
       id,
-      status: MANAGEMENT_ROLES.includes(user.role)
-        ? { not: "ARCHIVED" }
-        : "ACTIVE"
+      status: MANAGEMENT_ROLES.includes(user.role) ? { not: "ARCHIVED" } : "ACTIVE"
     }
   });
 
   if (!subject) {
-    fail(
-      "Subject not found",
-      HTTP_STATUS.NOT_FOUND,
-      "SUBJECT_NOT_FOUND"
-    );
+    fail("Subject not found", HTTP_STATUS.NOT_FOUND, "SUBJECT_NOT_FOUND");
   }
 
   return subject;
@@ -241,11 +201,7 @@ async function remove(id, user) {
     });
 
     if (activeAssignments > 0) {
-      fail(
-        "Subject has assigned active teachers",
-        HTTP_STATUS.CONFLICT,
-        "SUBJECT_HAS_TEACHERS"
-      );
+      fail("Subject has assigned active teachers", HTTP_STATUS.CONFLICT, "SUBJECT_HAS_TEACHERS");
     }
 
     const archived = await tx.subject.update({

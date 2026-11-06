@@ -44,11 +44,7 @@ async function findScheduleOrThrow(id, db = prisma) {
   });
 
   if (!schedule) {
-    throw new AppError(
-      "Schedule not found",
-      HTTP_STATUS.NOT_FOUND,
-      "SCHEDULE_NOT_FOUND"
-    );
+    throw new AppError("Schedule not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_NOT_FOUND");
   }
 
   return schedule;
@@ -100,30 +96,15 @@ function assertDayRules(item) {
 
 async function assertReferences(item, schedule) {
   if (item.subjectId) {
-    await requireActive(
-      prisma.subject,
-      item.subjectId,
-      "SUBJECT_NOT_FOUND",
-      "Subject not found"
-    );
+    await requireActive(prisma.subject, item.subjectId, "SUBJECT_NOT_FOUND", "Subject not found");
   }
 
   if (item.teacherId) {
-    await requireActive(
-      prisma.employee,
-      item.teacherId,
-      "EMPLOYEE_NOT_FOUND",
-      "Teacher not found"
-    );
+    await requireActive(prisma.employee, item.teacherId, "EMPLOYEE_NOT_FOUND", "Teacher not found");
   }
 
   if (item.roomId) {
-    await requireActive(
-      prisma.room,
-      item.roomId,
-      "ROOM_NOT_FOUND",
-      "Room not found"
-    );
+    await requireActive(prisma.room, item.roomId, "ROOM_NOT_FOUND", "Room not found");
 
     const reservedByOtherGroup = await prisma.group.findFirst({
       where: {
@@ -143,13 +124,9 @@ async function assertReferences(item, schedule) {
 }
 
 async function loadOtherPublishedItems(schedule, items) {
-  const teacherIds = [
-    ...new Set(items.map((item) => item.teacherId).filter(Boolean))
-  ];
+  const teacherIds = [...new Set(items.map((item) => item.teacherId).filter(Boolean))];
 
-  const roomIds = [
-    ...new Set(items.map((item) => item.roomId).filter(Boolean))
-  ];
+  const roomIds = [...new Set(items.map((item) => item.roomId).filter(Boolean))];
 
   const conditions = [];
 
@@ -182,17 +159,10 @@ async function loadOtherPublishedItems(schedule, items) {
     }
   });
 
-  return found.filter((item) =>
-    periodsOverlap(schedule, item.schedule)
-  );
+  return found.filter((item) => periodsOverlap(schedule, item.schedule));
 }
 
-function assertNoConflicts(
-  item,
-  ownItems,
-  otherItems,
-  excludeItemId = null
-) {
+function assertNoConflicts(item, ownItems, otherItems, excludeItemId = null) {
   if (findTimeOverlap(item, ownItems, excludeItemId)) {
     throw new AppError(
       "Group already has an item at this time",
@@ -259,23 +229,14 @@ async function getById(id) {
   });
 
   if (!schedule) {
-    throw new AppError(
-      "Schedule not found",
-      HTTP_STATUS.NOT_FOUND,
-      "SCHEDULE_NOT_FOUND"
-    );
+    throw new AppError("Schedule not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_NOT_FOUND");
   }
 
   return schedule;
 }
 
 async function create({ groupId, name, validFrom, validTo }, user) {
-  await requireActive(
-    prisma.group,
-    groupId,
-    "GROUP_NOT_FOUND",
-    "Group not found"
-  );
+  await requireActive(prisma.group, groupId, "GROUP_NOT_FOUND", "Group not found");
 
   return prisma.$transaction(async (tx) => {
     const schedule = await tx.schedule.create({
@@ -354,11 +315,7 @@ async function remove(id, user) {
     });
 
     if (!schedule) {
-      throw new AppError(
-        "Schedule not found",
-        HTTP_STATUS.NOT_FOUND,
-        "SCHEDULE_NOT_FOUND"
-      );
+      throw new AppError("Schedule not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_NOT_FOUND");
     }
 
     assertDraft(schedule);
@@ -449,11 +406,7 @@ async function updateItem(scheduleId, itemId, data, user) {
   });
 
   if (!existing) {
-    throw new AppError(
-      "Schedule item not found",
-      HTTP_STATUS.NOT_FOUND,
-      "SCHEDULE_ITEM_NOT_FOUND"
-    );
+    throw new AppError("Schedule item not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_ITEM_NOT_FOUND");
   }
 
   if (existing.type !== "LESSON" && (data.subjectId || data.teacherId)) {
@@ -612,11 +565,7 @@ async function publish(id, user) {
   });
 
   if (!schedule) {
-    throw new AppError(
-      "Schedule not found",
-      HTTP_STATUS.NOT_FOUND,
-      "SCHEDULE_NOT_FOUND"
-    );
+    throw new AppError("Schedule not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_NOT_FOUND");
   }
 
   if (schedule.status === "PUBLISHED") {
@@ -627,12 +576,7 @@ async function publish(id, user) {
     );
   }
 
-  await requireActive(
-    prisma.group,
-    schedule.groupId,
-    "GROUP_NOT_FOUND",
-    "Group not found"
-  );
+  await requireActive(prisma.group, schedule.groupId, "GROUP_NOT_FOUND", "Group not found");
 
   if (schedule.items.length === 0) {
     throw new AppError(
@@ -658,10 +602,7 @@ async function publish(id, user) {
     );
   }
 
-  const otherItems = await loadOtherPublishedItems(
-    schedule,
-    schedule.items
-  );
+  const otherItems = await loadOtherPublishedItems(schedule, schedule.items);
 
   for (const item of schedule.items) {
     assertDayRules(item);

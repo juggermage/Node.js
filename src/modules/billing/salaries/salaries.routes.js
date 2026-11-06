@@ -18,17 +18,9 @@ const router = express.Router();
 router.use(requireAuth);
 router.use(authorizeRoles("ADMIN", "MANAGER"));
 
-router.get(
-  "/rates",
-  validate(listRatesSchema, "query"),
-  salariesController.getRates
-);
+router.get("/rates", validate(listRatesSchema, "query"), salariesController.getRates);
 
-router.post(
-  "/rates",
-  validate(createRateSchema, "body"),
-  salariesController.createRate
-);
+router.post("/rates", validate(createRateSchema, "body"), salariesController.createRate);
 
 router.get(
   "/calculations",

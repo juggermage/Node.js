@@ -1,4 +1,3 @@
-
 const prisma = require("../../config/prisma");
 const auditService = require("../audit/audit.service");
 const AppError = require("../../utils/app-error");
@@ -12,11 +11,7 @@ function fail(message, status, code) {
 
 function ensureReadAccess(user) {
   if (!user) {
-    fail(
-      "Authentication required",
-      HTTP_STATUS.UNAUTHORIZED,
-      "UNAUTHORIZED"
-    );
+    fail("Authentication required", HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
   }
 
   if (!["ADMIN", "MANAGER", "TEACHER"].includes(user.role)) {
@@ -30,11 +25,7 @@ function ensureReadAccess(user) {
 
 function ensureManagementAccess(user) {
   if (!user || !MANAGEMENT_ROLES.includes(user.role)) {
-    fail(
-      "You do not have permission to perform this action",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+    fail("You do not have permission to perform this action", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 }
 
@@ -55,11 +46,7 @@ function handlePrismaError(error) {
   }
 
   if (error.code === "P2025" || error.code === "P2003") {
-    fail(
-      "Related record not found",
-      HTTP_STATUS.NOT_FOUND,
-      "RELATED_RECORD_NOT_FOUND"
-    );
+    fail("Related record not found", HTTP_STATUS.NOT_FOUND, "RELATED_RECORD_NOT_FOUND");
   }
 
   throw error;
@@ -72,11 +59,7 @@ async function getAssignmentOrFail(id, tx = prisma) {
   });
 
   if (!assignment) {
-    fail(
-      "Teacher-subject assignment not found",
-      HTTP_STATUS.NOT_FOUND,
-      "ASSIGNMENT_NOT_FOUND"
-    );
+    fail("Teacher-subject assignment not found", HTTP_STATUS.NOT_FOUND, "ASSIGNMENT_NOT_FOUND");
   }
 
   return assignment;
@@ -132,19 +115,11 @@ async function create({ employeeId, subjectId }, user) {
       });
 
       if (!employee || employee.status !== "ACTIVE") {
-        fail(
-          "Active employee not found",
-          HTTP_STATUS.NOT_FOUND,
-          "EMPLOYEE_NOT_FOUND"
-        );
+        fail("Active employee not found", HTTP_STATUS.NOT_FOUND, "EMPLOYEE_NOT_FOUND");
       }
 
       if (employee.role !== "TEACHER") {
-        fail(
-          "Employee must have TEACHER role",
-          HTTP_STATUS.CONFLICT,
-          "INVALID_EMPLOYEE_ROLE"
-        );
+        fail("Employee must have TEACHER role", HTTP_STATUS.CONFLICT, "INVALID_EMPLOYEE_ROLE");
       }
 
       const subject = await tx.subject.findUnique({
@@ -152,11 +127,7 @@ async function create({ employeeId, subjectId }, user) {
       });
 
       if (!subject || subject.status !== "ACTIVE") {
-        fail(
-          "Active subject not found",
-          HTTP_STATUS.NOT_FOUND,
-          "SUBJECT_NOT_FOUND"
-        );
+        fail("Active subject not found", HTTP_STATUS.NOT_FOUND, "SUBJECT_NOT_FOUND");
       }
 
       const existing = await tx.teacherSubject.findUnique({
@@ -211,25 +182,14 @@ async function getTeacherSubjects(employeeId, user) {
   });
 
   if (!employee) {
-    fail(
-      "Employee not found",
-      HTTP_STATUS.NOT_FOUND,
-      "EMPLOYEE_NOT_FOUND"
-    );
+    fail("Employee not found", HTTP_STATUS.NOT_FOUND, "EMPLOYEE_NOT_FOUND");
   }
 
   if (employee.role !== "TEACHER") {
-    fail(
-      "Employee is not a teacher",
-      HTTP_STATUS.CONFLICT,
-      "INVALID_EMPLOYEE_ROLE"
-    );
+    fail("Employee is not a teacher", HTTP_STATUS.CONFLICT, "INVALID_EMPLOYEE_ROLE");
   }
 
-  if (
-    !MANAGEMENT_ROLES.includes(user.role) &&
-    employee.userId !== user.id
-  ) {
+  if (!MANAGEMENT_ROLES.includes(user.role) && employee.userId !== user.id) {
     fail(
       "You do not have permission to access this teacher's subjects",
       HTTP_STATUS.FORBIDDEN,

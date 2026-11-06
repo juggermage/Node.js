@@ -37,10 +37,7 @@ async function getAll({ category, from, to } = {}) {
 
   const expenses = await prisma.expense.findMany({
     where,
-    orderBy: [
-      { expenseDate: "desc" },
-      { createdAt: "desc" }
-    ]
+    orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
   });
 
   return expenses.map(serialize);
@@ -52,20 +49,13 @@ async function getById(id) {
   });
 
   if (!expense) {
-    throw new AppError(
-      "Expense not found",
-      HTTP_STATUS.NOT_FOUND,
-      "EXPENSE_NOT_FOUND"
-    );
+    throw new AppError("Expense not found", HTTP_STATUS.NOT_FOUND, "EXPENSE_NOT_FOUND");
   }
 
   return serialize(expense);
 }
 
-async function create(
-  { category, description, amount, expenseDate },
-  actorId
-) {
+async function create({ category, description, amount, expenseDate }, actorId) {
   return prisma.$transaction(async (tx) => {
     const expense = await tx.expense.create({
       data: {

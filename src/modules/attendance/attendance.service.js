@@ -1,4 +1,3 @@
-
 const prisma = require("../../config/prisma");
 const auditService = require("../audit/audit.service");
 const AppError = require("../../utils/app-error");
@@ -29,9 +28,10 @@ function toTimeDate(value, date) {
 function formatTime(value) {
   if (!value) return null;
 
-  return `${String(value.getUTCHours()).padStart(2, "0")}:${String(
-    value.getUTCMinutes()
-  ).padStart(2, "0")}`;
+  return `${String(value.getUTCHours()).padStart(2, "0")}:${String(value.getUTCMinutes()).padStart(
+    2,
+    "0"
+  )}`;
 }
 
 function formatAttendance(record) {
@@ -64,11 +64,7 @@ async function getAccessContext(user) {
     });
 
     if (!employee) {
-      fail(
-        "Employee profile not found",
-        HTTP_STATUS.FORBIDDEN,
-        "EMPLOYEE_PROFILE_NOT_FOUND"
-      );
+      fail("Employee profile not found", HTTP_STATUS.FORBIDDEN, "EMPLOYEE_PROFILE_NOT_FOUND");
     }
 
     const assignments = await prisma.staffAssignment.findMany({
@@ -109,11 +105,7 @@ async function getAccessContext(user) {
     });
 
     if (!parent) {
-      fail(
-        "Parent profile not found",
-        HTTP_STATUS.FORBIDDEN,
-        "PARENT_PROFILE_NOT_FOUND"
-      );
+      fail("Parent profile not found", HTTP_STATUS.FORBIDDEN, "PARENT_PROFILE_NOT_FOUND");
     }
 
     return {
@@ -124,11 +116,7 @@ async function getAccessContext(user) {
     };
   }
 
-  fail(
-    "You do not have permission to access attendance",
-    HTTP_STATUS.FORBIDDEN,
-    "FORBIDDEN"
-  );
+  fail("You do not have permission to access attendance", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
 }
 
 async function ensureChildAccess(childId, date, context) {
@@ -140,11 +128,7 @@ async function ensureChildAccess(childId, date, context) {
   });
 
   if (!child) {
-    fail(
-      "Child not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_NOT_FOUND"
-    );
+    fail("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 
   if (context.isManager) {
@@ -153,22 +137,14 @@ async function ensureChildAccess(childId, date, context) {
 
   if (context.childIds.length > 0) {
     if (!context.childIds.includes(childId)) {
-      fail(
-        "You do not have access to this child",
-        HTTP_STATUS.FORBIDDEN,
-        "CHILD_ACCESS_DENIED"
-      );
+      fail("You do not have access to this child", HTTP_STATUS.FORBIDDEN, "CHILD_ACCESS_DENIED");
     }
 
     return child;
   }
 
   if (context.groupIds.length === 0) {
-    fail(
-      "You are not assigned to any group",
-      HTTP_STATUS.FORBIDDEN,
-      "GROUP_ACCESS_DENIED"
-    );
+    fail("You are not assigned to any group", HTTP_STATUS.FORBIDDEN, "GROUP_ACCESS_DENIED");
   }
 
   const attendanceDate = toDate(date);
@@ -178,10 +154,7 @@ async function ensureChildAccess(childId, date, context) {
       childId,
       groupId: { in: context.groupIds },
       startDate: { lte: attendanceDate },
-      OR: [
-        { endDate: null },
-        { endDate: { gte: attendanceDate } }
-      ]
+      OR: [{ endDate: null }, { endDate: { gte: attendanceDate } }]
     }
   });
 
@@ -245,15 +218,8 @@ async function getAll(filters = {}, user) {
         in: context.childIds
       };
     } else {
-      if (
-        filters.groupId &&
-        !context.groupIds.includes(filters.groupId)
-      ) {
-        fail(
-          "You do not have access to this group",
-          HTTP_STATUS.FORBIDDEN,
-          "GROUP_ACCESS_DENIED"
-        );
+      if (filters.groupId && !context.groupIds.includes(filters.groupId)) {
+        fail("You do not have access to this group", HTTP_STATUS.FORBIDDEN, "GROUP_ACCESS_DENIED");
       }
 
       where.child = {
@@ -263,9 +229,7 @@ async function getAll(filters = {}, user) {
               ? { groupId: filters.groupId }
               : { groupId: { in: context.groupIds } }),
             startDate: {
-              lte: filters.to
-                ? toDate(filters.to)
-                : new Date()
+              lte: filters.to ? toDate(filters.to) : new Date()
             },
             OR: [
               { endDate: null },
@@ -312,10 +276,7 @@ async function getAll(filters = {}, user) {
         }
       }
     },
-    orderBy: [
-      { date: "desc" },
-      { createdAt: "desc" }
-    ]
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }]
   });
 
   return records.map(formatAttendance);
@@ -344,20 +305,12 @@ async function getById(id, user) {
   });
 
   if (!record) {
-    fail(
-      "Attendance record not found",
-      HTTP_STATUS.NOT_FOUND,
-      "ATTENDANCE_NOT_FOUND"
-    );
+    fail("Attendance record not found", HTTP_STATUS.NOT_FOUND, "ATTENDANCE_NOT_FOUND");
   }
 
   const context = await getAccessContext(user);
 
-  await ensureChildAccess(
-    record.childId,
-    record.date.toISOString().slice(0, 10),
-    context
-  );
+  await ensureChildAccess(record.childId, record.date.toISOString().slice(0, 10), context);
 
   return formatAttendance(record);
 }
@@ -448,26 +401,14 @@ async function update(id, data, user) {
     });
 
     if (!before) {
-      fail(
-        "Attendance record not found",
-        HTTP_STATUS.NOT_FOUND,
-        "ATTENDANCE_NOT_FOUND"
-      );
+      fail("Attendance record not found", HTTP_STATUS.NOT_FOUND, "ATTENDANCE_NOT_FOUND");
     }
 
-    await ensureChildAccess(
-      before.childId,
-      before.date.toISOString().slice(0, 10),
-      context
-    );
+    await ensureChildAccess(before.childId, before.date.toISOString().slice(0, 10), context);
 
     const date = data.date ? toDate(data.date) : before.date;
 
-    await ensureChildAccess(
-      before.childId,
-      date.toISOString().slice(0, 10),
-      context
-    );
+    await ensureChildAccess(before.childId, date.toISOString().slice(0, 10), context);
 
     const checkIn =
       data.checkIn !== undefined
@@ -540,11 +481,7 @@ async function remove(id, user) {
     });
 
     if (!before) {
-      fail(
-        "Attendance record not found",
-        HTTP_STATUS.NOT_FOUND,
-        "ATTENDANCE_NOT_FOUND"
-      );
+      fail("Attendance record not found", HTTP_STATUS.NOT_FOUND, "ATTENDANCE_NOT_FOUND");
     }
 
     await tx.attendance.delete({

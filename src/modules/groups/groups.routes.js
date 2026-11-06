@@ -19,30 +19,13 @@ const router = Router();
 
 router.use(requireAuth);
 
-const readAccess = authorizeRoles(
-  "ADMIN",
-  "MANAGER",
-  "PARENT",
-  "TEACHER",
-  "EDUCATOR",
-  "ASSISTANT"
-);
+const readAccess = authorizeRoles("ADMIN", "MANAGER", "PARENT", "TEACHER", "EDUCATOR", "ASSISTANT");
 
 const managementAccess = authorizeRoles("ADMIN", "MANAGER");
 
-router.get(
-  "/",
-  readAccess,
-  validate(queryGroupsSchema, "query"),
-  controller.getAll
-);
+router.get("/", readAccess, validate(queryGroupsSchema, "query"), controller.getAll);
 
-router.post(
-  "/",
-  managementAccess,
-  validate(createGroupSchema, "body"),
-  controller.create
-);
+router.post("/", managementAccess, validate(createGroupSchema, "body"), controller.create);
 
 router.get(
   "/children/:childId/enrollments",
@@ -58,12 +41,7 @@ router.patch(
   controller.completeEnrollment
 );
 
-router.get(
-  "/:id",
-  readAccess,
-  validate(idParamsSchema, "params"),
-  controller.getById
-);
+router.get("/:id", readAccess, validate(idParamsSchema, "params"), controller.getById);
 
 router.patch(
   "/:id",
@@ -73,12 +51,7 @@ router.patch(
   controller.update
 );
 
-router.delete(
-  "/:id",
-  managementAccess,
-  validate(idParamsSchema, "params"),
-  controller.remove
-);
+router.delete("/:id", managementAccess, validate(idParamsSchema, "params"), controller.remove);
 
 router.post(
   "/:id/enrollments",

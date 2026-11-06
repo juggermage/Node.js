@@ -21,11 +21,7 @@ function normalizeData(data) {
 
 function getAccessFilter(user) {
   if (!user) {
-    throw new AppError(
-      "Authentication required",
-      HTTP_STATUS.UNAUTHORIZED,
-      "UNAUTHORIZED"
-    );
+    throw new AppError("Authentication required", HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
   }
 
   if (MANAGEMENT_ROLES.includes(user.role)) {
@@ -140,12 +136,7 @@ function buildSearchFilter(search) {
 }
 
 async function getAll(filters = {}, user) {
-  const {
-    search,
-    status,
-    page = 1,
-    limit = 20
-  } = filters;
+  const { search, status, page = 1, limit = 20 } = filters;
 
   const accessFilter = getAccessFilter(user);
 
@@ -207,11 +198,7 @@ async function getById(id, user) {
 
   const child = await prisma.child.findFirst({
     where: {
-      AND: [
-        { id },
-        accessFilter,
-        { status: { not: "ARCHIVED" } }
-      ]
+      AND: [{ id }, accessFilter, { status: { not: "ARCHIVED" } }]
     },
     include: {
       parents: {
@@ -234,11 +221,7 @@ async function getById(id, user) {
   });
 
   if (!child) {
-    throw new AppError(
-      "Child not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_NOT_FOUND"
-    );
+    throw new AppError("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 
   return child;
@@ -282,11 +265,7 @@ async function update(id, data, user) {
     });
 
     if (!before) {
-      throw new AppError(
-        "Child not found",
-        HTTP_STATUS.NOT_FOUND,
-        "CHILD_NOT_FOUND"
-      );
+      throw new AppError("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
     }
 
     const child = await tx.child.update({
@@ -322,11 +301,7 @@ async function remove(id, user) {
     });
 
     if (!before) {
-      throw new AppError(
-        "Child not found",
-        HTTP_STATUS.NOT_FOUND,
-        "CHILD_NOT_FOUND"
-      );
+      throw new AppError("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
     }
 
     const child = await tx.child.update({

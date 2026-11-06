@@ -45,13 +45,7 @@ function serializeAmount(value) {
 async function getSummary({ from, to }) {
   const { start, endExclusive } = getPeriod(from, to);
 
-  const [
-    invoices,
-    payments,
-    salaries,
-    expenses,
-    attendanceRecords
-  ] = await Promise.all([
+  const [invoices, payments, salaries, expenses, attendanceRecords] = await Promise.all([
     prisma.invoice.findMany({
       where: {
         issuedAt: {
@@ -142,10 +136,7 @@ async function getSummary({ from, to }) {
   let outstandingBalance = 0n;
 
   for (const invoice of invoices) {
-    const paid = invoice.allocations.reduce(
-      (sum, allocation) => sum + allocation.amount,
-      0n
-    );
+    const paid = invoice.allocations.reduce((sum, allocation) => sum + allocation.amount, 0n);
 
     const balance = invoice.amountDue - paid;
 
@@ -218,18 +209,12 @@ async function getSummary({ from, to }) {
 }
 
 function getInvoicePeriod(invoice) {
-  const start = new Date(
-    Date.UTC(invoice.periodYear, invoice.periodMonth - 1, 1)
-  );
+  const start = new Date(Date.UTC(invoice.periodYear, invoice.periodMonth - 1, 1));
 
   const end =
     invoice.type === "ANNUAL"
-      ? new Date(
-          Date.UTC(invoice.periodYear + 1, invoice.periodMonth - 1, 0)
-        )
-      : new Date(
-          Date.UTC(invoice.periodYear, invoice.periodMonth, 0)
-        );
+      ? new Date(Date.UTC(invoice.periodYear + 1, invoice.periodMonth - 1, 0))
+      : new Date(Date.UTC(invoice.periodYear, invoice.periodMonth, 0));
 
   return {
     start,
@@ -290,10 +275,7 @@ async function getGroupReport({ from, to }) {
   const groups = new Map();
 
   for (const invoice of invoices) {
-    const {
-      start: periodStart,
-      end: periodEnd
-    } = getInvoicePeriod(invoice);
+    const { start: periodStart, end: periodEnd } = getInvoicePeriod(invoice);
 
     const enrollment = enrollments.find((item) => {
       return (
@@ -319,10 +301,7 @@ async function getGroupReport({ from, to }) {
 
     const group = groups.get(groupId);
 
-    const paid = invoice.allocations.reduce(
-      (sum, allocation) => sum + allocation.amount,
-      0n
-    );
+    const paid = invoice.allocations.reduce((sum, allocation) => sum + allocation.amount, 0n);
 
     const balance = invoice.amountDue - paid;
 
@@ -395,10 +374,7 @@ async function getAttendanceReport({ from, to, groupId }) {
 
   for (const record of attendanceRecords) {
     const enrollment = record.child.enrollments.find((item) => {
-      return (
-        item.startDate <= record.date &&
-        (!item.endDate || item.endDate >= record.date)
-      );
+      return item.startDate <= record.date && (!item.endDate || item.endDate >= record.date);
     });
 
     const currentGroupId = enrollment?.group?.id || "WITHOUT_GROUP";

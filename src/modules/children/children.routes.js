@@ -18,28 +18,14 @@ router.use(requireAuth);
 
 router.get(
   "/",
-  authorizeRoles(
-    "ADMIN",
-    "MANAGER",
-    "PARENT",
-    "TEACHER",
-    "EDUCATOR",
-    "ASSISTANT"
-  ),
+  authorizeRoles("ADMIN", "MANAGER", "PARENT", "TEACHER", "EDUCATOR", "ASSISTANT"),
   validate(searchChildSchema, "query"),
   childrenController.getAll
 );
 
 router.get(
   "/:id",
-  authorizeRoles(
-    "ADMIN",
-    "MANAGER",
-    "PARENT",
-    "TEACHER",
-    "EDUCATOR",
-    "ASSISTANT"
-  ),
+  authorizeRoles("ADMIN", "MANAGER", "PARENT", "TEACHER", "EDUCATOR", "ASSISTANT"),
   validate(childIdSchema, "params"),
   childrenController.getById
 );

@@ -12,21 +12,13 @@ function fail(message, status, code) {
 
 function ensureManagementAccess(user) {
   if (!user || !MANAGEMENT_ROLES.includes(user.role)) {
-    fail(
-      "You do not have permission to perform this action",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+    fail("You do not have permission to perform this action", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 }
 
 function getReadAccessFilter(user) {
   if (!user) {
-    fail(
-      "Authentication required",
-      HTTP_STATUS.UNAUTHORIZED,
-      "UNAUTHORIZED"
-    );
+    fail("Authentication required", HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
   }
 
   if (MANAGEMENT_ROLES.includes(user.role)) {
@@ -65,20 +57,12 @@ function getReadAccessFilter(user) {
     };
   }
 
-  fail(
-    "You do not have permission to access this resource",
-    HTTP_STATUS.FORBIDDEN,
-    "FORBIDDEN"
-  );
+  fail("You do not have permission to access this resource", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
 }
 
 function handlePrismaError(error) {
   if (error.code === "P2003" || error.code === "P2025") {
-    fail(
-      "Child or parent not found",
-      HTTP_STATUS.NOT_FOUND,
-      "RELATED_RECORD_NOT_FOUND"
-    );
+    fail("Child or parent not found", HTTP_STATUS.NOT_FOUND, "RELATED_RECORD_NOT_FOUND");
   }
 
   if (error.code === "P2002") {
@@ -102,11 +86,7 @@ async function getLinkOrFail(id, tx = prisma) {
   });
 
   if (!link) {
-    fail(
-      "Relationship not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_PARENT_NOT_FOUND"
-    );
+    fail("Relationship not found", HTTP_STATUS.NOT_FOUND, "CHILD_PARENT_NOT_FOUND");
   }
 
   return link;
@@ -127,11 +107,7 @@ async function ensureLinkAccess(id, user, tx = prisma) {
   });
 
   if (!link) {
-    fail(
-      "Relationship not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_PARENT_NOT_FOUND"
-    );
+    fail("Relationship not found", HTTP_STATUS.NOT_FOUND, "CHILD_PARENT_NOT_FOUND");
   }
 
   return link;
@@ -148,19 +124,11 @@ async function createOrRestore({ childId, parentId, relation }, user) {
       ]);
 
       if (!child || child.status === "ARCHIVED") {
-        fail(
-          "Child not found",
-          HTTP_STATUS.NOT_FOUND,
-          "CHILD_NOT_FOUND"
-        );
+        fail("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
       }
 
       if (!parent || parent.status !== "ACTIVE") {
-        fail(
-          "Active parent not found",
-          HTTP_STATUS.NOT_FOUND,
-          "PARENT_NOT_FOUND"
-        );
+        fail("Active parent not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
       }
 
       const existing = await tx.childParent.findUnique({
@@ -276,11 +244,7 @@ async function getForChild(childId, includeEnded = false, user) {
   });
 
   if (!child) {
-    fail(
-      "Child not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_NOT_FOUND"
-    );
+    fail("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 
   return prisma.childParent.findMany({
@@ -310,11 +274,7 @@ async function getForParent(parentId, includeEnded = false, user) {
     });
 
     if (!ownParent || ownParent.id !== parentId) {
-      fail(
-        "You do not have permission to access this parent",
-        HTTP_STATUS.FORBIDDEN,
-        "FORBIDDEN"
-      );
+      fail("You do not have permission to access this parent", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
     }
   }
 
@@ -324,11 +284,7 @@ async function getForParent(parentId, includeEnded = false, user) {
     });
 
     if (!parent) {
-      fail(
-        "Parent not found",
-        HTTP_STATUS.NOT_FOUND,
-        "PARENT_NOT_FOUND"
-      );
+      fail("Parent not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
     }
 
     const accessibleLinks = await prisma.childParent.findMany({
@@ -395,11 +351,7 @@ async function complete(id, user) {
       const before = await getLinkOrFail(id, tx);
 
       if (before.endDate !== null) {
-        fail(
-          "Relationship already ended",
-          HTTP_STATUS.CONFLICT,
-          "RELATIONSHIP_ALREADY_ENDED"
-        );
+        fail("Relationship already ended", HTTP_STATUS.CONFLICT, "RELATIONSHIP_ALREADY_ENDED");
       }
 
       const link = await tx.childParent.update({

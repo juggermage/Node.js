@@ -18,23 +18,11 @@ const router = Router();
 
 router.use(requireAuth);
 
-const readAccess = authorizeRoles(
-  "ADMIN",
-  "MANAGER",
-  "PARENT",
-  "TEACHER",
-  "EDUCATOR",
-  "ASSISTANT"
-);
+const readAccess = authorizeRoles("ADMIN", "MANAGER", "PARENT", "TEACHER", "EDUCATOR", "ASSISTANT");
 
 const managementAccess = authorizeRoles("ADMIN", "MANAGER");
 
-router.post(
-  "/",
-  managementAccess,
-  validate(createLinkSchema, "body"),
-  controller.create
-);
+router.post("/", managementAccess, validate(createLinkSchema, "body"), controller.create);
 
 router.get(
   "/child/:childId",
@@ -52,12 +40,7 @@ router.get(
   controller.getForParent
 );
 
-router.get(
-  "/:id",
-  readAccess,
-  validate(idParamsSchema, "params"),
-  controller.getById
-);
+router.get("/:id", readAccess, validate(idParamsSchema, "params"), controller.getById);
 
 router.patch(
   "/:id/complete",

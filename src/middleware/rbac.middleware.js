@@ -1,4 +1,3 @@
-
 const HTTP_STATUS = require("../utils/http-status");
 
 function authorizeRoles(...allowedRoles) {

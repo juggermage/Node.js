@@ -1,4 +1,3 @@
-
 const Joi = require("joi");
 
 const objectId = Joi.string().hex().length(24);
@@ -8,10 +7,7 @@ const isoDate = Joi.string()
   .custom((value, helpers) => {
     const date = new Date(`${value}T00:00:00.000Z`);
 
-    if (
-      Number.isNaN(date.getTime()) ||
-      date.toISOString().slice(0, 10) !== value
-    ) {
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
       return helpers.error("date.invalid");
     }
 
@@ -40,13 +36,7 @@ const invoiceQuerySchema = Joi.object({
   periodYear: Joi.number().integer().min(2000).max(2100),
   periodMonth: Joi.number().integer().min(1).max(12),
   type: Joi.string().valid("MONTHLY", "ANNUAL", "ADJUSTMENT"),
-  status: Joi.string().valid(
-    "DRAFT",
-    "ISSUED",
-    "PARTIALLY_PAID",
-    "PAID",
-    "CANCELLED"
-  )
+  status: Joi.string().valid("DRAFT", "ISSUED", "PARTIALLY_PAID", "PAID", "CANCELLED")
 });
 
 const invoiceIdSchema = Joi.object({

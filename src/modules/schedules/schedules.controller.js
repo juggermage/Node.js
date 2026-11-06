@@ -23,10 +23,7 @@ async function getById(req, res) {
 }
 
 async function create(req, res) {
-  const schedule = await schedulesService.create(
-    res.locals.validated.body,
-    req.user
-  );
+  const schedule = await schedulesService.create(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -37,11 +34,7 @@ async function create(req, res) {
 async function update(req, res) {
   const { id } = res.locals.validated.params;
 
-  const schedule = await schedulesService.update(
-    id,
-    res.locals.validated.body,
-    req.user
-  );
+  const schedule = await schedulesService.update(id, res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -71,11 +64,7 @@ async function publish(req, res) {
 async function createItem(req, res) {
   const { id } = res.locals.validated.params;
 
-  const item = await schedulesService.createItem(
-    id,
-    res.locals.validated.body,
-    req.user
-  );
+  const item = await schedulesService.createItem(id, res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -86,12 +75,7 @@ async function createItem(req, res) {
 async function updateItem(req, res) {
   const { id, itemId } = res.locals.validated.params;
 
-  const item = await schedulesService.updateItem(
-    id,
-    itemId,
-    res.locals.validated.body,
-    req.user
-  );
+  const item = await schedulesService.updateItem(id, itemId, res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -110,12 +94,7 @@ async function removeItem(req, res) {
 async function cancelItem(req, res) {
   const { id, itemId } = res.locals.validated.params;
 
-  const item = await schedulesService.cancelItem(
-    id,
-    itemId,
-    res.locals.validated.body,
-    req.user
-  );
+  const item = await schedulesService.cancelItem(id, itemId, res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -124,10 +103,7 @@ async function cancelItem(req, res) {
 }
 
 async function generate(req, res) {
-  const schedule = await schedulesGenerator.generate(
-    res.locals.validated.body,
-    req.user
-  );
+  const schedule = await schedulesGenerator.generate(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,

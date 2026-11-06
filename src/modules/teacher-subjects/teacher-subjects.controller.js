@@ -1,4 +1,3 @@
-
 const service = require("./teacher-subjects.service");
 const HTTP_STATUS = require("../../utils/http-status");
 
@@ -12,10 +11,7 @@ async function getAll(req, res) {
 }
 
 async function create(req, res) {
-  const data = await service.create(
-    res.locals.validated.body,
-    req.user
-  );
+  const data = await service.create(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -24,10 +20,7 @@ async function create(req, res) {
 }
 
 async function getTeacherSubjects(req, res) {
-  const data = await service.getTeacherSubjects(
-    res.locals.validated.params.employeeId,
-    req.user
-  );
+  const data = await service.getTeacherSubjects(res.locals.validated.params.employeeId, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -36,10 +29,7 @@ async function getTeacherSubjects(req, res) {
 }
 
 async function remove(req, res) {
-  await service.remove(
-    res.locals.validated.params.id,
-    req.user
-  );
+  await service.remove(res.locals.validated.params.id, req.user);
 
   return res.status(HTTP_STATUS.NO_CONTENT).send();
 }

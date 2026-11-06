@@ -5,9 +5,7 @@ const objectId = Joi.string().hex().length(24);
 const createAssignmentSchema = Joi.object({
   employeeId: objectId.required(),
   groupId: objectId.required(),
-  role: Joi.string()
-    .valid("TEACHER", "EDUCATOR", "ASSISTANT")
-    .required()
+  role: Joi.string().valid("TEACHER", "EDUCATOR", "ASSISTANT").required()
 });
 
 const idParamsSchema = Joi.object({

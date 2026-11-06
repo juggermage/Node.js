@@ -20,33 +20,13 @@ router.use(requireAuth);
 const readAccess = authorizeRoles("ADMIN", "MANAGER", "PARENT");
 const managementAccess = authorizeRoles("ADMIN", "MANAGER");
 
-router.get(
-  "/",
-  readAccess,
-  validate(queryParentsSchema, "query"),
-  controller.getAll
-);
+router.get("/", readAccess, validate(queryParentsSchema, "query"), controller.getAll);
 
-router.post(
-  "/",
-  managementAccess,
-  validate(createParentSchema, "body"),
-  controller.create
-);
+router.post("/", managementAccess, validate(createParentSchema, "body"), controller.create);
 
-router.get(
-  "/:id/children",
-  readAccess,
-  validate(idParamsSchema, "params"),
-  controller.getChildren
-);
+router.get("/:id/children", readAccess, validate(idParamsSchema, "params"), controller.getChildren);
 
-router.get(
-  "/:id",
-  readAccess,
-  validate(idParamsSchema, "params"),
-  controller.getById
-);
+router.get("/:id", readAccess, validate(idParamsSchema, "params"), controller.getById);
 
 router.patch(
   "/:id",
@@ -56,11 +36,6 @@ router.patch(
   controller.update
 );
 
-router.delete(
-  "/:id",
-  managementAccess,
-  validate(idParamsSchema, "params"),
-  controller.remove
-);
+router.delete("/:id", managementAccess, validate(idParamsSchema, "params"), controller.remove);
 
 module.exports = router;

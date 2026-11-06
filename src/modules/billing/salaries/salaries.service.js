@@ -1,4 +1,3 @@
-
 const prisma = require("../../../config/prisma");
 const AppError = require("../../../utils/app-error");
 const HTTP_STATUS = require("../../../utils/http-status");
@@ -57,20 +56,10 @@ function normalizeDate(value) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    fail(
-      "Invalid date",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_DATE"
-    );
+    fail("Invalid date", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_DATE");
   }
 
-  return new Date(
-    Date.UTC(
-      date.getUTCFullYear(),
-      date.getUTCMonth(),
-      date.getUTCDate()
-    )
-  );
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
 function serializeRate(rate) {
@@ -94,19 +83,11 @@ function serializeCalculation(calculation) {
 
 function getPeriodBounds(year, month) {
   if (!Number.isInteger(year) || year < 2000 || year > 2100) {
-    fail(
-      "Invalid period year",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_PERIOD_YEAR"
-    );
+    fail("Invalid period year", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_PERIOD_YEAR");
   }
 
   if (!Number.isInteger(month) || month < 1 || month > 12) {
-    fail(
-      "Invalid period month",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_PERIOD_MONTH"
-    );
+    fail("Invalid period month", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_PERIOD_MONTH");
   }
 
   return {
@@ -126,23 +107,15 @@ function calculateSalary(role, rate, childrenCount = 0) {
 
   const baseAmount = toNumber(rate.baseAmount);
   const perChildAmount = toNumber(rate.perChildAmount);
-  const extraChildBonusAmount = toNumber(
-    rate.extraChildBonusAmount
-  );
+  const extraChildBonusAmount = toNumber(rate.extraChildBonusAmount);
   const threshold = rate.childThreshold ?? 0;
 
   if (
-    ![baseAmount, perChildAmount, extraChildBonusAmount].every(
-      (value) => value >= 0
-    ) ||
+    ![baseAmount, perChildAmount, extraChildBonusAmount].every((value) => value >= 0) ||
     !Number.isInteger(threshold) ||
     threshold < 0
   ) {
-    fail(
-      "Invalid salary rate",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_SALARY_RATE"
-    );
+    fail("Invalid salary rate", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_SALARY_RATE");
   }
 
   if (role === "MANAGER" || role === "TEACHER") {
@@ -157,30 +130,15 @@ function calculateSalary(role, rate, childrenCount = 0) {
   }
 
   if (role !== "EDUCATOR" && role !== "ASSISTANT") {
-    fail(
-      "Unsupported employee role",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "UNSUPPORTED_ROLE"
-    );
+    fail("Unsupported employee role", HTTP_STATUS.UNPROCESSABLE_ENTITY, "UNSUPPORTED_ROLE");
   }
 
   const perChildTotal = perChildAmount * childrenCount;
-  const extraChildrenCount = Math.max(
-    0,
-    childrenCount - threshold
-  );
-  const bonusAmount =
-    extraChildrenCount * extraChildBonusAmount;
-  const totalAmount =
-    baseAmount + perChildTotal + bonusAmount;
+  const extraChildrenCount = Math.max(0, childrenCount - threshold);
+  const bonusAmount = extraChildrenCount * extraChildBonusAmount;
+  const totalAmount = baseAmount + perChildTotal + bonusAmount;
 
-  if (
-    ![
-      perChildTotal,
-      bonusAmount,
-      totalAmount
-    ].every(Number.isSafeInteger)
-  ) {
+  if (![perChildTotal, bonusAmount, totalAmount].every(Number.isSafeInteger)) {
     fail(
       "Calculated salary exceeds the safe integer range",
       HTTP_STATUS.UNPROCESSABLE_ENTITY,
@@ -212,21 +170,12 @@ async function getRates({ employeeId } = {}) {
   return rates.map(serializeRate);
 }
 
-async function createRate(
-  { employeeId, validFrom, validTo = null },
-  actorId
-) {
+async function createRate({ employeeId, validFrom, validTo = null }, actorId) {
   const startDate = normalizeDate(validFrom);
-  const endDate = validTo
-    ? normalizeDate(validTo)
-    : null;
+  const endDate = validTo ? normalizeDate(validTo) : null;
 
   if (endDate && endDate <= startDate) {
-    fail(
-      "Invalid salary rate dates",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_RATE_DATES"
-    );
+    fail("Invalid salary rate dates", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_RATE_DATES");
   }
 
   return prisma.$transaction(async (tx) => {
@@ -237,21 +186,13 @@ async function createRate(
     });
 
     if (!employee || employee.status !== "ACTIVE") {
-      fail(
-        "Active employee not found",
-        HTTP_STATUS.NOT_FOUND,
-        "EMPLOYEE_NOT_FOUND"
-      );
+      fail("Active employee not found", HTTP_STATUS.NOT_FOUND, "EMPLOYEE_NOT_FOUND");
     }
 
     const roleRate = ROLE_RATES[employee.role];
 
     if (!roleRate) {
-      fail(
-        "Unsupported employee role",
-        HTTP_STATUS.UNPROCESSABLE_ENTITY,
-        "UNSUPPORTED_ROLE"
-      );
+      fail("Unsupported employee role", HTTP_STATUS.UNPROCESSABLE_ENTITY, "UNSUPPORTED_ROLE");
     }
 
     const overlappingRates = await tx.salaryRate.findMany({
@@ -285,11 +226,7 @@ async function createRate(
         );
       }
 
-      if (
-        rate.validFrom < startDate &&
-        rate.validTo !== null &&
-        rate.validTo > startDate
-      ) {
+      if (rate.validFrom < startDate && rate.validTo !== null && rate.validTo > startDate) {
         fail(
           "New salary rate overlaps with an existing rate",
           HTTP_STATUS.CONFLICT,
@@ -299,9 +236,7 @@ async function createRate(
     }
 
     const previousOpenRate = overlappingRates.find(
-      (rate) =>
-        rate.validFrom < startDate &&
-        rate.validTo === null
+      (rate) => rate.validFrom < startDate && rate.validTo === null
     );
 
     if (previousOpenRate) {
@@ -322,9 +257,7 @@ async function createRate(
         baseAmount: BigInt(roleRate.baseAmount),
         perChildAmount: BigInt(roleRate.perChildAmount),
         childThreshold: roleRate.childThreshold,
-        extraChildBonusAmount: BigInt(
-          roleRate.extraChildBonusAmount
-        ),
+        extraChildBonusAmount: BigInt(roleRate.extraChildBonusAmount),
         validFrom: startDate,
         validTo: endDate
       },
@@ -393,21 +326,12 @@ async function getChildrenCount(tx, groupId, periodStart) {
   });
 
   return enrollments.filter(
-    (enrollment) =>
-      enrollment.endDate == null ||
-      enrollment.endDate > periodStart
+    (enrollment) => enrollment.endDate == null || enrollment.endDate > periodStart
   ).length;
 }
 
-async function getEmployeeChildrenCount(
-  tx,
-  employee,
-  periodStart
-) {
-  if (
-    employee.role === "MANAGER" ||
-    employee.role === "TEACHER"
-  ) {
+async function getEmployeeChildrenCount(tx, employee, periodStart) {
+  if (employee.role === "MANAGER" || employee.role === "TEACHER") {
     return 0;
   }
 
@@ -422,9 +346,7 @@ async function getEmployeeChildrenCount(
   });
 
   const activeAssignments = assignments.filter(
-    (assignment) =>
-      assignment.endDate == null ||
-      assignment.endDate > periodStart
+    (assignment) => assignment.endDate == null || assignment.endDate > periodStart
   );
 
   if (activeAssignments.length === 0) {
@@ -443,37 +365,15 @@ async function getEmployeeChildrenCount(
     );
   }
 
-  return getChildrenCount(
-    tx,
-    activeAssignments[0].groupId,
-    periodStart
-  );
+  return getChildrenCount(tx, activeAssignments[0].groupId, periodStart);
 }
 
-async function calculateEmployeeSalary(
-  tx,
-  employee,
-  periodYear,
-  periodMonth,
-  periodStart
-) {
-  const rate = await getEmployeeRate(
-    tx,
-    employee.id,
-    periodStart
-  );
+async function calculateEmployeeSalary(tx, employee, periodYear, periodMonth, periodStart) {
+  const rate = await getEmployeeRate(tx, employee.id, periodStart);
 
-  const childrenCount = await getEmployeeChildrenCount(
-    tx,
-    employee,
-    periodStart
-  );
+  const childrenCount = await getEmployeeChildrenCount(tx, employee, periodStart);
 
-  const result = calculateSalary(
-    employee.role,
-    rate,
-    childrenCount
-  );
+  const result = calculateSalary(employee.role, rate, childrenCount);
 
   const rateSnapshot = {
     rateId: rate.id,
@@ -481,13 +381,9 @@ async function calculateEmployeeSalary(
     baseAmount: toNumber(rate.baseAmount),
     perChildAmount: toNumber(rate.perChildAmount),
     childThreshold: rate.childThreshold,
-    extraChildBonusAmount: toNumber(
-      rate.extraChildBonusAmount
-    ),
+    extraChildBonusAmount: toNumber(rate.extraChildBonusAmount),
     validFrom: rate.validFrom.toISOString(),
-    validTo: rate.validTo
-      ? rate.validTo.toISOString()
-      : null
+    validTo: rate.validTo ? rate.validTo.toISOString() : null
   };
 
   const calculation = await tx.salaryCalculation.create({
@@ -512,14 +408,8 @@ async function calculateEmployeeSalary(
   return calculation;
 }
 
-async function createCalculations(
-  { periodYear, periodMonth, employeeId },
-  actorId
-) {
-  const { start } = getPeriodBounds(
-    periodYear,
-    periodMonth
-  );
+async function createCalculations({ periodYear, periodMonth, employeeId }, actorId) {
+  const { start } = getPeriodBounds(periodYear, periodMonth);
 
   try {
     return await prisma.$transaction(async (tx) => {
@@ -542,11 +432,7 @@ async function createCalculations(
       });
 
       if (employeeId && employees.length === 0) {
-        fail(
-          "Active employee not found",
-          HTTP_STATUS.NOT_FOUND,
-          "EMPLOYEE_NOT_FOUND"
-        );
+        fail("Active employee not found", HTTP_STATUS.NOT_FOUND, "EMPLOYEE_NOT_FOUND");
       }
 
       const calculations = [];
@@ -571,9 +457,7 @@ async function createCalculations(
           tx
         );
 
-        calculations.push(
-          serializeCalculation(calculation)
-        );
+        calculations.push(serializeCalculation(calculation));
       }
 
       return calculations;
@@ -642,11 +526,7 @@ async function getCalculationById(id) {
   });
 
   if (!calculation) {
-    fail(
-      "Salary calculation not found",
-      HTTP_STATUS.NOT_FOUND,
-      "SALARY_CALCULATION_NOT_FOUND"
-    );
+    fail("Salary calculation not found", HTTP_STATUS.NOT_FOUND, "SALARY_CALCULATION_NOT_FOUND");
   }
 
   return serializeCalculation(calculation);
@@ -664,11 +544,7 @@ async function cancelCalculation(id, actorId) {
     });
 
     if (!calculation) {
-      fail(
-        "Salary calculation not found",
-        HTTP_STATUS.NOT_FOUND,
-        "SALARY_CALCULATION_NOT_FOUND"
-      );
+      fail("Salary calculation not found", HTTP_STATUS.NOT_FOUND, "SALARY_CALCULATION_NOT_FOUND");
     }
 
     if (calculation.status === "PAID") {

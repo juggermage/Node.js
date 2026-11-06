@@ -17,28 +17,12 @@ const router = Router();
 router.use(requireAuth);
 router.use(authorizeRoles("ADMIN", "MANAGER"));
 
-router.get(
-  "/",
-  validate(queryDiscountsSchema, "query"),
-  controller.getAll
-);
+router.get("/", validate(queryDiscountsSchema, "query"), controller.getAll);
 
-router.post(
-  "/",
-  validate(createDiscountSchema, "body"),
-  controller.create
-);
+router.post("/", validate(createDiscountSchema, "body"), controller.create);
 
-router.get(
-  "/:id",
-  validate(idParamsSchema, "params"),
-  controller.getById
-);
+router.get("/:id", validate(idParamsSchema, "params"), controller.getById);
 
-router.patch(
-  "/:id/deactivate",
-  validate(idParamsSchema, "params"),
-  controller.deactivate
-);
+router.patch("/:id/deactivate", validate(idParamsSchema, "params"), controller.deactivate);
 
 module.exports = router;

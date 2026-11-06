@@ -12,27 +12,16 @@ function fail(message, status, code) {
 
 function ensureManagementAccess(user) {
   if (!user || !MANAGEMENT_ROLES.includes(user.role)) {
-    fail(
-      "You do not have permission to perform this action",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+    fail("You do not have permission to perform this action", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 }
 
 function ensureReadAccess(user) {
   if (!user) {
-    fail(
-      "Authentication required",
-      HTTP_STATUS.UNAUTHORIZED,
-      "UNAUTHORIZED"
-    );
+    fail("Authentication required", HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
   }
 
-  if (
-    !MANAGEMENT_ROLES.includes(user.role) &&
-    !EMPLOYEE_ROLES.includes(user.role)
-  ) {
+  if (!MANAGEMENT_ROLES.includes(user.role) && !EMPLOYEE_ROLES.includes(user.role)) {
     fail(
       "You do not have permission to access staff assignments",
       HTTP_STATUS.FORBIDDEN,
@@ -55,11 +44,7 @@ async function getAssignmentOrFail(id, tx = prisma) {
   });
 
   if (!assignment) {
-    fail(
-      "Staff assignment not found",
-      HTTP_STATUS.NOT_FOUND,
-      "STAFF_ASSIGNMENT_NOT_FOUND"
-    );
+    fail("Staff assignment not found", HTTP_STATUS.NOT_FOUND, "STAFF_ASSIGNMENT_NOT_FOUND");
   }
 
   return assignment;
@@ -85,19 +70,11 @@ async function ensureAssignmentAccess(assignment, user) {
 
 function handlePrismaError(error) {
   if (error.code === "P2002") {
-    fail(
-      "This staff assignment already exists",
-      HTTP_STATUS.CONFLICT,
-      "ASSIGNMENT_ALREADY_EXISTS"
-    );
+    fail("This staff assignment already exists", HTTP_STATUS.CONFLICT, "ASSIGNMENT_ALREADY_EXISTS");
   }
 
   if (error.code === "P2025" || error.code === "P2003") {
-    fail(
-      "Related record not found",
-      HTTP_STATUS.NOT_FOUND,
-      "RELATED_RECORD_NOT_FOUND"
-    );
+    fail("Related record not found", HTTP_STATUS.NOT_FOUND, "RELATED_RECORD_NOT_FOUND");
   }
 
   throw error;
@@ -131,11 +108,7 @@ async function create({ employeeId, groupId, role }, user) {
       });
 
       if (!employee || employee.status !== "ACTIVE") {
-        fail(
-          "Active employee not found",
-          HTTP_STATUS.NOT_FOUND,
-          "EMPLOYEE_NOT_FOUND"
-        );
+        fail("Active employee not found", HTTP_STATUS.NOT_FOUND, "EMPLOYEE_NOT_FOUND");
       }
 
       if (!EMPLOYEE_ROLES.includes(role) || employee.role !== role) {
@@ -151,11 +124,7 @@ async function create({ employeeId, groupId, role }, user) {
       });
 
       if (!group || group.status !== "ACTIVE") {
-        fail(
-          "Active group not found",
-          HTTP_STATUS.NOT_FOUND,
-          "GROUP_NOT_FOUND"
-        );
+        fail("Active group not found", HTTP_STATUS.NOT_FOUND, "GROUP_NOT_FOUND");
       }
 
       const employeeAssignment = await tx.staffAssignment.findFirst({
@@ -225,11 +194,7 @@ async function complete(id, user) {
     const before = await getAssignmentOrFail(id, tx);
 
     if (before.endDate !== null) {
-      fail(
-        "Assignment already completed",
-        HTTP_STATUS.CONFLICT,
-        "ASSIGNMENT_ALREADY_COMPLETED"
-      );
+      fail("Assignment already completed", HTTP_STATUS.CONFLICT, "ASSIGNMENT_ALREADY_COMPLETED");
     }
 
     const updated = await tx.staffAssignment.update({
@@ -264,11 +229,7 @@ async function getGroupAssignments(groupId, user) {
   });
 
   if (!group) {
-    fail(
-      "Group not found",
-      HTTP_STATUS.NOT_FOUND,
-      "GROUP_NOT_FOUND"
-    );
+    fail("Group not found", HTTP_STATUS.NOT_FOUND, "GROUP_NOT_FOUND");
   }
 
   if (!MANAGEMENT_ROLES.includes(user.role)) {
@@ -313,17 +274,10 @@ async function getEmployeeAssignments(employeeId, user) {
   });
 
   if (!employee) {
-    fail(
-      "Employee not found",
-      HTTP_STATUS.NOT_FOUND,
-      "EMPLOYEE_NOT_FOUND"
-    );
+    fail("Employee not found", HTTP_STATUS.NOT_FOUND, "EMPLOYEE_NOT_FOUND");
   }
 
-  if (
-    !MANAGEMENT_ROLES.includes(user.role) &&
-    employee.userId !== user.id
-  ) {
+  if (!MANAGEMENT_ROLES.includes(user.role) && employee.userId !== user.id) {
     fail(
       "You do not have permission to access this employee's assignments",
       HTTP_STATUS.FORBIDDEN,

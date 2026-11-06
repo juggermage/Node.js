@@ -11,21 +11,13 @@ function fail(message, status, code) {
 
 function ensureManagementAccess(user) {
   if (!user || !MANAGEMENT_ROLES.includes(user.role)) {
-    fail(
-      "You do not have permission to perform this action",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+    fail("You do not have permission to perform this action", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 }
 
 async function getOwnParentOrFail(user, tx = prisma) {
   if (!user || user.role !== "PARENT") {
-    fail(
-      "You do not have permission to access this resource",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+    fail("You do not have permission to access this resource", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 
   const parent = await tx.parent.findFirst({
@@ -36,11 +28,7 @@ async function getOwnParentOrFail(user, tx = prisma) {
   });
 
   if (!parent) {
-    fail(
-      "Parent profile not found",
-      HTTP_STATUS.NOT_FOUND,
-      "PARENT_NOT_FOUND"
-    );
+    fail("Parent profile not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
   }
 
   return parent;
@@ -55,11 +43,7 @@ async function getParentOrFail(id, tx = prisma) {
   });
 
   if (!parent) {
-    fail(
-      "Parent not found",
-      HTTP_STATUS.NOT_FOUND,
-      "PARENT_NOT_FOUND"
-    );
+    fail("Parent not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
   }
 
   return parent;
@@ -74,21 +58,13 @@ async function ensureParentAccess(id, user, tx = prisma) {
     const parent = await getOwnParentOrFail(user, tx);
 
     if (parent.id !== id) {
-      fail(
-        "You do not have permission to access this parent",
-        HTTP_STATUS.FORBIDDEN,
-        "FORBIDDEN"
-      );
+      fail("You do not have permission to access this parent", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
     }
 
     return parent;
   }
 
-  fail(
-    "You do not have permission to access this resource",
-    HTTP_STATUS.FORBIDDEN,
-    "FORBIDDEN"
-  );
+  fail("You do not have permission to access this resource", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
 }
 
 async function ensureUniqueEmail(email, excludeId, tx = prisma) {
@@ -106,11 +82,7 @@ async function ensureUniqueEmail(email, excludeId, tx = prisma) {
   });
 
   if (existing) {
-    fail(
-      "Email is already registered",
-      HTTP_STATUS.CONFLICT,
-      "PARENT_EMAIL_EXISTS"
-    );
+    fail("Email is already registered", HTTP_STATUS.CONFLICT, "PARENT_EMAIL_EXISTS");
   }
 }
 
@@ -124,11 +96,7 @@ function handlePrismaError(error) {
   }
 
   if (error.code === "P2025") {
-    fail(
-      "Parent not found",
-      HTTP_STATUS.NOT_FOUND,
-      "PARENT_NOT_FOUND"
-    );
+    fail("Parent not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
   }
 
   throw error;
@@ -180,12 +148,7 @@ async function getAll(query = {}, user) {
 
   ensureManagementAccess(user);
 
-  const {
-    search,
-    status,
-    page = 1,
-    limit = 20
-  } = query;
+  const { search, status, page = 1, limit = 20 } = query;
 
   const where = {
     status: status || { not: "ARCHIVED" }
@@ -226,10 +189,7 @@ async function getAll(query = {}, user) {
   const [items, total] = await prisma.$transaction([
     prisma.parent.findMany({
       where,
-      orderBy: [
-        { lastName: "asc" },
-        { firstName: "asc" }
-      ],
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
       skip,
       take: limit
     }),

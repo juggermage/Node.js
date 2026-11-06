@@ -2,18 +2,9 @@ const prisma = require("../../config/prisma");
 const AppError = require("../../utils/app-error");
 const HTTP_STATUS = require("../../utils/http-status");
 
-const AUDIT_ACTIONS = [
-  "CREATE",
-  "UPDATE",
-  "DELETE",
-  "ARCHIVE",
-  "RESTORE",
-  "PAYMENT",
-  "CANCEL"
-];
+const AUDIT_ACTIONS = ["CREATE", "UPDATE", "DELETE", "ARCHIVE", "RESTORE", "PAYMENT", "CANCEL"];
 
-const SECRET_FIELD_PATTERN =
-  /password|token|secret|authorization|cookie|api.?key|credential/i;
+const SECRET_FIELD_PATTERN = /password|token|secret|authorization|cookie|api.?key|credential/i;
 
 function prepareSnapshot(value) {
   if (value === null || value === undefined) {
@@ -52,14 +43,7 @@ function prepareSnapshot(value) {
 }
 
 async function createLog(
-  {
-    actorId = null,
-    action,
-    entityType,
-    entityId,
-    before = null,
-    after = null
-  } = {},
+  { actorId = null, action, entityType, entityId, before = null, after = null } = {},
   tx = prisma
 ) {
   if (!AUDIT_ACTIONS.includes(action)) {
@@ -83,10 +67,7 @@ async function createLog(
     );
   }
 
-  if (
-    actorId !== null &&
-    (typeof actorId !== "string" || !/^[0-9a-fA-F]{24}$/.test(actorId))
-  ) {
+  if (actorId !== null && (typeof actorId !== "string" || !/^[0-9a-fA-F]{24}$/.test(actorId))) {
     throw new AppError(
       "Invalid audit actor ID",
       HTTP_STATUS.UNPROCESSABLE_ENTITY,
@@ -107,15 +88,7 @@ async function createLog(
 }
 
 async function getAll(filters = {}) {
-  const {
-    from,
-    to,
-    actorId,
-    entityType,
-    action,
-    page = 1,
-    limit = 20
-  } = filters;
+  const { from, to, actorId, entityType, action, page = 1, limit = 20 } = filters;
 
   const where = {};
 
@@ -176,11 +149,7 @@ async function getById(id) {
   });
 
   if (!auditLog) {
-    throw new AppError(
-      "Audit log not found",
-      HTTP_STATUS.NOT_FOUND,
-      "AUDIT_LOG_NOT_FOUND"
-    );
+    throw new AppError("Audit log not found", HTTP_STATUS.NOT_FOUND, "AUDIT_LOG_NOT_FOUND");
   }
 
   return auditLog;

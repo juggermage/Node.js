@@ -1,12 +1,8 @@
-
 const service = require("./subjects.service");
 const HTTP_STATUS = require("../../utils/http-status");
 
 async function getAll(req, res) {
-  const data = await service.getAll(
-    res.locals.validated.query,
-    req.user
-  );
+  const data = await service.getAll(res.locals.validated.query, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -15,10 +11,7 @@ async function getAll(req, res) {
 }
 
 async function getById(req, res) {
-  const data = await service.getById(
-    res.locals.validated.params.id,
-    req.user
-  );
+  const data = await service.getById(res.locals.validated.params.id, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -27,10 +20,7 @@ async function getById(req, res) {
 }
 
 async function create(req, res) {
-  const data = await service.create(
-    res.locals.validated.body,
-    req.user
-  );
+  const data = await service.create(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -52,10 +42,7 @@ async function update(req, res) {
 }
 
 async function remove(req, res) {
-  await service.remove(
-    res.locals.validated.params.id,
-    req.user
-  );
+  await service.remove(res.locals.validated.params.id, req.user);
 
   return res.status(HTTP_STATUS.NO_CONTENT).send();
 }

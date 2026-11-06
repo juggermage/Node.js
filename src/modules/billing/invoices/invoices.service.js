@@ -1,4 +1,3 @@
-
 const prisma = require("../../../config/prisma");
 const AppError = require("../../../utils/app-error");
 const HTTP_STATUS = require("../../../utils/http-status");
@@ -28,10 +27,7 @@ function periodBounds(year, month) {
 function parseDate(value) {
   const date = new Date(`${value}T00:00:00.000Z`);
 
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.toISOString().slice(0, 10) !== value
-  ) {
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
     fail("Invalid date", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_DATE");
   }
 
@@ -59,10 +55,7 @@ function serializeInvoice(invoice, paidAmount = 0n) {
 }
 
 function getPaidAmountFromAllocations(allocations = []) {
-  return allocations.reduce(
-    (sum, allocation) => sum + BigInt(allocation.amount),
-    0n
-  );
+  return allocations.reduce((sum, allocation) => sum + BigInt(allocation.amount), 0n);
 }
 
 async function getPaidAmount(tx, invoiceId) {
@@ -93,28 +86,17 @@ async function getChildAndPayer(tx, childId, payerId) {
       where: {
         childId,
         parentId: payerId,
-        OR: [
-          { endDate: null },
-          { endDate: { isSet: false } }
-        ]
+        OR: [{ endDate: null }, { endDate: { isSet: false } }]
       }
     })
   ]);
 
   if (!child || child.status !== "ACTIVE") {
-    fail(
-      "Active child not found",
-      HTTP_STATUS.NOT_FOUND,
-      "CHILD_NOT_FOUND"
-    );
+    fail("Active child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 
   if (!parent || parent.status !== "ACTIVE") {
-    fail(
-      "Active payer not found",
-      HTTP_STATUS.NOT_FOUND,
-      "PAYER_NOT_FOUND"
-    );
+    fail("Active payer not found", HTTP_STATUS.NOT_FOUND, "PAYER_NOT_FOUND");
   }
 
   if (!relationship) {
@@ -129,10 +111,7 @@ async function getChildAndPayer(tx, childId, payerId) {
 }
 
 async function createInvoice(data, type, actorId) {
-  const { start, end } = periodBounds(
-    data.periodYear,
-    data.periodMonth
-  );
+  const { start, end } = periodBounds(data.periodYear, data.periodMonth);
 
   if (data.dueDate) {
     parseDate(data.dueDate);
@@ -157,11 +136,7 @@ async function createInvoice(data, type, actorId) {
         );
       }
 
-      await getChildAndPayer(
-        tx,
-        data.childId,
-        data.payerId
-      );
+      await getChildAndPayer(tx, data.childId, data.payerId);
 
       const tuition =
         type === "MONTHLY"
@@ -179,10 +154,7 @@ async function createInvoice(data, type, actorId) {
       const tuitionAmount = BigInt(tuition.total);
 
       lines.push({
-        description:
-          type === "ANNUAL"
-            ? "Навчання — річна передоплата"
-            : "Навчання",
+        description: type === "ANNUAL" ? "Навчання — річна передоплата" : "Навчання",
         quantity: 1,
         unitAmount: tuitionAmount,
         amount: tuitionAmount,
@@ -217,10 +189,7 @@ async function createInvoice(data, type, actorId) {
         }
       }
 
-      const amountDue = lines.reduce(
-        (sum, line) => sum + line.amount,
-        0n
-      );
+      const amountDue = lines.reduce((sum, line) => sum + line.amount, 0n);
 
       const createdInvoice = await tx.invoice.create({
         data: {
@@ -232,9 +201,7 @@ async function createInvoice(data, type, actorId) {
           amountDue,
           status: "ISSUED",
           issuedAt: new Date(),
-          dueDate: data.dueDate
-            ? parseDate(data.dueDate)
-            : null,
+          dueDate: data.dueDate ? parseDate(data.dueDate) : null,
           lines: {
             create: lines
           }
@@ -305,11 +272,7 @@ async function getAll(filters = {}, user) {
     });
 
     if (!parent) {
-      fail(
-        "Parent profile not found",
-        HTTP_STATUS.NOT_FOUND,
-        "PARENT_NOT_FOUND"
-      );
+      fail("Parent profile not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
     }
 
     where.payerId = parent.id;
@@ -356,17 +319,11 @@ async function getAll(filters = {}, user) {
         }
       }
     },
-    orderBy: [
-      { periodYear: "desc" },
-      { periodMonth: "desc" },
-      { createdAt: "desc" }
-    ]
+    orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }, { createdAt: "desc" }]
   });
 
   return invoices.map((invoice) => {
-    const paidAmount = getPaidAmountFromAllocations(
-      invoice.allocations
-    );
+    const paidAmount = getPaidAmountFromAllocations(invoice.allocations);
 
     return serializeInvoice(invoice, paidAmount);
   });
@@ -393,27 +350,14 @@ async function getById(id, user) {
   });
 
   if (!invoice) {
-    fail(
-      "Invoice not found",
-      HTTP_STATUS.NOT_FOUND,
-      "INVOICE_NOT_FOUND"
-    );
+    fail("Invoice not found", HTTP_STATUS.NOT_FOUND, "INVOICE_NOT_FOUND");
   }
 
-  if (
-    user.role === "PARENT" &&
-    invoice.payer.userId !== user.id
-  ) {
-    fail(
-      "You do not have permission to access this invoice",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
+  if (user.role === "PARENT" && invoice.payer.userId !== user.id) {
+    fail("You do not have permission to access this invoice", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
 
-  const paidAmount = getPaidAmountFromAllocations(
-    invoice.allocations
-  );
+  const paidAmount = getPaidAmountFromAllocations(invoice.allocations);
 
   return serializeInvoice(invoice, paidAmount);
 }
@@ -428,25 +372,14 @@ async function cancel(id, actorId) {
     });
 
     if (!invoice) {
-      fail(
-        "Invoice not found",
-        HTTP_STATUS.NOT_FOUND,
-        "INVOICE_NOT_FOUND"
-      );
+      fail("Invoice not found", HTTP_STATUS.NOT_FOUND, "INVOICE_NOT_FOUND");
     }
 
     if (invoice.status === "CANCELLED") {
-      fail(
-        "Invoice is already cancelled",
-        HTTP_STATUS.CONFLICT,
-        "INVOICE_ALREADY_CANCELLED"
-      );
+      fail("Invoice is already cancelled", HTTP_STATUS.CONFLICT, "INVOICE_ALREADY_CANCELLED");
     }
 
-    if (
-      invoice.status === "PAID" ||
-      invoice.status === "PARTIALLY_PAID"
-    ) {
+    if (invoice.status === "PAID" || invoice.status === "PARTIALLY_PAID") {
       fail(
         "Paid or partially paid invoice cannot be cancelled",
         HTTP_STATUS.CONFLICT,
@@ -457,11 +390,7 @@ async function cancel(id, actorId) {
     const paidAmount = await getPaidAmount(tx, id);
 
     if (paidAmount > 0n) {
-      fail(
-        "Invoice has completed payments",
-        HTTP_STATUS.CONFLICT,
-        "INVOICE_HAS_PAYMENTS"
-      );
+      fail("Invoice has completed payments", HTTP_STATUS.CONFLICT, "INVOICE_HAS_PAYMENTS");
     }
 
     const updatedInvoice = await tx.invoice.update({

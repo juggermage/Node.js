@@ -2,10 +2,7 @@ const service = require("./discounts.service");
 const HTTP_STATUS = require("../../../utils/http-status");
 
 async function create(req, res) {
-  const data = await service.create(
-    res.locals.validated.body,
-    req.user.id
-  );
+  const data = await service.create(res.locals.validated.body, req.user.id);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -25,9 +22,7 @@ async function getAll(req, res) {
 }
 
 async function getById(req, res) {
-  const data = await service.getById(
-    res.locals.validated.params.id
-  );
+  const data = await service.getById(res.locals.validated.params.id);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -36,10 +31,7 @@ async function getById(req, res) {
 }
 
 async function deactivate(req, res) {
-  const data = await service.deactivate(
-    res.locals.validated.params.id,
-    req.user.id
-  );
+  const data = await service.deactivate(res.locals.validated.params.id, req.user.id);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,

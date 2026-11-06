@@ -48,11 +48,7 @@ async function register({ name, email, password }) {
   });
 
   if (existing) {
-    throw new AppError(
-      "Email is already registered",
-      HTTP_STATUS.CONFLICT,
-      "EMAIL_ALREADY_EXISTS"
-    );
+    throw new AppError("Email is already registered", HTTP_STATUS.CONFLICT, "EMAIL_ALREADY_EXISTS");
   }
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
@@ -117,10 +113,7 @@ async function login({ email, password }) {
     );
   }
 
-  const passwordMatches = await bcrypt.compare(
-    password,
-    user.passwordHash
-  );
+  const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
   if (!passwordMatches || !user.isActive) {
     throw new AppError(
@@ -142,11 +135,7 @@ async function getMe(userId) {
   });
 
   if (!user || !user.isActive) {
-    throw new AppError(
-      "User not found or inactive",
-      HTTP_STATUS.UNAUTHORIZED,
-      "UNAUTHORIZED"
-    );
+    throw new AppError("User not found or inactive", HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
   }
 
   return publicUser(user);
@@ -159,11 +148,7 @@ async function logout(userId) {
     });
 
     if (!user) {
-      throw new AppError(
-        "User not found",
-        HTTP_STATUS.NOT_FOUND,
-        "USER_NOT_FOUND"
-      );
+      throw new AppError("User not found", HTTP_STATUS.NOT_FOUND, "USER_NOT_FOUND");
     }
 
     const updatedUser = await tx.user.update({
