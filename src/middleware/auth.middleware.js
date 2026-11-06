@@ -1,4 +1,3 @@
-
 const jwt = require("jsonwebtoken");
 
 const prisma = require("../config/prisma");
@@ -45,10 +44,7 @@ async function requireAuth(req, res, next) {
       });
     }
 
-    if (
-      typeof payload.sub !== "string" ||
-      !Number.isInteger(payload.tokenVersion)
-    ) {
+    if (typeof payload.sub !== "string" || !Number.isInteger(payload.tokenVersion)) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         error: {
@@ -62,11 +58,7 @@ async function requireAuth(req, res, next) {
       where: { id: payload.sub }
     });
 
-    if (
-      !user ||
-      !user.isActive ||
-      user.tokenVersion !== payload.tokenVersion
-    ) {
+    if (!user || !user.isActive || user.tokenVersion !== payload.tokenVersion) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         error: {

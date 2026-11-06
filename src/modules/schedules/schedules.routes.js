@@ -1,4 +1,3 @@
-
 const express = require("express");
 
 const schedulesController = require("./schedules.controller");
@@ -18,29 +17,13 @@ const {
 
 const router = express.Router();
 
-router.get(
-  "/",
-  validate(listSchedulesSchema, "query"),
-  schedulesController.getAll
-);
+router.get("/", validate(listSchedulesSchema, "query"), schedulesController.getAll);
 
-router.post(
-  "/",
-  validate(createScheduleSchema),
-  schedulesController.create
-);
+router.post("/", validate(createScheduleSchema), schedulesController.create);
 
-router.post(
-  "/generate",
-  validate(generateScheduleSchema),
-  schedulesController.generate
-);
+router.post("/generate", validate(generateScheduleSchema), schedulesController.generate);
 
-router.get(
-  "/:id",
-  validate(scheduleIdSchema, "params"),
-  schedulesController.getById
-);
+router.get("/:id", validate(scheduleIdSchema, "params"), schedulesController.getById);
 
 router.patch(
   "/:id",
@@ -49,17 +32,9 @@ router.patch(
   schedulesController.update
 );
 
-router.delete(
-  "/:id",
-  validate(scheduleIdSchema, "params"),
-  schedulesController.remove
-);
+router.delete("/:id", validate(scheduleIdSchema, "params"), schedulesController.remove);
 
-router.post(
-  "/:id/publish",
-  validate(scheduleIdSchema, "params"),
-  schedulesController.publish
-);
+router.post("/:id/publish", validate(scheduleIdSchema, "params"), schedulesController.publish);
 
 router.post(
   "/:id/items",

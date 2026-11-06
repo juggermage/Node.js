@@ -1,4 +1,3 @@
-
 const prisma = require("../../config/prisma");
 const AppError = require("../../utils/app-error");
 const HTTP_STATUS = require("../../utils/http-status");
@@ -43,10 +42,7 @@ function getAgeInMonths(birthDate) {
   const birth = new Date(birthDate);
   const now = new Date();
 
-  let months =
-    (now.getFullYear() - birth.getFullYear()) * 12 +
-    now.getMonth() -
-    birth.getMonth();
+  let months = (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth();
 
   if (now.getDate() < birth.getDate()) {
     months--;
@@ -77,19 +73,11 @@ async function generate({ groupId, name, validFrom, validTo }) {
   const children = group.enrollments.map((item) => item.child);
 
   if (children.length === 0) {
-    fail(
-      "Group has no enrolled children",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "GROUP_EMPTY"
-    );
+    fail("Group has no enrolled children", HTTP_STATUS.UNPROCESSABLE_ENTITY, "GROUP_EMPTY");
   }
 
   if (children.length > group.capacity) {
-    fail(
-      "Group enrollment exceeds its capacity",
-      HTTP_STATUS.CONFLICT,
-      "GROUP_CAPACITY_EXCEEDED"
-    );
+    fail("Group enrollment exceeds its capacity", HTTP_STATUS.CONFLICT, "GROUP_CAPACITY_EXCEEDED");
   }
 
   const invalidAge = children.some((child) => {
@@ -114,8 +102,7 @@ async function generate({ groupId, name, validFrom, validTo }) {
     orderBy: { capacity: "asc" }
   });
 
-  const room =
-    rooms.find((item) => item.id === group.mainRoomId) || rooms[0];
+  const room = rooms.find((item) => item.id === group.mainRoomId) || rooms[0];
 
   if (!room) {
     fail(
@@ -168,9 +155,7 @@ async function generate({ groupId, name, validFrom, validTo }) {
     validTo: validTo ?? null
   });
 
-  const teacherLoads = new Map(
-    availableTeachers.map((teacher) => [teacher.id, 0])
-  );
+  const teacherLoads = new Map(availableTeachers.map((teacher) => [teacher.id, 0]));
 
   let subjectIndex = 0;
 
@@ -185,17 +170,13 @@ async function generate({ groupId, name, validFrom, validTo }) {
 
       for (const slot of LESSON_SLOTS) {
         const candidates = [...availableTeachers].sort(
-          (a, b) =>
-            teacherLoads.get(a.id) - teacherLoads.get(b.id)
+          (a, b) => teacherLoads.get(a.id) - teacherLoads.get(b.id)
         );
 
         let created = false;
 
         for (const teacher of candidates) {
-          const subject =
-            teacher.activeSubjects[
-              subjectIndex % teacher.activeSubjects.length
-            ];
+          const subject = teacher.activeSubjects[subjectIndex % teacher.activeSubjects.length];
 
           try {
             await schedulesService.createItem(schedule.id, {
@@ -208,10 +189,7 @@ async function generate({ groupId, name, validFrom, validTo }) {
               roomId: room.id
             });
 
-            teacherLoads.set(
-              teacher.id,
-              teacherLoads.get(teacher.id) + 1
-            );
+            teacherLoads.set(teacher.id, teacherLoads.get(teacher.id) + 1);
 
             subjectIndex++;
             created = true;

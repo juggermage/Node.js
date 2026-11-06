@@ -1,4 +1,3 @@
-
 const schedulesService = require("./schedules.service");
 const schedulesGenerator = require("./schedules.generator");
 const HTTP_STATUS = require("../../utils/http-status");
