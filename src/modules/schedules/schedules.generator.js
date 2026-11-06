@@ -55,7 +55,10 @@ function getAgeInMonths(birthDate) {
   return months;
 }
 
-async function generate({ groupId, name, validFrom, validTo }) {
+async function generate(
+  { groupId, name, validFrom, validTo },
+  user
+) {
   const group = await prisma.group.findFirst({
     where: {
       id: groupId,
@@ -71,7 +74,11 @@ async function generate({ groupId, name, validFrom, validTo }) {
   });
 
   if (!group) {
-    fail("Active group not found", HTTP_STATUS.NOT_FOUND, "GROUP_NOT_FOUND");
+    fail(
+      "Active group not found",
+      HTTP_STATUS.NOT_FOUND,
+      "GROUP_NOT_FOUND"
+    );
   }
 
   const children = group.enrollments.map((item) => item.child);
@@ -161,12 +168,15 @@ async function generate({ groupId, name, validFrom, validTo }) {
     );
   }
 
-  const schedule = await schedulesService.create({
-    groupId,
-    name: name || `Автоматичний розклад — ${group.name}`,
-    validFrom,
-    validTo: validTo ?? null
-  });
+  const schedule = await schedulesService.create(
+    {
+      groupId,
+      name: name || `Автоматичний розклад — ${group.name}`,
+      validFrom,
+      validTo: validTo ?? null
+    },
+    user
+  );
 
   const teacherLoads = new Map(
     availableTeachers.map((teacher) => [teacher.id, 0])
@@ -177,10 +187,14 @@ async function generate({ groupId, name, validFrom, validTo }) {
   try {
     for (const dayOfWeek of WORKING_DAYS) {
       for (const routine of DAILY_ROUTINE) {
-        await schedulesService.createItem(schedule.id, {
-          ...routine,
-          dayOfWeek
-        });
+        await schedulesService.createItem(
+          schedule.id,
+          {
+            ...routine,
+            dayOfWeek
+          },
+          user
+        );
       }
 
       for (const slot of LESSON_SLOTS) {
@@ -198,15 +212,19 @@ async function generate({ groupId, name, validFrom, validTo }) {
             ];
 
           try {
-            await schedulesService.createItem(schedule.id, {
-              type: "LESSON",
-              dayOfWeek,
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-              subjectId: subject.id,
-              teacherId: teacher.id,
-              roomId: room.id
-            });
+            await schedulesService.createItem(
+              schedule.id,
+              {
+                type: "LESSON",
+                dayOfWeek,
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+                subjectId: subject.id,
+                teacherId: teacher.id,
+                roomId: room.id
+              },
+              user
+            );
 
             teacherLoads.set(
               teacher.id,
@@ -235,7 +253,7 @@ async function generate({ groupId, name, validFrom, validTo }) {
 
     return schedulesService.getById(schedule.id);
   } catch (error) {
-    await schedulesService.remove(schedule.id).catch(() => {});
+    await schedulesService.remove(schedule.id, user).catch(() => {});
     throw error;
   }
 }

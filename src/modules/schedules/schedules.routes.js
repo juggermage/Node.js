@@ -3,6 +3,8 @@ const express = require("express");
 
 const schedulesController = require("./schedules.controller");
 const validate = require("../../middleware/validate.middleware");
+const requireAuth = require("../../middleware/auth.middleware");
+const authorizeRoles = require("../../middleware/rbac.middleware");
 
 const {
   scheduleIdSchema,
@@ -17,6 +19,9 @@ const {
 } = require("./schedules.validation");
 
 const router = express.Router();
+
+router.use(requireAuth);
+router.use(authorizeRoles("ADMIN", "MANAGER"));
 
 router.get(
   "/",

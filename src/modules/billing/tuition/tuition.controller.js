@@ -2,7 +2,9 @@ const service = require("./tuition.service");
 const HTTP_STATUS = require("../../../utils/http-status");
 
 async function getRates(req, res) {
-  const data = await service.getAllRates(res.locals.validated.query);
+  const data = await service.getAllRates(
+    res.locals.validated.query
+  );
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -11,7 +13,10 @@ async function getRates(req, res) {
 }
 
 async function createRate(req, res) {
-  const data = await service.createRate(res.locals.validated.body);
+  const data = await service.createRate(
+    res.locals.validated.body,
+    req.user.id
+  );
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -20,7 +25,9 @@ async function createRate(req, res) {
 }
 
 async function calculateMonthly(req, res) {
-  const data = await service.calculateMonthlyTuitionCost(res.locals.validated.body);
+  const data = await service.calculateMonthlyTuitionCost(
+    res.locals.validated.body
+  );
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -29,7 +36,9 @@ async function calculateMonthly(req, res) {
 }
 
 async function calculateAnnual(req, res) {
-  const data = await service.calculateAnnualTuitionCost(res.locals.validated.body);
+  const data = await service.calculateAnnualTuitionCost(
+    res.locals.validated.body
+  );
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,

@@ -26,7 +26,7 @@ async function getById(req, res) {
 async function create(req, res) {
   const data = res.locals.validated.body;
 
-  const expense = await expensesService.create(data);
+  const expense = await expensesService.create(data, req.user.id);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,

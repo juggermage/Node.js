@@ -1,3 +1,4 @@
+
 const Joi = require("joi");
 
 const objectId = Joi.string().hex().length(24);
@@ -16,7 +17,8 @@ const createEmployeeSchema = Joi.object({
     .valid(...employeeRoles)
     .required(),
   phone: Joi.string().trim().max(30).allow("", null),
-  email: Joi.string().email().allow("", null)
+  email: Joi.string().trim().lowercase().email().max(254).allow("", null),
+  userId: objectId.allow(null)
 });
 
 const updateEmployeeSchema = Joi.object({
@@ -25,12 +27,13 @@ const updateEmployeeSchema = Joi.object({
   lastName: Joi.string().trim().min(1).max(100),
   role: Joi.string().valid(...employeeRoles),
   phone: Joi.string().trim().max(30).allow("", null),
-  email: Joi.string().email().allow("", null),
-  status: Joi.string().valid("ACTIVE", "INACTIVE")
+  email: Joi.string().trim().lowercase().email().max(254).allow("", null),
+  status: Joi.string().valid("ACTIVE", "INACTIVE"),
+  userId: objectId.allow(null)
 }).min(1);
 
 const queryEmployeesSchema = Joi.object({
-  search: Joi.string().trim().allow(""),
+  search: Joi.string().trim().max(100).allow(""),
   role: Joi.string().valid(...employeeRoles),
   status: Joi.string().valid("ACTIVE", "INACTIVE", "ARCHIVED")
 });

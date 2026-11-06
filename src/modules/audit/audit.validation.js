@@ -1,6 +1,9 @@
 const Joi = require("joi");
 
-// Дозволені типи дій із prisma/schema.prisma.
+const objectIdSchema = Joi.string()
+  .hex()
+  .length(24);
+
 const auditActionSchema = Joi.string().valid(
   "CREATE",
   "UPDATE",
@@ -11,12 +14,14 @@ const auditActionSchema = Joi.string().valid(
   "CANCEL"
 );
 
-// Фільтри для пошуку записів аудиту.
 const auditFiltersSchema = Joi.object({
   from: Joi.date().iso(),
   to: Joi.date().iso(),
+  actorId: objectIdSchema,
   entityType: Joi.string().trim().min(1).max(100),
-  action: auditActionSchema
+  action: auditActionSchema,
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20)
 })
   .custom((value, helpers) => {
     if (value.from && value.to && value.from > value.to) {
@@ -29,7 +34,12 @@ const auditFiltersSchema = Joi.object({
     "date.range": '"from" must be earlier than or equal to "to"'
   });
 
+const auditIdSchema = Joi.object({
+  id: objectIdSchema.required()
+});
+
 module.exports = {
   auditActionSchema,
-  auditFiltersSchema
+  auditFiltersSchema,
+  auditIdSchema
 };

@@ -18,7 +18,7 @@ const updateSubjectSchema = Joi.object({
 }).min(1);
 
 const querySubjectsSchema = Joi.object({
-  search: Joi.string().trim().allow(""),
+  search: Joi.string().trim().max(100).allow(""),
   status: Joi.string().valid("ACTIVE", "INACTIVE", "ARCHIVED")
 });
 

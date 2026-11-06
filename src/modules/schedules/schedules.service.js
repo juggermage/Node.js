@@ -1,4 +1,5 @@
 const prisma = require("../../config/prisma");
+const auditService = require("../audit/audit.service");
 const AppError = require("../../utils/app-error");
 const HTTP_STATUS = require("../../utils/http-status");
 
@@ -37,17 +38,22 @@ function resolveDate(input, current) {
   return toUtcDate(input);
 }
 
-async function findScheduleOrThrow(id) {
-  const schedule = await prisma.schedule.findUnique({ where: { id } });
+async function findScheduleOrThrow(id, db = prisma) {
+  const schedule = await db.schedule.findUnique({
+    where: { id }
+  });
 
   if (!schedule) {
-    throw new AppError("Schedule not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_NOT_FOUND");
+    throw new AppError(
+      "Schedule not found",
+      HTTP_STATUS.NOT_FOUND,
+      "SCHEDULE_NOT_FOUND"
+    );
   }
 
   return schedule;
 }
 
-// Опублікований розклад не можна змінювати напряму.
 function assertDraft(schedule) {
   if (schedule.status !== "DRAFT") {
     throw new AppError(
@@ -59,7 +65,9 @@ function assertDraft(schedule) {
 }
 
 async function requireActive(delegate, id, code, message) {
-  const record = await delegate.findFirst({ where: { id, status: "ACTIVE" } });
+  const record = await delegate.findFirst({
+    where: { id, status: "ACTIVE" }
+  });
 
   if (!record) {
     throw new AppError(message, HTTP_STATUS.NOT_FOUND, code);
@@ -68,7 +76,6 @@ async function requireActive(delegate, id, code, message) {
   return record;
 }
 
-// Робочий день і режим дня (сон, харчування).
 function assertDayRules(item) {
   if (!isInsideWorkDay(item.startTime, item.endTime)) {
     throw new AppError(
@@ -91,22 +98,38 @@ function assertDayRules(item) {
   }
 }
 
-// Предмет, викладач і кімната мають існувати й бути активними.
-// Основна кімната іншої групи недоступна, спеціалізовані кімнати доступні всім групам.
 async function assertReferences(item, schedule) {
   if (item.subjectId) {
-    await requireActive(prisma.subject, item.subjectId, "SUBJECT_NOT_FOUND", "Subject not found");
+    await requireActive(
+      prisma.subject,
+      item.subjectId,
+      "SUBJECT_NOT_FOUND",
+      "Subject not found"
+    );
   }
 
   if (item.teacherId) {
-    await requireActive(prisma.employee, item.teacherId, "EMPLOYEE_NOT_FOUND", "Teacher not found");
+    await requireActive(
+      prisma.employee,
+      item.teacherId,
+      "EMPLOYEE_NOT_FOUND",
+      "Teacher not found"
+    );
   }
 
   if (item.roomId) {
-    await requireActive(prisma.room, item.roomId, "ROOM_NOT_FOUND", "Room not found");
+    await requireActive(
+      prisma.room,
+      item.roomId,
+      "ROOM_NOT_FOUND",
+      "Room not found"
+    );
 
     const reservedByOtherGroup = await prisma.group.findFirst({
-      where: { mainRoomId: item.roomId, id: { not: schedule.groupId } }
+      where: {
+        mainRoomId: item.roomId,
+        id: { not: schedule.groupId }
+      }
     });
 
     if (reservedByOtherGroup) {
@@ -119,14 +142,24 @@ async function assertReferences(item, schedule) {
   }
 }
 
-// Заняття викладачів і кімнат в інших опублікованих розкладах, що діють у той самий період.
 async function loadOtherPublishedItems(schedule, items) {
-  const teacherIds = [...new Set(items.map((item) => item.teacherId).filter(Boolean))];
-  const roomIds = [...new Set(items.map((item) => item.roomId).filter(Boolean))];
+  const teacherIds = [
+    ...new Set(items.map((item) => item.teacherId).filter(Boolean))
+  ];
+
+  const roomIds = [
+    ...new Set(items.map((item) => item.roomId).filter(Boolean))
+  ];
+
   const conditions = [];
 
-  if (teacherIds.length > 0) conditions.push({ teacherId: { in: teacherIds } });
-  if (roomIds.length > 0) conditions.push({ roomId: { in: roomIds } });
+  if (teacherIds.length > 0) {
+    conditions.push({ teacherId: { in: teacherIds } });
+  }
+
+  if (roomIds.length > 0) {
+    conditions.push({ roomId: { in: roomIds } });
+  }
 
   if (conditions.length === 0) {
     return [];
@@ -139,13 +172,27 @@ async function loadOtherPublishedItems(schedule, items) {
       schedule: { status: "PUBLISHED" },
       OR: conditions
     },
-    include: { schedule: { select: { validFrom: true, validTo: true } } }
+    include: {
+      schedule: {
+        select: {
+          validFrom: true,
+          validTo: true
+        }
+      }
+    }
   });
 
-  return found.filter((item) => periodsOverlap(schedule, item.schedule));
+  return found.filter((item) =>
+    periodsOverlap(schedule, item.schedule)
+  );
 }
 
-function assertNoConflicts(item, ownItems, otherItems, excludeItemId = null) {
+function assertNoConflicts(
+  item,
+  ownItems,
+  otherItems,
+  excludeItemId = null
+) {
   if (findTimeOverlap(item, ownItems, excludeItemId)) {
     throw new AppError(
       "Group already has an item at this time",
@@ -178,8 +225,12 @@ async function validateItem(schedule, item, excludeItemId = null) {
   await assertReferences(item, schedule);
 
   const ownItems = await prisma.scheduleItem.findMany({
-    where: { scheduleId: schedule.id, status: "ACTIVE" }
+    where: {
+      scheduleId: schedule.id,
+      status: "ACTIVE"
+    }
   });
+
   const otherItems = await loadOtherPublishedItems(schedule, [item]);
 
   assertNoConflicts(item, ownItems, otherItems, excludeItemId);
@@ -208,65 +259,145 @@ async function getById(id) {
   });
 
   if (!schedule) {
-    throw new AppError("Schedule not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_NOT_FOUND");
+    throw new AppError(
+      "Schedule not found",
+      HTTP_STATUS.NOT_FOUND,
+      "SCHEDULE_NOT_FOUND"
+    );
   }
 
   return schedule;
 }
 
-async function create({ groupId, name, validFrom, validTo }) {
-  await requireActive(prisma.group, groupId, "GROUP_NOT_FOUND", "Group not found");
+async function create({ groupId, name, validFrom, validTo }, user) {
+  await requireActive(
+    prisma.group,
+    groupId,
+    "GROUP_NOT_FOUND",
+    "Group not found"
+  );
 
-  return prisma.schedule.create({
-    data: {
-      groupId,
-      name,
-      status: "DRAFT",
-      validFrom: toUtcDate(validFrom),
-      validTo: validTo ? toUtcDate(validTo) : null
-    },
-    include: scheduleInclude
-  });
-}
+  return prisma.$transaction(async (tx) => {
+    const schedule = await tx.schedule.create({
+      data: {
+        groupId,
+        name,
+        status: "DRAFT",
+        validFrom: toUtcDate(validFrom),
+        validTo: validTo ? toUtcDate(validTo) : null
+      },
+      include: scheduleInclude
+    });
 
-async function update(id, data) {
-  const schedule = await findScheduleOrThrow(id);
-  assertDraft(schedule);
-
-  const validFrom = resolveDate(data.validFrom, schedule.validFrom);
-  const validTo = resolveDate(data.validTo, schedule.validTo);
-
-  if (validTo && validTo < validFrom) {
-    throw new AppError(
-      "validTo must not be earlier than validFrom",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_PERIOD"
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "CREATE",
+        entityType: "Schedule",
+        entityId: schedule.id,
+        after: schedule
+      },
+      tx
     );
-  }
 
-  return prisma.schedule.update({
-    where: { id },
-    data: {
-      name: data.name ?? schedule.name,
-      validFrom,
-      validTo
-    },
-    include: scheduleInclude
+    return schedule;
   });
 }
 
-// Видалення дозволене лише для чернетки. Заняття видаляються разом із розкладом.
-async function remove(id) {
-  const schedule = await findScheduleOrThrow(id);
-  assertDraft(schedule);
+async function update(id, data, user) {
+  return prisma.$transaction(async (tx) => {
+    const before = await findScheduleOrThrow(id, tx);
+    assertDraft(before);
 
-  await prisma.$transaction([
-    prisma.scheduleItem.deleteMany({ where: { scheduleId: id } }),
-    prisma.schedule.delete({ where: { id } })
-  ]);
+    const validFrom = resolveDate(data.validFrom, before.validFrom);
+    const validTo = resolveDate(data.validTo, before.validTo);
+
+    if (validTo && validTo < validFrom) {
+      throw new AppError(
+        "validTo must not be earlier than validFrom",
+        HTTP_STATUS.UNPROCESSABLE_ENTITY,
+        "INVALID_PERIOD"
+      );
+    }
+
+    const updated = await tx.schedule.update({
+      where: { id },
+      data: {
+        name: data.name ?? before.name,
+        validFrom,
+        validTo
+      },
+      include: scheduleInclude
+    });
+
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "UPDATE",
+        entityType: "Schedule",
+        entityId: id,
+        before,
+        after: updated
+      },
+      tx
+    );
+
+    return updated;
+  });
 }
 
-async function createItem(scheduleId, data) {
+async function remove(id, user) {
+  return prisma.$transaction(async (tx) => {
+    const schedule = await tx.schedule.findUnique({
+      where: { id },
+      include: { items: true }
+    });
+
+    if (!schedule) {
+      throw new AppError(
+        "Schedule not found",
+        HTTP_STATUS.NOT_FOUND,
+        "SCHEDULE_NOT_FOUND"
+      );
+    }
+
+    assertDraft(schedule);
+
+    for (const item of schedule.items) {
+      await auditService.createLog(
+        {
+          actorId: user.id,
+          action: "DELETE",
+          entityType: "ScheduleItem",
+          entityId: item.id,
+          before: item
+        },
+        tx
+      );
+    }
+
+    await tx.scheduleItem.deleteMany({
+      where: { scheduleId: id }
+    });
+
+    await tx.schedule.delete({
+      where: { id }
+    });
+
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "DELETE",
+        entityType: "Schedule",
+        entityId: id,
+        before: schedule
+      },
+      tx
+    );
+  });
+}
+
+async function createItem(scheduleId, data, user) {
   const schedule = await findScheduleOrThrow(scheduleId);
   assertDraft(schedule);
 
@@ -282,20 +413,47 @@ async function createItem(scheduleId, data) {
 
   await validateItem(schedule, item);
 
-  return prisma.scheduleItem.create({
-    data: { scheduleId, ...item },
-    include: itemInclude
+  return prisma.$transaction(async (tx) => {
+    const created = await tx.scheduleItem.create({
+      data: {
+        scheduleId,
+        ...item
+      },
+      include: itemInclude
+    });
+
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "CREATE",
+        entityType: "ScheduleItem",
+        entityId: created.id,
+        after: created
+      },
+      tx
+    );
+
+    return created;
   });
 }
 
-async function updateItem(scheduleId, itemId, data) {
+async function updateItem(scheduleId, itemId, data, user) {
   const schedule = await findScheduleOrThrow(scheduleId);
   assertDraft(schedule);
 
-  const existing = await prisma.scheduleItem.findFirst({ where: { id: itemId, scheduleId } });
+  const existing = await prisma.scheduleItem.findFirst({
+    where: {
+      id: itemId,
+      scheduleId
+    }
+  });
 
   if (!existing) {
-    throw new AppError("Schedule item not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_ITEM_NOT_FOUND");
+    throw new AppError(
+      "Schedule item not found",
+      HTTP_STATUS.NOT_FOUND,
+      "SCHEDULE_ITEM_NOT_FOUND"
+    );
   }
 
   if (existing.type !== "LESSON" && (data.subjectId || data.teacherId)) {
@@ -326,27 +484,67 @@ async function updateItem(scheduleId, itemId, data) {
 
   await validateItem(schedule, item, existing.id);
 
-  return prisma.scheduleItem.update({
-    where: { id: itemId },
-    data: item,
-    include: itemInclude
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.scheduleItem.update({
+      where: { id: itemId },
+      data: item,
+      include: itemInclude
+    });
+
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "UPDATE",
+        entityType: "ScheduleItem",
+        entityId: itemId,
+        before: existing,
+        after: updated
+      },
+      tx
+    );
+
+    return updated;
   });
 }
 
-async function removeItem(scheduleId, itemId) {
+async function removeItem(scheduleId, itemId, user) {
   const schedule = await findScheduleOrThrow(scheduleId);
   assertDraft(schedule);
 
-  const result = await prisma.scheduleItem.deleteMany({ where: { id: itemId, scheduleId } });
+  return prisma.$transaction(async (tx) => {
+    const item = await tx.scheduleItem.findFirst({
+      where: {
+        id: itemId,
+        scheduleId
+      }
+    });
 
-  if (result.count === 0) {
-    throw new AppError("Schedule item not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_ITEM_NOT_FOUND");
-  }
+    if (!item) {
+      throw new AppError(
+        "Schedule item not found",
+        HTTP_STATUS.NOT_FOUND,
+        "SCHEDULE_ITEM_NOT_FOUND"
+      );
+    }
+
+    await tx.scheduleItem.delete({
+      where: { id: itemId }
+    });
+
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "DELETE",
+        entityType: "ScheduleItem",
+        entityId: itemId,
+        before: item
+      },
+      tx
+    );
+  });
 }
 
-// Контрольоване скасування: заняття опублікованого розкладу не видаляється,
-// а позначається як CANCELLED з причиною й часом.
-async function cancelItem(scheduleId, itemId, { reason }) {
+async function cancelItem(scheduleId, itemId, { reason }, user) {
   const schedule = await findScheduleOrThrow(scheduleId);
 
   if (schedule.status !== "PUBLISHED") {
@@ -357,36 +555,68 @@ async function cancelItem(scheduleId, itemId, { reason }) {
     );
   }
 
-  const item = await prisma.scheduleItem.findFirst({ where: { id: itemId, scheduleId } });
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.scheduleItem.findFirst({
+      where: {
+        id: itemId,
+        scheduleId
+      }
+    });
 
-  if (!item) {
-    throw new AppError("Schedule item not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_ITEM_NOT_FOUND");
-  }
+    if (!before) {
+      throw new AppError(
+        "Schedule item not found",
+        HTTP_STATUS.NOT_FOUND,
+        "SCHEDULE_ITEM_NOT_FOUND"
+      );
+    }
 
-  if (item.status === "CANCELLED") {
-    throw new AppError(
-      "Schedule item is already cancelled",
-      HTTP_STATUS.CONFLICT,
-      "SCHEDULE_ITEM_ALREADY_CANCELLED"
+    if (before.status === "CANCELLED") {
+      throw new AppError(
+        "Schedule item is already cancelled",
+        HTTP_STATUS.CONFLICT,
+        "SCHEDULE_ITEM_ALREADY_CANCELLED"
+      );
+    }
+
+    const updated = await tx.scheduleItem.update({
+      where: { id: itemId },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+        cancelReason: reason
+      },
+      include: itemInclude
+    });
+
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "CANCEL",
+        entityType: "ScheduleItem",
+        entityId: itemId,
+        before,
+        after: updated
+      },
+      tx
     );
-  }
 
-  return prisma.scheduleItem.update({
-    where: { id: itemId },
-    data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason },
-    include: itemInclude
+    return updated;
   });
 }
 
-// Повна перевірка перед публікацією.
-async function publish(id) {
+async function publish(id, user) {
   const schedule = await prisma.schedule.findUnique({
     where: { id },
     include: { items: true }
   });
 
   if (!schedule) {
-    throw new AppError("Schedule not found", HTTP_STATUS.NOT_FOUND, "SCHEDULE_NOT_FOUND");
+    throw new AppError(
+      "Schedule not found",
+      HTTP_STATUS.NOT_FOUND,
+      "SCHEDULE_NOT_FOUND"
+    );
   }
 
   if (schedule.status === "PUBLISHED") {
@@ -397,7 +627,12 @@ async function publish(id) {
     );
   }
 
-  await requireActive(prisma.group, schedule.groupId, "GROUP_NOT_FOUND", "Group not found");
+  await requireActive(
+    prisma.group,
+    schedule.groupId,
+    "GROUP_NOT_FOUND",
+    "Group not found"
+  );
 
   if (schedule.items.length === 0) {
     throw new AppError(
@@ -407,9 +642,12 @@ async function publish(id) {
     );
   }
 
-  // У групи не може бути двох опублікованих розкладів, що діють одночасно.
   const publishedOfGroup = await prisma.schedule.findMany({
-    where: { groupId: schedule.groupId, status: "PUBLISHED", id: { not: id } }
+    where: {
+      groupId: schedule.groupId,
+      status: "PUBLISHED",
+      id: { not: id }
+    }
   });
 
   if (publishedOfGroup.some((other) => periodsOverlap(schedule, other))) {
@@ -420,7 +658,10 @@ async function publish(id) {
     );
   }
 
-  const otherItems = await loadOtherPublishedItems(schedule, schedule.items);
+  const otherItems = await loadOtherPublishedItems(
+    schedule,
+    schedule.items
+  );
 
   for (const item of schedule.items) {
     assertDayRules(item);
@@ -428,10 +669,34 @@ async function publish(id) {
     assertNoConflicts(item, schedule.items, otherItems, item.id);
   }
 
-  return prisma.schedule.update({
-    where: { id },
-    data: { status: "PUBLISHED", publishedAt: new Date() },
-    include: scheduleInclude
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.schedule.findUnique({
+      where: { id },
+      include: scheduleInclude
+    });
+
+    const updated = await tx.schedule.update({
+      where: { id },
+      data: {
+        status: "PUBLISHED",
+        publishedAt: new Date()
+      },
+      include: scheduleInclude
+    });
+
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "UPDATE",
+        entityType: "Schedule",
+        entityId: id,
+        before,
+        after: updated
+      },
+      tx
+    );
+
+    return updated;
   });
 }
 

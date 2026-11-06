@@ -1,18 +1,152 @@
+
 const prisma = require("../../config/prisma");
+const auditService = require("../audit/audit.service");
 const AppError = require("../../utils/app-error");
 const HTTP_STATUS = require("../../utils/http-status");
 
 const MAX_CAPACITY = 20;
+const MANAGEMENT_ROLES = ["ADMIN", "MANAGER"];
+const EMPLOYEE_ROLES = ["TEACHER", "EDUCATOR", "ASSISTANT"];
+const READ_ROLES = [
+  "ADMIN",
+  "MANAGER",
+  "PARENT",
+  "TEACHER",
+  "EDUCATOR",
+  "ASSISTANT"
+];
 
 function fail(message, status, code) {
   throw new AppError(message, status, code);
+}
+
+function ensureManagementAccess(user) {
+  if (!user || !MANAGEMENT_ROLES.includes(user.role)) {
+    fail(
+      "You do not have permission to perform this action",
+      HTTP_STATUS.FORBIDDEN,
+      "FORBIDDEN"
+    );
+  }
+}
+
+function ensureReadAccess(user) {
+  if (!user) {
+    fail(
+      "Authentication required",
+      HTTP_STATUS.UNAUTHORIZED,
+      "UNAUTHORIZED"
+    );
+  }
+
+  if (!READ_ROLES.includes(user.role)) {
+    fail(
+      "You do not have permission to access this resource",
+      HTTP_STATUS.FORBIDDEN,
+      "FORBIDDEN"
+    );
+  }
+}
+
+function getGroupAccessFilter(user) {
+  ensureReadAccess(user);
+
+  if (MANAGEMENT_ROLES.includes(user.role)) {
+    return {};
+  }
+
+  if (user.role === "PARENT") {
+    return {
+      enrollments: {
+        some: {
+          endDate: null,
+          child: {
+            parents: {
+              some: {
+                endDate: null,
+                parent: {
+                  userId: user.id,
+                  status: "ACTIVE"
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+  }
+
+  if (EMPLOYEE_ROLES.includes(user.role)) {
+    return {
+      staffAssignments: {
+        some: {
+          endDate: null,
+          employee: {
+            userId: user.id,
+            status: "ACTIVE",
+            role: user.role
+          }
+        }
+      }
+    };
+  }
+
+  return {};
+}
+
+function getChildAccessFilter(user) {
+  ensureReadAccess(user);
+
+  if (MANAGEMENT_ROLES.includes(user.role)) {
+    return {};
+  }
+
+  if (user.role === "PARENT") {
+    return {
+      parents: {
+        some: {
+          endDate: null,
+          parent: {
+            userId: user.id,
+            status: "ACTIVE"
+          }
+        }
+      }
+    };
+  }
+
+  if (EMPLOYEE_ROLES.includes(user.role)) {
+    return {
+      enrollments: {
+        some: {
+          endDate: null,
+          group: {
+            staffAssignments: {
+              some: {
+                endDate: null,
+                employee: {
+                  userId: user.id,
+                  status: "ACTIVE",
+                  role: user.role
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+  }
+
+  return {};
 }
 
 function ageInMonths(birthDate, now = new Date()) {
   const birth = new Date(birthDate);
 
   let months =
-    (now.getUTCFullYear() - birth.getUTCFullYear()) * 12 + now.getUTCMonth() - birth.getUTCMonth();
+    (now.getUTCFullYear() - birth.getUTCFullYear()) * 12 +
+    now.getUTCMonth() -
+    birth.getUTCMonth();
 
   if (now.getUTCDate() < birth.getUTCDate()) {
     months--;
@@ -23,7 +157,11 @@ function ageInMonths(birthDate, now = new Date()) {
 
 function checkAgeRange(from, to) {
   if (from > to) {
-    fail("Invalid age range", HTTP_STATUS.BAD_REQUEST, "INVALID_AGE_RANGE");
+    fail(
+      "Invalid age range",
+      HTTP_STATUS.BAD_REQUEST,
+      "INVALID_AGE_RANGE"
+    );
   }
 }
 
@@ -31,7 +169,11 @@ function checkChildAge(child, group) {
   const age = ageInMonths(child.birthDate);
 
   if (age < group.ageFromMonths || age > group.ageToMonths) {
-    fail("Child age does not match group", HTTP_STATUS.CONFLICT, "AGE_MISMATCH");
+    fail(
+      "Child age does not match group",
+      HTTP_STATUS.CONFLICT,
+      "AGE_MISMATCH"
+    );
   }
 }
 
@@ -41,7 +183,11 @@ async function getExistingGroup(db, id) {
   });
 
   if (!group || group.status === "ARCHIVED") {
-    fail("Group not found", HTTP_STATUS.NOT_FOUND, "GROUP_NOT_FOUND");
+    fail(
+      "Group not found",
+      HTTP_STATUS.NOT_FOUND,
+      "GROUP_NOT_FOUND"
+    );
   }
 
   return group;
@@ -53,11 +199,19 @@ async function getActiveChild(db, childId) {
   });
 
   if (!child) {
-    fail("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
+    fail(
+      "Child not found",
+      HTTP_STATUS.NOT_FOUND,
+      "CHILD_NOT_FOUND"
+    );
   }
 
   if (child.status !== "ACTIVE") {
-    fail("Child is not active", HTTP_STATUS.CONFLICT, "CHILD_NOT_ACTIVE");
+    fail(
+      "Child is not active",
+      HTTP_STATUS.CONFLICT,
+      "CHILD_NOT_ACTIVE"
+    );
   }
 
   return child;
@@ -77,7 +231,11 @@ async function checkUniqueName(db, name, excludeId) {
   });
 
   if (existing) {
-    fail("Group name already exists", HTTP_STATUS.CONFLICT, "GROUP_NAME_EXISTS");
+    fail(
+      "Group name already exists",
+      HTTP_STATUS.CONFLICT,
+      "GROUP_NAME_EXISTS"
+    );
   }
 }
 
@@ -89,7 +247,11 @@ async function checkMainRoom(db, roomId, excludeId) {
   });
 
   if (!room || room.status !== "ACTIVE") {
-    fail("Active room not found", HTTP_STATUS.NOT_FOUND, "ROOM_NOT_FOUND");
+    fail(
+      "Active room not found",
+      HTTP_STATUS.NOT_FOUND,
+      "ROOM_NOT_FOUND"
+    );
   }
 
   const occupied = await db.group.findFirst({
@@ -103,13 +265,42 @@ async function checkMainRoom(db, roomId, excludeId) {
   });
 
   if (occupied) {
-    fail("Room is already assigned", HTTP_STATUS.CONFLICT, "ROOM_ALREADY_ASSIGNED");
+    fail(
+      "Room is already assigned",
+      HTTP_STATUS.CONFLICT,
+      "ROOM_ALREADY_ASSIGNED"
+    );
   }
 }
 
-async function getAllGroups(query = {}) {
+function handlePrismaError(error) {
+  if (error.code === "P2002") {
+    fail(
+      "Group name already exists",
+      HTTP_STATUS.CONFLICT,
+      "GROUP_NAME_EXISTS"
+    );
+  }
+
+  if (error.code === "P2025" || error.code === "P2003") {
+    fail(
+      "Related record not found",
+      HTTP_STATUS.NOT_FOUND,
+      "RELATED_RECORD_NOT_FOUND"
+    );
+  }
+
+  throw error;
+}
+
+async function getAllGroups(query = {}, user) {
+  const accessFilter = getGroupAccessFilter(user);
+
   const where = {
-    status: query.status || { not: "ARCHIVED" }
+    ...accessFilter,
+    status: MANAGEMENT_ROLES.includes(user.role)
+      ? query.status || { not: "ARCHIVED" }
+      : "ACTIVE"
   };
 
   if (query.search) {
@@ -135,178 +326,287 @@ async function getAllGroups(query = {}) {
   });
 }
 
-async function getGroupById(id) {
-  await getExistingGroup(prisma, id);
+async function getGroupById(id, user) {
+  const accessFilter = getGroupAccessFilter(user);
 
-  return prisma.group.findUnique({
-    where: { id },
+  const group = await prisma.group.findFirst({
+    where: {
+      id,
+      ...accessFilter,
+      status: MANAGEMENT_ROLES.includes(user.role)
+        ? { not: "ARCHIVED" }
+        : "ACTIVE"
+    },
     include: {
       mainRoom: true,
       enrollments: {
-        where: { endDate: null },
+        where: {
+          endDate: null,
+          child: getChildAccessFilter(user)
+        },
         include: { child: true }
       }
     }
   });
+
+  if (!group) {
+    fail(
+      "Group not found",
+      HTTP_STATUS.NOT_FOUND,
+      "GROUP_NOT_FOUND"
+    );
+  }
+
+  return group;
 }
 
-async function createGroup(data) {
+async function createGroup(data, user) {
+  ensureManagementAccess(user);
+
   checkAgeRange(data.ageFromMonths, data.ageToMonths);
 
-  await checkUniqueName(prisma, data.name);
-  await checkMainRoom(prisma, data.mainRoomId);
-
   try {
-    return await prisma.group.create({
-      data: {
-        name: data.name.trim(),
-        ageFromMonths: data.ageFromMonths,
-        ageToMonths: data.ageToMonths,
-        capacity: data.capacity ?? MAX_CAPACITY,
-        mainRoomId: data.mainRoomId ?? null,
-        status: data.status ?? "ACTIVE"
-      }
+    return await prisma.$transaction(async (tx) => {
+      await checkUniqueName(tx, data.name);
+      await checkMainRoom(tx, data.mainRoomId);
+
+      const group = await tx.group.create({
+        data: {
+          name: data.name.trim(),
+          ageFromMonths: data.ageFromMonths,
+          ageToMonths: data.ageToMonths,
+          capacity: data.capacity ?? MAX_CAPACITY,
+          mainRoomId: data.mainRoomId ?? null,
+          status: data.status ?? "ACTIVE"
+        },
+        include: {
+          mainRoom: true
+        }
+      });
+
+      await auditService.createLog(
+        {
+          actorId: user.id,
+          action: "CREATE",
+          entityType: "Group",
+          entityId: group.id,
+          after: group
+        },
+        tx
+      );
+
+      return group;
     });
   } catch (error) {
-    if (error.code === "P2002") {
-      fail("Group name already exists", HTTP_STATUS.CONFLICT, "GROUP_NAME_EXISTS");
-    }
-    throw error;
+    if (error instanceof AppError) throw error;
+    handlePrismaError(error);
   }
 }
 
-async function updateGroup(id, data) {
-  const group = await getExistingGroup(prisma, id);
-
-  const from = data.ageFromMonths ?? group.ageFromMonths;
-  const to = data.ageToMonths ?? group.ageToMonths;
-  const capacity = data.capacity ?? group.capacity;
-  const nextStatus = data.status ?? group.status;
-
-  checkAgeRange(from, to);
-
-  if (data.name !== undefined) {
-    await checkUniqueName(prisma, data.name, id);
-  }
-
-  const roomId = data.mainRoomId !== undefined ? data.mainRoomId : group.mainRoomId;
-
-  if (nextStatus === "ACTIVE") {
-    await checkMainRoom(prisma, roomId, id);
-  }
-
-  const enrollments = await prisma.groupEnrollment.findMany({
-    where: {
-      groupId: id,
-      endDate: null
-    },
-    include: { child: true }
-  });
-
-  if (capacity < enrollments.length) {
-    fail(
-      "Capacity is below enrolled children count",
-      HTTP_STATUS.CONFLICT,
-      "CAPACITY_BELOW_ENROLLED"
-    );
-  }
-
-  for (const enrollment of enrollments) {
-    checkChildAge(enrollment.child, {
-      ageFromMonths: from,
-      ageToMonths: to
-    });
-  }
-
-  if (nextStatus === "INACTIVE" && enrollments.length > 0) {
-    fail("Group has active children", HTTP_STATUS.CONFLICT, "GROUP_HAS_ACTIVE_CHILDREN");
-  }
+async function updateGroup(id, data, user) {
+  ensureManagementAccess(user);
 
   try {
-    return await prisma.group.update({
+    return await prisma.$transaction(async (tx) => {
+      const group = await getExistingGroup(tx, id);
+
+      const from = data.ageFromMonths ?? group.ageFromMonths;
+      const to = data.ageToMonths ?? group.ageToMonths;
+      const capacity = data.capacity ?? group.capacity;
+      const nextStatus = data.status ?? group.status;
+
+      checkAgeRange(from, to);
+
+      if (data.name !== undefined) {
+        await checkUniqueName(tx, data.name, id);
+      }
+
+      const roomId =
+        data.mainRoomId !== undefined
+          ? data.mainRoomId
+          : group.mainRoomId;
+
+      if (nextStatus === "ACTIVE") {
+        await checkMainRoom(tx, roomId, id);
+      }
+
+      const enrollments = await tx.groupEnrollment.findMany({
+        where: {
+          groupId: id,
+          endDate: null
+        },
+        include: { child: true }
+      });
+
+      if (capacity < enrollments.length) {
+        fail(
+          "Capacity is below enrolled children count",
+          HTTP_STATUS.CONFLICT,
+          "CAPACITY_BELOW_ENROLLED"
+        );
+      }
+
+      for (const enrollment of enrollments) {
+        checkChildAge(enrollment.child, {
+          ageFromMonths: from,
+          ageToMonths: to
+        });
+      }
+
+      if (nextStatus === "INACTIVE" && enrollments.length > 0) {
+        fail(
+          "Group has active children",
+          HTTP_STATUS.CONFLICT,
+          "GROUP_HAS_ACTIVE_CHILDREN"
+        );
+      }
+
+      const before = {
+        ...group,
+        mainRoom: undefined
+      };
+
+      const updated = await tx.group.update({
+        where: { id },
+        data: {
+          ...(data.name !== undefined && {
+            name: data.name.trim()
+          }),
+          ...(data.ageFromMonths !== undefined && {
+            ageFromMonths: data.ageFromMonths
+          }),
+          ...(data.ageToMonths !== undefined && {
+            ageToMonths: data.ageToMonths
+          }),
+          ...(data.capacity !== undefined && {
+            capacity: data.capacity
+          }),
+          ...(data.mainRoomId !== undefined && {
+            mainRoomId: data.mainRoomId
+          }),
+          ...(data.status !== undefined && {
+            status: data.status
+          })
+        },
+        include: {
+          mainRoom: true
+        }
+      });
+
+      await auditService.createLog(
+        {
+          actorId: user.id,
+          action: "UPDATE",
+          entityType: "Group",
+          entityId: id,
+          before,
+          after: updated
+        },
+        tx
+      );
+
+      return updated;
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    handlePrismaError(error);
+  }
+}
+
+async function softDeleteGroup(id, user) {
+  ensureManagementAccess(user);
+
+  return prisma.$transaction(async (tx) => {
+    const group = await getExistingGroup(tx, id);
+
+    const count = await tx.groupEnrollment.count({
+      where: {
+        groupId: id,
+        endDate: null
+      }
+    });
+
+    if (count > 0) {
+      fail(
+        "Cannot archive group with active children",
+        HTTP_STATUS.CONFLICT,
+        "GROUP_HAS_ACTIVE_CHILDREN"
+      );
+    }
+
+    const archived = await tx.group.update({
       where: { id },
       data: {
-        ...(data.name !== undefined && {
-          name: data.name.trim()
-        }),
-        ...(data.ageFromMonths !== undefined && {
-          ageFromMonths: data.ageFromMonths
-        }),
-        ...(data.ageToMonths !== undefined && {
-          ageToMonths: data.ageToMonths
-        }),
-        ...(data.capacity !== undefined && {
-          capacity: data.capacity
-        }),
-        ...(data.mainRoomId !== undefined && {
-          mainRoomId: data.mainRoomId
-        }),
-        ...(data.status !== undefined && {
-          status: data.status
-        })
+        status: "ARCHIVED",
+        archivedAt: new Date(),
+        mainRoomId: null
       }
     });
-  } catch (error) {
-    if (error.code === "P2002") {
-      fail("Group name already exists", HTTP_STATUS.CONFLICT, "GROUP_NAME_EXISTS");
-    }
-    throw error;
-  }
-}
 
-async function softDeleteGroup(id) {
-  await getExistingGroup(prisma, id);
-
-  const count = await prisma.groupEnrollment.count({
-    where: { groupId: id, endDate: null }
-  });
-
-  if (count > 0) {
-    fail(
-      "Cannot archive group with active children",
-      HTTP_STATUS.CONFLICT,
-      "GROUP_HAS_ACTIVE_CHILDREN"
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "ARCHIVE",
+        entityType: "Group",
+        entityId: id,
+        before: group,
+        after: archived
+      },
+      tx
     );
-  }
 
-  return prisma.group.update({
-    where: { id },
-    data: {
-      status: "ARCHIVED",
-      archivedAt: new Date(),
-      mainRoomId: null
-    }
+    return archived;
   });
 }
 
-async function enrollChild(groupId, { childId }) {
+async function enrollChild(groupId, { childId }, user) {
+  ensureManagementAccess(user);
+
   return prisma.$transaction(async (tx) => {
     const group = await getExistingGroup(tx, groupId);
 
     if (group.status !== "ACTIVE") {
-      fail("Group is not active", HTTP_STATUS.CONFLICT, "GROUP_NOT_ACTIVE");
+      fail(
+        "Group is not active",
+        HTTP_STATUS.CONFLICT,
+        "GROUP_NOT_ACTIVE"
+      );
     }
 
     const child = await getActiveChild(tx, childId);
     checkChildAge(child, group);
 
     const existing = await tx.groupEnrollment.findFirst({
-      where: { childId, endDate: null }
+      where: {
+        childId,
+        endDate: null
+      }
     });
 
     if (existing) {
-      fail("Child already enrolled", HTTP_STATUS.CONFLICT, "CHILD_ALREADY_ENROLLED");
+      fail(
+        "Child already enrolled",
+        HTTP_STATUS.CONFLICT,
+        "CHILD_ALREADY_ENROLLED"
+      );
     }
 
     const count = await tx.groupEnrollment.count({
-      where: { groupId, endDate: null }
+      where: {
+        groupId,
+        endDate: null
+      }
     });
 
     if (count >= group.capacity) {
-      fail("Group capacity exceeded", HTTP_STATUS.CONFLICT, "GROUP_CAPACITY_EXCEEDED");
+      fail(
+        "Group capacity exceeded",
+        HTTP_STATUS.CONFLICT,
+        "GROUP_CAPACITY_EXCEEDED"
+      );
     }
 
-    return tx.groupEnrollment.create({
+    const enrollment = await tx.groupEnrollment.create({
       data: {
         childId,
         groupId,
@@ -317,125 +617,124 @@ async function enrollChild(groupId, { childId }) {
         group: true
       }
     });
+
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "CREATE",
+        entityType: "GroupEnrollment",
+        entityId: enrollment.id,
+        after: enrollment
+      },
+      tx
+    );
+
+    return enrollment;
   });
 }
 
-async function completeEnrollment(enrollmentId) {
-  const enrollment = await prisma.groupEnrollment.findUnique({
-    where: { id: enrollmentId }
-  });
+async function completeEnrollment(enrollmentId, user) {
+  ensureManagementAccess(user);
 
-  if (!enrollment) {
-    fail("Enrollment not found", HTTP_STATUS.NOT_FOUND, "ENROLLMENT_NOT_FOUND");
-  }
-
-  if (enrollment.endDate !== null) {
-    fail("Enrollment already completed", HTTP_STATUS.CONFLICT, "ENROLLMENT_ALREADY_CLOSED");
-  }
-
-  const result = await prisma.groupEnrollment.updateMany({
-    where: {
-      id: enrollmentId,
-      endDate: null
-    },
-    data: { endDate: new Date() }
-  });
-
-  if (result.count !== 1) {
-    fail("Enrollment already changed", HTTP_STATUS.CONFLICT, "ENROLLMENT_CONFLICT");
-  }
-
-  return prisma.groupEnrollment.findUnique({
-    where: { id: enrollmentId }
-  });
-}
-
-async function transferChild({ childId, toGroupId }) {
   return prisma.$transaction(async (tx) => {
-    const child = await getActiveChild(tx, childId);
-
-    const current = await tx.groupEnrollment.findFirst({
-      where: { childId, endDate: null }
-    });
-
-    if (!current) {
-      fail("Active enrollment not found", HTTP_STATUS.NOT_FOUND, "ACTIVE_ENROLLMENT_NOT_FOUND");
-    }
-
-    if (current.groupId === toGroupId) {
-      fail("Child already belongs to this group", HTTP_STATUS.CONFLICT, "SAME_GROUP_TRANSFER");
-    }
-
-    const target = await getExistingGroup(tx, toGroupId);
-
-    if (target.status !== "ACTIVE") {
-      fail("Target group is not active", HTTP_STATUS.CONFLICT, "GROUP_NOT_ACTIVE");
-    }
-
-    checkChildAge(child, target);
-
-    const count = await tx.groupEnrollment.count({
-      where: {
-        groupId: toGroupId,
-        endDate: null
+    const enrollment = await tx.groupEnrollment.findUnique({
+      where: { id: enrollmentId },
+      include: {
+        child: true,
+        group: true
       }
     });
 
-    if (count >= target.capacity) {
-      fail("Target group is full", HTTP_STATUS.CONFLICT, "GROUP_CAPACITY_EXCEEDED");
+    if (!enrollment) {
+      fail(
+        "Enrollment not found",
+        HTTP_STATUS.NOT_FOUND,
+        "ENROLLMENT_NOT_FOUND"
+      );
     }
 
-    const now = new Date();
-
-    const closed = await tx.groupEnrollment.updateMany({
-      where: {
-        id: current.id,
-        endDate: null
-      },
-      data: { endDate: now }
-    });
-
-    if (closed.count !== 1) {
-      fail("Enrollment changed", HTTP_STATUS.CONFLICT, "ENROLLMENT_CONFLICT");
+    if (enrollment.endDate !== null) {
+      fail(
+        "Enrollment already completed",
+        HTTP_STATUS.CONFLICT,
+        "ENROLLMENT_ALREADY_CLOSED"
+      );
     }
 
-    return tx.groupEnrollment.create({
+    const updated = await tx.groupEnrollment.update({
+      where: { id: enrollmentId },
       data: {
-        childId,
-        groupId: toGroupId,
-        startDate: now
+        endDate: new Date()
       },
       include: {
         child: true,
         group: true
       }
     });
+
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "CANCEL",
+        entityType: "GroupEnrollment",
+        entityId: enrollmentId,
+        before: enrollment,
+        after: updated
+      },
+      tx
+    );
+
+    return updated;
   });
 }
 
-async function getGroupHistory(groupId) {
-  const group = await prisma.group.findUnique({
-    where: { id: groupId }
+async function getGroupHistory(groupId, user) {
+  const accessFilter = getGroupAccessFilter(user);
+
+  const group = await prisma.group.findFirst({
+    where: {
+      id: groupId,
+      ...accessFilter,
+      status: MANAGEMENT_ROLES.includes(user.role)
+        ? { not: "ARCHIVED" }
+        : "ACTIVE"
+    }
   });
 
   if (!group) {
-    fail("Group not found", HTTP_STATUS.NOT_FOUND, "GROUP_NOT_FOUND");
+    fail(
+      "Group not found",
+      HTTP_STATUS.NOT_FOUND,
+      "GROUP_NOT_FOUND"
+    );
   }
 
   return prisma.groupEnrollment.findMany({
-    where: { groupId },
+    where: {
+      groupId,
+      child: getChildAccessFilter(user)
+    },
     include: { child: true },
     orderBy: { startDate: "desc" }
   });
 }
 
-async function getChildHistory(childId) {
-  const child = await prisma.child.findUnique({
-    where: { id: childId }
+async function getChildHistory(childId, user) {
+  const accessFilter = getChildAccessFilter(user);
+
+  const child = await prisma.child.findFirst({
+    where: {
+      id: childId,
+      ...accessFilter
+    }
   });
 
   if (!child) {
-    fail("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
+    fail(
+      "Child not found",
+      HTTP_STATUS.NOT_FOUND,
+      "CHILD_NOT_FOUND"
+    );
   }
 
   return prisma.groupEnrollment.findMany({
@@ -453,7 +752,6 @@ module.exports = {
   softDeleteGroup,
   enrollChild,
   completeEnrollment,
-  transferChild,
   getGroupHistory,
   getChildHistory
 };

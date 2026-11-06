@@ -6,7 +6,7 @@ const createRoomSchema = Joi.object({
   name: Joi.string().trim().min(1).max(100).required(),
   purpose: Joi.string().trim().min(1).max(255).required(),
   capacity: Joi.number().integer().min(1).required(),
-  status: roomStatusSchema
+  status: roomStatusSchema.default("ACTIVE")
 });
 
 const updateRoomSchema = Joi.object({
@@ -23,8 +23,8 @@ const roomIdSchema = Joi.object({
 });
 
 const searchRoomSchema = Joi.object({
-  search: Joi.string().trim().allow(""),
-  purpose: Joi.string().trim().allow(""),
+  search: Joi.string().trim().max(100).allow(""),
+  purpose: Joi.string().trim().max(255).allow(""),
   status: Joi.string().valid("ACTIVE", "INACTIVE", "ARCHIVED")
 });
 

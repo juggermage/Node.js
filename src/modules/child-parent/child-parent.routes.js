@@ -1,24 +1,69 @@
 const { Router } = require("express");
+
 const validate = require("../../middleware/validate.middleware");
+const requireAuth = require("../../middleware/auth.middleware");
+const authorizeRoles = require("../../middleware/rbac.middleware");
+
 const controller = require("./child-parent.controller");
 
 const {
   createLinkSchema,
   idParamsSchema,
   childParamsSchema,
-  parentParamsSchema
+  parentParamsSchema,
+  historyQuerySchema
 } = require("./child-parent.validation");
 
 const router = Router();
 
-router.post("/", validate(createLinkSchema, "body"), controller.create);
+router.use(requireAuth);
 
-router.get("/child/:childId", validate(childParamsSchema, "params"), controller.getForChild);
+const readAccess = authorizeRoles(
+  "ADMIN",
+  "MANAGER",
+  "PARENT",
+  "TEACHER",
+  "EDUCATOR",
+  "ASSISTANT"
+);
 
-router.get("/parent/:parentId", validate(parentParamsSchema, "params"), controller.getForParent);
+const managementAccess = authorizeRoles("ADMIN", "MANAGER");
 
-router.get("/:id", validate(idParamsSchema, "params"), controller.getById);
+router.post(
+  "/",
+  managementAccess,
+  validate(createLinkSchema, "body"),
+  controller.create
+);
 
-router.patch("/:id/complete", validate(idParamsSchema, "params"), controller.complete);
+router.get(
+  "/child/:childId",
+  readAccess,
+  validate(childParamsSchema, "params"),
+  validate(historyQuerySchema, "query"),
+  controller.getForChild
+);
+
+router.get(
+  "/parent/:parentId",
+  readAccess,
+  validate(parentParamsSchema, "params"),
+  validate(historyQuerySchema, "query"),
+  controller.getForParent
+);
+
+router.get(
+  "/:id",
+  readAccess,
+  validate(idParamsSchema, "params"),
+  controller.getById
+);
+
+router.patch(
+  "/:id/complete",
+  managementAccess,
+  validate(idParamsSchema, "params"),
+  controller.complete
+);
 
 module.exports = router;

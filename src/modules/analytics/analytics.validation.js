@@ -5,7 +5,10 @@ const isoDate = Joi.string()
   .custom((value, helpers) => {
     const date = new Date(`${value}T00:00:00.000Z`);
 
-    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.toISOString().slice(0, 10) !== value
+    ) {
       return helpers.error("date.invalid");
     }
 
@@ -31,6 +34,14 @@ const periodSchema = Joi.object({
     "any.custom": "from must not be later than to"
   });
 
+const attendanceReportSchema = periodSchema.keys({
+  groupId: Joi.string()
+    .hex()
+    .length(24)
+    .optional()
+});
+
 module.exports = {
-  periodSchema
+  periodSchema,
+  attendanceReportSchema
 };

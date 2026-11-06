@@ -5,7 +5,8 @@ const objectId = Joi.string().hex().length(24);
 const phoneSchema = Joi.string()
   .pattern(/^\+[1-9]\d{7,14}$/)
   .messages({
-    "string.pattern.base": "Phone must use international E.164 format, e.g. +380XXXXXXXXX"
+    "string.pattern.base":
+      "Phone must use international E.164 format, e.g. +380XXXXXXXXX"
   });
 
 const emailSchema = Joi.string().trim().lowercase().email().max(254);
@@ -31,7 +32,9 @@ const updateParentSchema = Joi.object({
 
 const queryParentsSchema = Joi.object({
   search: Joi.string().trim().max(100).allow(""),
-  status: Joi.string().valid("ACTIVE", "INACTIVE", "ARCHIVED")
+  status: Joi.string().valid("ACTIVE", "INACTIVE", "ARCHIVED"),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20)
 });
 
 module.exports = {

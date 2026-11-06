@@ -1,10 +1,10 @@
-
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const prisma = require("../../config/prisma");
 const AppError = require("../../utils/app-error");
 const HTTP_STATUS = require("../../utils/http-status");
+const auditService = require("../audit/audit.service");
 
 const SALT_ROUNDS = 12;
 
@@ -60,14 +60,29 @@ async function register({ name, email, password }) {
   let user;
 
   try {
-    user = await prisma.user.create({
-      data: {
-        name: name.trim(),
-        email: normalizedEmail,
-        passwordHash,
-        role: "PARENT",
-        isActive: true
-      }
+    user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          name: name.trim(),
+          email: normalizedEmail,
+          passwordHash,
+          role: "PARENT",
+          isActive: true
+        }
+      });
+
+      await auditService.createLog(
+        {
+          actorId: createdUser.id,
+          action: "CREATE",
+          entityType: "User",
+          entityId: createdUser.id,
+          after: publicUser(createdUser)
+        },
+        tx
+      );
+
+      return createdUser;
     });
   } catch (error) {
     if (error.code === "P2002") {
@@ -138,13 +153,43 @@ async function getMe(userId) {
 }
 
 async function logout(userId) {
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      tokenVersion: {
-        increment: 1
-      }
+  await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new AppError(
+        "User not found",
+        HTTP_STATUS.NOT_FOUND,
+        "USER_NOT_FOUND"
+      );
     }
+
+    const updatedUser = await tx.user.update({
+      where: { id: userId },
+      data: {
+        tokenVersion: {
+          increment: 1
+        }
+      }
+    });
+
+    await auditService.createLog(
+      {
+        actorId: userId,
+        action: "UPDATE",
+        entityType: "User",
+        entityId: userId,
+        before: {
+          tokenVersion: user.tokenVersion
+        },
+        after: {
+          tokenVersion: updatedUser.tokenVersion
+        }
+      },
+      tx
+    );
   });
 
   return true;
