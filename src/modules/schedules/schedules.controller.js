@@ -1,4 +1,6 @@
+
 const schedulesService = require("./schedules.service");
+const schedulesGenerator = require("./schedules.generator");
 const HTTP_STATUS = require("../../utils/http-status");
 
 async function getAll(req, res) {
@@ -109,6 +111,17 @@ async function cancelItem(req, res) {
   });
 }
 
+async function generate(req, res) {
+  const data = res.locals.validated.body;
+
+  const schedule = await schedulesGenerator.generate(data);
+
+  return res.status(HTTP_STATUS.CREATED).json({
+    success: true,
+    data: schedule
+  });
+}
+
 module.exports = {
   getAll,
   getById,
@@ -119,5 +132,6 @@ module.exports = {
   createItem,
   updateItem,
   removeItem,
-  cancelItem
+  cancelItem,
+  generate
 };
