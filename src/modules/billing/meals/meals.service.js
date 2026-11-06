@@ -251,7 +251,7 @@ async function ensureChildAccess(childId, periodStart, periodEnd, user) {
 }
 
 async function calculateMealCost({ childId, periodStart, periodEnd, ageYears }, user) {
-  const { from, to, days } = validatePeriod(periodStart, periodEnd);
+  const { from, to } = validatePeriod(periodStart, periodEnd);
 
   const child = await prisma.child.findUnique({
     where: { id: childId },

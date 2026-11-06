@@ -65,24 +65,6 @@ async function getAssignmentOrFail(id, tx = prisma) {
   return assignment;
 }
 
-async function ensureAssignmentAccess(assignment, user) {
-  ensureReadAccess(user);
-
-  if (MANAGEMENT_ROLES.includes(user.role)) {
-    return assignment;
-  }
-
-  if (assignment.employee.userId !== user.id) {
-    fail(
-      "You do not have permission to access this assignment",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
-  }
-
-  return assignment;
-}
-
 async function getAll(user) {
   ensureReadAccess(user);
 

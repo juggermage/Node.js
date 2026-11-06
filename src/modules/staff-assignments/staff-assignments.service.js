@@ -50,24 +50,6 @@ async function getAssignmentOrFail(id, tx = prisma) {
   return assignment;
 }
 
-async function ensureAssignmentAccess(assignment, user) {
-  ensureReadAccess(user);
-
-  if (MANAGEMENT_ROLES.includes(user.role)) {
-    return assignment;
-  }
-
-  if (assignment.employee.userId !== user.id) {
-    fail(
-      "You do not have permission to access this assignment",
-      HTTP_STATUS.FORBIDDEN,
-      "FORBIDDEN"
-    );
-  }
-
-  return assignment;
-}
-
 function handlePrismaError(error) {
   if (error.code === "P2002") {
     fail("This staff assignment already exists", HTTP_STATUS.CONFLICT, "ASSIGNMENT_ALREADY_EXISTS");
