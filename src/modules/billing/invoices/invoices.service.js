@@ -110,19 +110,11 @@ async function getChildAndPayer(tx, childId, payerId) {
   return { child, parent };
 }
 
-async function createInvoice(data, type) {
+async function createInvoice(data, type, actorId) {
   const { start, end } = periodBounds(data.periodYear, data.periodMonth);
 
   if (data.dueDate) {
     parseDate(data.dueDate);
-  }
-
-  if (type === "MONTHLY" && data.attendedDays > end.getUTCDate()) {
-    fail(
-      "Attended days exceed the number of days in the month",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_ATTENDED_DAYS"
-    );
   }
 
   try {
@@ -173,20 +165,28 @@ async function createInvoice(data, type) {
         const meals = await mealsService.calculateMealCost({
           childId: data.childId,
           periodStart: start.toISOString().slice(0, 10),
-          periodEnd: end.toISOString().slice(0, 10),
-          attendedDays: data.attendedDays
+          periodEnd: end.toISOString().slice(0, 10)
         });
 
-        const mealAmount = BigInt(meals.total);
-        const dailyRate = BigInt(meals.dailyRate);
-
-        lines.push({
-          description: "Харчування",
-          quantity: data.attendedDays,
-          unitAmount: dailyRate,
-          amount: mealAmount,
-          tariffSnapshot: meals
-        });
+        for (const rate of meals.rateBreakdown) {
+          lines.push({
+            description: `Харчування — вікова категорія ${rate.ageYears}`,
+            quantity: rate.attendedDays,
+            unitAmount: BigInt(rate.dailyRate),
+            amount: BigInt(rate.amount),
+            tariffSnapshot: {
+              periodStart: meals.periodStart,
+              periodEnd: meals.periodEnd,
+              rateId: rate.rateId,
+              ageYears: rate.ageYears,
+              dailyRate: rate.dailyRate,
+              attendedDays: rate.attendedDays,
+              amount: rate.amount,
+              validFrom: rate.validFrom,
+              validTo: rate.validTo
+            }
+          });
+        }
       }
 
       const amountDue = lines.reduce((sum, line) => sum + line.amount, 0n);
@@ -215,6 +215,7 @@ async function createInvoice(data, type) {
 
       await auditService.createLog(
         {
+          actorId,
           action: "CREATE",
           entityType: "Invoice",
           entityId: createdInvoice.id,
@@ -249,23 +250,40 @@ async function createInvoice(data, type) {
   }
 }
 
-async function createMonthly(data) {
-  return createInvoice(data, "MONTHLY");
+async function createMonthly(data, actorId) {
+  return createInvoice(data, "MONTHLY", actorId);
 }
 
-async function createAnnual(data) {
-  return createInvoice(data, "ANNUAL");
+async function createAnnual(data, actorId) {
+  return createInvoice(data, "ANNUAL", actorId);
 }
 
-async function getAll(filters = {}) {
+async function getAll(filters = {}, user) {
   const where = {};
 
-  if (filters.childId) {
-    where.childId = filters.childId;
-  }
+  if (user.role === "PARENT") {
+    const parent = await prisma.parent.findUnique({
+      where: {
+        userId: user.id
+      },
+      select: {
+        id: true
+      }
+    });
 
-  if (filters.payerId) {
-    where.payerId = filters.payerId;
+    if (!parent) {
+      fail("Parent profile not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
+    }
+
+    where.payerId = parent.id;
+  } else {
+    if (filters.childId) {
+      where.childId = filters.childId;
+    }
+
+    if (filters.payerId) {
+      where.payerId = filters.payerId;
+    }
   }
 
   if (filters.status) {
@@ -311,7 +329,7 @@ async function getAll(filters = {}) {
   });
 }
 
-async function getById(id) {
+async function getById(id, user) {
   const invoice = await prisma.invoice.findUnique({
     where: { id },
     include: {
@@ -335,12 +353,16 @@ async function getById(id) {
     fail("Invoice not found", HTTP_STATUS.NOT_FOUND, "INVOICE_NOT_FOUND");
   }
 
+  if (user.role === "PARENT" && invoice.payer.userId !== user.id) {
+    fail("You do not have permission to access this invoice", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
+  }
+
   const paidAmount = getPaidAmountFromAllocations(invoice.allocations);
 
   return serializeInvoice(invoice, paidAmount);
 }
 
-async function cancel(id) {
+async function cancel(id, actorId) {
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({
       where: { id },
@@ -385,6 +407,7 @@ async function cancel(id) {
 
     await auditService.createLog(
       {
+        actorId,
         action: "CANCEL",
         entityType: "Invoice",
         entityId: id,

@@ -31,6 +31,11 @@ const periodSchema = Joi.object({
     "any.custom": "from must not be later than to"
   });
 
+const attendanceReportSchema = periodSchema.keys({
+  groupId: Joi.string().hex().length(24).optional()
+});
+
 module.exports = {
-  periodSchema
+  periodSchema,
+  attendanceReportSchema
 };

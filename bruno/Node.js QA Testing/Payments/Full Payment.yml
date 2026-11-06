@@ -1,0 +1,31 @@
+info:
+  name: Full Payment
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/v1/billing/payments
+  body:
+    type: json
+    data: |-
+      {
+        "payerId": "6ae387d62f88e0abcafaf2de",
+        "idempotencyKey": "qa-r3-032-full-001",
+        "amount": 20000,
+        "method": "CASH",
+        "allocations": [
+          {
+            "invoiceId": "6ae74288788588473266aa4a",
+            "amount": 20000
+          }
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

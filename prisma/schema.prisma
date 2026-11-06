@@ -12,13 +12,14 @@ model User {
   email        String   @unique
   name         String
   passwordHash String?
+  tokenVersion Int      @default(0)
   role         UserRole @default(PARENT)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   parent    Parent?
-  employee  Employee?
+  employees Employee[]
   auditLogs AuditLog[]
 
   @@map("users")
@@ -28,6 +29,13 @@ enum RecordStatus {
   ACTIVE
   INACTIVE
   ARCHIVED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
 }
 
 enum ParentRelation {
@@ -56,6 +64,7 @@ model Child {
   enrollments GroupEnrollment[]
   discounts   ChildDiscount[]
   invoices    Invoice[]
+  attendance  Attendance[]
 
   @@map("children")
 }
@@ -135,6 +144,27 @@ model GroupEnrollment {
   @@map("group_enrollments")
 }
 
+model Attendance {
+  id           String           @id @default(auto()) @map("_id") @db.ObjectId
+  childId      String           @db.ObjectId
+  recordedById String?          @db.ObjectId
+  date         DateTime
+  status       AttendanceStatus @default(PRESENT)
+  checkIn      DateTime?
+  checkOut     DateTime?
+  note         String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  child      Child     @relation(fields: [childId], references: [id])
+  recordedBy Employee? @relation(fields: [recordedById], references: [id])
+
+  @@unique([childId, date])
+  @@index([date, status])
+  @@index([recordedById, date])
+  @@map("attendance")
+}
+
 model Room {
   id         String       @id @default(auto()) @map("_id") @db.ObjectId
   name       String       @unique
@@ -170,7 +200,7 @@ model Employee {
   archivedAt   DateTime?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
-  userId       String?      @unique @db.ObjectId
+  userId       String?      @db.ObjectId
   user         User?        @relation(fields: [userId], references: [id])
 
   assignments        StaffAssignment[]
@@ -178,6 +208,7 @@ model Employee {
   scheduleItems      ScheduleItem[]
   salaryRates        SalaryRate[]
   salaryCalculations SalaryCalculation[]
+  recordedAttendance Attendance[]
 
   @@map("employees")
 }

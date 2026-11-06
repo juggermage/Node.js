@@ -2,13 +2,10 @@ const prisma = require("../../config/prisma");
 const AppError = require("../../utils/app-error");
 const HTTP_STATUS = require("../../utils/http-status");
 
-// Дозволені типи дій із Prisma-схеми.
 const AUDIT_ACTIONS = ["CREATE", "UPDATE", "DELETE", "ARCHIVE", "RESTORE", "PAYMENT", "CANCEL"];
 
-// Поля, які не можна зберігати в журналі.
 const SECRET_FIELD_PATTERN = /password|token|secret|authorization|cookie|api.?key|credential/i;
 
-// Очищує дані від конфіденційної інформації.
 function prepareSnapshot(value) {
   if (value === null || value === undefined) {
     return null;
@@ -45,8 +42,6 @@ function prepareSnapshot(value) {
   return result;
 }
 
-// Створює запис аудиту.
-// Функцію викликають інші серверні модулі.
 async function createLog(
   { actorId = null, action, entityType, entityId, before = null, after = null } = {},
   tx = prisma
@@ -92,9 +87,8 @@ async function createLog(
   });
 }
 
-// Повертає записи аудиту з фільтрами.
 async function getAll(filters = {}) {
-  const { from, to, entityType, action } = filters;
+  const { from, to, actorId, entityType, action, page = 1, limit = 20 } = filters;
 
   const where = {};
 
@@ -102,12 +96,16 @@ async function getAll(filters = {}) {
     where.createdAt = {};
 
     if (from) {
-      where.createdAt.gte = new Date(from);
+      where.createdAt.gte = from;
     }
 
     if (to) {
-      where.createdAt.lte = new Date(to);
+      where.createdAt.lte = to;
     }
+  }
+
+  if (actorId) {
+    where.actorId = actorId;
   }
 
   if (entityType) {
@@ -118,17 +116,48 @@ async function getAll(filters = {}) {
     where.action = action;
   }
 
-  return prisma.auditLog.findMany({
-    where,
-    orderBy: {
-      createdAt: "desc"
-    },
-    take: 100
+  const skip = (page - 1) * limit;
+
+  const [items, total] = await prisma.$transaction([
+    prisma.auditLog.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc"
+      },
+      skip,
+      take: limit
+    }),
+    prisma.auditLog.count({
+      where
+    })
+  ]);
+
+  return {
+    items,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
+}
+
+async function getById(id) {
+  const auditLog = await prisma.auditLog.findUnique({
+    where: { id }
   });
+
+  if (!auditLog) {
+    throw new AppError("Audit log not found", HTTP_STATUS.NOT_FOUND, "AUDIT_LOG_NOT_FOUND");
+  }
+
+  return auditLog;
 }
 
 module.exports = {
   createLog,
   getAll,
+  getById,
   prepareSnapshot
 };

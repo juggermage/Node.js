@@ -2,7 +2,7 @@ const service = require("./staff-assignments.service");
 const HTTP_STATUS = require("../../utils/http-status");
 
 async function getAll(req, res) {
-  const data = await service.getAll();
+  const data = await service.getAll(req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -11,7 +11,7 @@ async function getAll(req, res) {
 }
 
 async function create(req, res) {
-  const data = await service.create(res.locals.validated.body);
+  const data = await service.create(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -20,7 +20,7 @@ async function create(req, res) {
 }
 
 async function complete(req, res) {
-  const data = await service.complete(res.locals.validated.params.id);
+  const data = await service.complete(res.locals.validated.params.id, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -29,7 +29,7 @@ async function complete(req, res) {
 }
 
 async function getGroupAssignments(req, res) {
-  const data = await service.getGroupAssignments(res.locals.validated.params.groupId);
+  const data = await service.getGroupAssignments(res.locals.validated.params.groupId, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -38,7 +38,10 @@ async function getGroupAssignments(req, res) {
 }
 
 async function getEmployeeAssignments(req, res) {
-  const data = await service.getEmployeeAssignments(res.locals.validated.params.employeeId);
+  const data = await service.getEmployeeAssignments(
+    res.locals.validated.params.employeeId,
+    req.user
+  );
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,

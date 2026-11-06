@@ -58,17 +58,12 @@ const updateGroupSchema = ageRangeSchema(
 );
 
 const queryGroupsSchema = Joi.object({
-  search: Joi.string().trim().allow(""),
+  search: Joi.string().trim().max(100).allow(""),
   status: Joi.string().valid("ACTIVE", "INACTIVE", "ARCHIVED")
 });
 
 const enrollChildSchema = Joi.object({
   childId: objectIdSchema.required()
-});
-
-const transferChildSchema = Joi.object({
-  childId: objectIdSchema.required(),
-  toGroupId: objectIdSchema.required()
 });
 
 module.exports = {
@@ -78,6 +73,5 @@ module.exports = {
   createGroupSchema,
   updateGroupSchema,
   queryGroupsSchema,
-  enrollChildSchema,
-  transferChildSchema
+  enrollChildSchema
 };

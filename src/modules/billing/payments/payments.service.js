@@ -7,42 +7,86 @@ function fail(message, status, code) {
   throw new AppError(message, status, code);
 }
 
+function forbid() {
+  fail("You do not have permission to access this payment", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
+}
+
+async function getParentId(user) {
+  const parent = await prisma.parent.findUnique({
+    where: {
+      userId: user.id
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (!parent) {
+    fail("Parent profile not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
+  }
+
+  return parent.id;
+}
+
 async function serializePayment(payment) {
   const allocations = await Promise.all(
     (payment.allocations || []).map(async (allocation) => {
-      const serialized = { ...allocation, amount: Number(allocation.amount) };
+      const serialized = {
+        ...allocation,
+        amount: Number(allocation.amount)
+      };
 
       if (allocation.invoice) {
         const [currentInvoice, invoiceAllocations] = await Promise.all([
-          prisma.invoice.findUnique({ where: { id: allocation.invoiceId } }),
+          prisma.invoice.findUnique({
+            where: {
+              id: allocation.invoiceId
+            }
+          }),
           prisma.paymentAllocation.findMany({
             where: {
               invoiceId: allocation.invoiceId,
-              payment: { status: "COMPLETED" }
+              payment: {
+                status: "COMPLETED"
+              }
             },
-            select: { amount: true }
+            select: {
+              amount: true
+            }
           })
         ]);
-        const paidAmount = invoiceAllocations.reduce((sum, item) => sum + item.amount, 0n);
-        const amountDue = currentInvoice.amountDue;
 
-        serialized.invoice = {
-          ...currentInvoice,
-          amountDue: Number(amountDue),
-          paidAmount: Number(paidAmount),
-          outstandingBalance: Number(amountDue - paidAmount)
-        };
+        if (currentInvoice) {
+          const paidAmount = invoiceAllocations.reduce((sum, item) => sum + item.amount, 0n);
+
+          const amountDue = currentInvoice.amountDue;
+
+          serialized.invoice = {
+            ...currentInvoice,
+            amountDue: Number(amountDue),
+            paidAmount: Number(paidAmount),
+            outstandingBalance: Number(amountDue - paidAmount)
+          };
+        }
       }
 
       return serialized;
     })
   );
 
-  return { ...payment, amount: Number(payment.amount), allocations };
+  return {
+    ...payment,
+    amount: Number(payment.amount),
+    allocations
+  };
 }
 
 async function calculateInvoiceBalance(tx, invoiceId) {
-  const invoice = await tx.invoice.findUnique({ where: { id: invoiceId } });
+  const invoice = await tx.invoice.findUnique({
+    where: {
+      id: invoiceId
+    }
+  });
 
   if (!invoice) {
     fail("Invoice not found", HTTP_STATUS.NOT_FOUND, "INVOICE_NOT_FOUND");
@@ -51,23 +95,36 @@ async function calculateInvoiceBalance(tx, invoiceId) {
   const allocations = await tx.paymentAllocation.findMany({
     where: {
       invoiceId,
-      payment: { status: "COMPLETED" }
+      payment: {
+        status: "COMPLETED"
+      }
     },
-    select: { amount: true }
+    select: {
+      amount: true
+    }
   });
 
   const paidAmount = allocations.reduce((sum, item) => sum + item.amount, 0n);
+
   const amountDue = invoice.amountDue;
   const balance = amountDue - paidAmount;
 
-  return { invoice, paidAmount, balance };
+  return {
+    invoice,
+    paidAmount,
+    balance
+  };
 }
 
 async function updateInvoiceStatus(tx, invoiceId) {
   const { invoice, paidAmount, balance } = await calculateInvoiceBalance(tx, invoiceId);
 
   if (invoice.status === "DRAFT" || invoice.status === "CANCELLED") {
-    return { invoice, paidAmount, balance };
+    return {
+      invoice,
+      paidAmount,
+      balance
+    };
   }
 
   let status = "ISSUED";
@@ -79,18 +136,78 @@ async function updateInvoiceStatus(tx, invoiceId) {
   }
 
   const updatedInvoice = await tx.invoice.update({
-    where: { id: invoiceId },
-    data: { status }
+    where: {
+      id: invoiceId
+    },
+    data: {
+      status
+    }
   });
 
-  return { invoice: updatedInvoice, paidAmount, balance };
+  return {
+    invoice: updatedInvoice,
+    paidAmount,
+    balance
+  };
 }
 
-async function create(data) {
+async function create(data, user) {
   try {
     const payment = await prisma.$transaction(async (tx) => {
+      if (!Array.isArray(data.allocations) || data.allocations.length === 0) {
+        fail(
+          "At least one invoice allocation is required",
+          HTTP_STATUS.UNPROCESSABLE_ENTITY,
+          "INVALID_ALLOCATIONS"
+        );
+      }
+
+      const paymentAmount = BigInt(data.amount);
+
+      if (paymentAmount <= 0n) {
+        fail(
+          "Payment amount must be positive",
+          HTTP_STATUS.UNPROCESSABLE_ENTITY,
+          "INVALID_PAYMENT_AMOUNT"
+        );
+      }
+
+      const allocationTotal = data.allocations.reduce((sum, item) => {
+        const amount = BigInt(item.amount);
+
+        if (amount <= 0n) {
+          fail(
+            "Allocation amount must be positive",
+            HTTP_STATUS.UNPROCESSABLE_ENTITY,
+            "INVALID_ALLOCATION_AMOUNT"
+          );
+        }
+
+        return sum + amount;
+      }, 0n);
+
+      if (allocationTotal !== paymentAmount) {
+        fail(
+          "The sum of allocations must equal the payment amount",
+          HTTP_STATUS.UNPROCESSABLE_ENTITY,
+          "ALLOCATION_TOTAL_MISMATCH"
+        );
+      }
+
+      const invoiceIds = data.allocations.map((item) => item.invoiceId);
+
+      if (new Set(invoiceIds).size !== invoiceIds.length) {
+        fail(
+          "Each invoice can only be allocated once per payment",
+          HTTP_STATUS.UNPROCESSABLE_ENTITY,
+          "DUPLICATE_INVOICE_ALLOCATION"
+        );
+      }
+
       const existingPayment = await tx.payment.findUnique({
-        where: { idempotencyKey: data.idempotencyKey }
+        where: {
+          idempotencyKey: data.idempotencyKey
+        }
       });
 
       if (existingPayment) {
@@ -101,14 +218,31 @@ async function create(data) {
         );
       }
 
-      const payer = await tx.parent.findUnique({ where: { id: data.payerId } });
+      const payer = await tx.parent.findUnique({
+        where: {
+          id: data.payerId
+        }
+      });
 
       if (!payer) {
         fail("Payer not found", HTTP_STATUS.NOT_FOUND, "PAYER_NOT_FOUND");
       }
 
-      const invoiceIds = data.allocations.map((item) => item.invoiceId);
-      const invoices = await tx.invoice.findMany({ where: { id: { in: invoiceIds } } });
+      if (user.role === "PARENT" && payer.userId !== user.id) {
+        forbid();
+      }
+
+      if (payer.status !== "ACTIVE") {
+        fail("Payer is not active", HTTP_STATUS.UNPROCESSABLE_ENTITY, "PAYER_NOT_ACTIVE");
+      }
+
+      const invoices = await tx.invoice.findMany({
+        where: {
+          id: {
+            in: invoiceIds
+          }
+        }
+      });
 
       if (invoices.length !== invoiceIds.length) {
         fail("One or more invoices were not found", HTTP_STATUS.NOT_FOUND, "INVOICE_NOT_FOUND");
@@ -150,7 +284,7 @@ async function create(data) {
         data: {
           payerId: data.payerId,
           idempotencyKey: data.idempotencyKey,
-          amount: BigInt(data.amount),
+          amount: paymentAmount,
           method: data.method,
           status: "COMPLETED",
           paidAt: data.paidAt ? new Date(data.paidAt) : new Date(),
@@ -162,7 +296,11 @@ async function create(data) {
           }
         },
         include: {
-          allocations: { include: { invoice: true } }
+          allocations: {
+            include: {
+              invoice: true
+            }
+          }
         }
       });
 
@@ -172,6 +310,7 @@ async function create(data) {
 
       await auditService.createLog(
         {
+          actorId: user.id,
           action: "PAYMENT",
           entityType: "Payment",
           entityId: createdPayment.id,
@@ -208,44 +347,83 @@ async function create(data) {
   }
 }
 
-async function getAll(filters = {}) {
+async function getAll(filters = {}, user) {
   const where = {};
 
-  if (filters.payerId) where.payerId = filters.payerId;
-  if (filters.status) where.status = filters.status;
+  if (user.role === "PARENT") {
+    where.payerId = await getParentId(user);
+  } else if (filters.payerId) {
+    where.payerId = filters.payerId;
+  }
+
+  if (filters.status) {
+    where.status = filters.status;
+  }
+
   if (filters.from || filters.to) {
     where.paidAt = {};
-    if (filters.from) where.paidAt.gte = new Date(filters.from);
-    if (filters.to) where.paidAt.lte = new Date(filters.to);
+
+    if (filters.from) {
+      where.paidAt.gte = new Date(filters.from);
+    }
+
+    if (filters.to) {
+      where.paidAt.lte = new Date(filters.to);
+    }
   }
 
   const payments = await prisma.payment.findMany({
     where,
-    include: { allocations: { include: { invoice: true } } },
-    orderBy: { createdAt: "desc" }
+    include: {
+      allocations: {
+        include: {
+          invoice: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: "desc"
+    }
   });
 
   return Promise.all(payments.map(serializePayment));
 }
 
-async function getById(id) {
+async function getById(id, user) {
   const payment = await prisma.payment.findUnique({
-    where: { id },
-    include: { allocations: { include: { invoice: true } }, payer: true }
+    where: {
+      id
+    },
+    include: {
+      allocations: {
+        include: {
+          invoice: true
+        }
+      },
+      payer: true
+    }
   });
 
   if (!payment) {
     fail("Payment not found", HTTP_STATUS.NOT_FOUND, "PAYMENT_NOT_FOUND");
   }
 
+  if (user.role === "PARENT" && payment.payer.userId !== user.id) {
+    forbid();
+  }
+
   return serializePayment(payment);
 }
 
-async function cancel(id) {
+async function cancel(id, user) {
   const payment = await prisma.$transaction(async (tx) => {
     const existingPayment = await tx.payment.findUnique({
-      where: { id },
-      include: { allocations: true }
+      where: {
+        id
+      },
+      include: {
+        allocations: true
+      }
     });
 
     if (!existingPayment) {
@@ -265,9 +443,19 @@ async function cancel(id) {
     }
 
     const updatedPayment = await tx.payment.update({
-      where: { id },
-      data: { status: "CANCELLED" },
-      include: { allocations: { include: { invoice: true } } }
+      where: {
+        id
+      },
+      data: {
+        status: "CANCELLED"
+      },
+      include: {
+        allocations: {
+          include: {
+            invoice: true
+          }
+        }
+      }
     });
 
     const invoiceIds = [...new Set(existingPayment.allocations.map((item) => item.invoiceId))];
@@ -278,6 +466,7 @@ async function cancel(id) {
 
     await auditService.createLog(
       {
+        actorId: user.id,
         action: "CANCEL",
         entityType: "Payment",
         entityId: updatedPayment.id,
@@ -297,4 +486,9 @@ async function cancel(id) {
   return serializePayment(payment);
 }
 
-module.exports = { create, getAll, getById, cancel };
+module.exports = {
+  create,
+  getAll,
+  getById,
+  cancel
+};
