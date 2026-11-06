@@ -11,7 +11,8 @@ const {
   updateScheduleSchema,
   createItemSchema,
   updateItemSchema,
-  cancelItemSchema
+  cancelItemSchema,
+  generateScheduleSchema
 } = require("./schedules.validation");
 
 const router = express.Router();
@@ -19,6 +20,8 @@ const router = express.Router();
 router.get("/", validate(listSchedulesSchema, "query"), schedulesController.getAll);
 
 router.post("/", validate(createScheduleSchema), schedulesController.create);
+
+router.post("/generate", validate(generateScheduleSchema), schedulesController.generate);
 
 router.get("/:id", validate(scheduleIdSchema, "params"), schedulesController.getById);
 
