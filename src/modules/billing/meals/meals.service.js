@@ -109,16 +109,20 @@ function serializeRate(rate) {
   };
 }
 
-async function getAllRates({ ageYears, onDate } = {}) {
-  if (ageYears !== undefined) {
-    checkAge(ageYears);
+async function getAllRates({ ageYears, category, onDate } = {}) {
+  if (ageYears !== undefined) checkAge(ageYears);
+  if (category !== undefined && !["A2", "A3", "A4", "A5"].includes(category)) {
+    throw new AppError(
+      "Invalid meal category",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "INVALID_MEAL_CATEGORY"
+    );
   }
 
   const where = {};
 
-  if (ageYears !== undefined) {
-    where.ageYears = ageYears;
-  }
+  if (category !== undefined) where.category = category;
+  else if (ageYears !== undefined) where.ageYears = ageYears;
 
   if (onDate) {
     const date = parseDay(onDate);
@@ -156,8 +160,23 @@ async function getApplicableRate(ageYears, onDate) {
   return rate;
 }
 
-async function createRate({ ageYears, amount, validFrom, validTo = null }, user) {
-  checkAge(ageYears);
+async function createRate({ ageYears, category, amount, validFrom, validTo = null }, user) {
+  if (category !== undefined && !["A2", "A3", "A4", "A5"].includes(category)) {
+    throw new AppError(
+      "Invalid meal category",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "INVALID_MEAL_CATEGORY"
+    );
+  }
+  if (category === undefined) checkAge(ageYears);
+  if (category === undefined && ageYears === undefined) {
+    throw new AppError(
+      "Meal category is required",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "INVALID_MEAL_CATEGORY"
+    );
+  }
+  const rateKey = category ? { category } : { ageYears };
 
   if (!Number.isSafeInteger(amount) || amount <= 0) {
     throw new AppError("Invalid meal rate", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_MEAL_RATE");
@@ -172,7 +191,7 @@ async function createRate({ ageYears, amount, validFrom, validTo = null }, user)
 
   const overlap = await prisma.mealRate.findFirst({
     where: {
-      ageYears,
+      ...rateKey,
       validFrom: {
         lte: to || new Date("9999-12-31T00:00:00.000Z")
       },
@@ -187,7 +206,8 @@ async function createRate({ ageYears, amount, validFrom, validTo = null }, user)
   return prisma.$transaction(async (tx) => {
     const rate = await tx.mealRate.create({
       data: {
-        ageYears,
+        ...(ageYears !== undefined && { ageYears }),
+        ...(category !== undefined && { category }),
         amount: BigInt(amount),
         validFrom: from,
         validTo: to
@@ -268,80 +288,85 @@ async function calculateMealCost({ childId, periodStart, periodEnd, ageYears }, 
 
   await ensureChildAccess(childId, from, to, user);
 
-  const actualAgeAtStart = calculateAge(child.birthDate, from);
-
-  if (ageYears !== undefined && ageYears !== actualAgeAtStart) {
-    throw new AppError(
-      "Age category does not match child",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "AGE_CATEGORY_MISMATCH"
-    );
-  }
-
   const attendanceRecords = await prisma.attendance.findMany({
+    where: { childId, date: { gte: from, lte: to }, status: { in: ["PRESENT", "LATE"] } },
+    select: { date: true },
+    orderBy: { date: "asc" }
+  });
+
+  const enrollments = await prisma.groupEnrollment.findMany({
     where: {
       childId,
-      date: {
-        gte: from,
-        lte: to
-      },
-      status: {
-        in: ["PRESENT", "LATE"]
-      }
+      startDate: { lte: to },
+      OR: [{ endDate: { isSet: false } }, { endDate: { gte: from } }]
     },
-    select: {
-      date: true
-    },
-    orderBy: {
-      date: "asc"
-    }
+    include: { group: { select: { id: true, name: true, mealCategory: true } } },
+    orderBy: { startDate: "asc" }
   });
 
   const rates = await prisma.mealRate.findMany({
     where: {
-      validFrom: {
-        lte: to
-      },
+      validFrom: { lte: to },
       OR: [{ validTo: null }, { validTo: { gte: from } }]
     },
-    orderBy: {
-      validFrom: "desc"
-    }
+    orderBy: { validFrom: "desc" }
   });
 
   const breakdown = new Map();
 
   for (const attendance of attendanceRecords) {
     const attendanceDate = parseDay(attendance.date);
-    const currentAge = calculateAge(child.birthDate, attendanceDate);
+    const enrollment = enrollments.find((item) => {
+      const startDate = parseDay(item.startDate);
+      const endDate = item.endDate ? parseDay(item.endDate) : null;
+      return startDate <= attendanceDate && (!endDate || endDate >= attendanceDate);
+    });
 
-    checkAge(currentAge);
+    if (!enrollment || !enrollment.group?.mealCategory) {
+      throw new AppError(
+        `Meal category is not configured for the child's group on ${attendanceDate.toISOString().slice(0, 10)}`,
+        HTTP_STATUS.UNPROCESSABLE_ENTITY,
+        "MEAL_CATEGORY_NOT_CONFIGURED"
+      );
+    }
+
+    const category = enrollment.group.mealCategory;
+    const categoryAge = Number(category.slice(1));
+    if (ageYears !== undefined && ageYears !== categoryAge) {
+      throw new AppError(
+        "Age category is determined by the child's group and does not match the requested value",
+        HTTP_STATUS.UNPROCESSABLE_ENTITY,
+        "MEAL_CATEGORY_MISMATCH"
+      );
+    }
 
     const rate = rates.find((item) => {
       const validFrom = parseDay(item.validFrom);
       const validTo = item.validTo ? parseDay(item.validTo) : null;
-
+      const matchesCategory = item.category
+        ? item.category === category
+        : item.ageYears === categoryAge;
       return (
-        item.ageYears === currentAge &&
-        validFrom <= attendanceDate &&
-        (!validTo || validTo >= attendanceDate)
+        matchesCategory && validFrom <= attendanceDate && (!validTo || validTo >= attendanceDate)
       );
     });
 
     if (!rate) {
       throw new AppError(
-        `Meal rate not found for ${attendanceDate.toISOString().slice(0, 10)}`,
+        `Meal rate ${category} not found for ${attendanceDate.toISOString().slice(0, 10)}`,
         HTTP_STATUS.NOT_FOUND,
         "MEAL_RATE_NOT_FOUND"
       );
     }
 
-    const key = `${rate.id}:${currentAge}`;
-
+    const key = `${enrollment.groupId}:${rate.id}`;
     if (!breakdown.has(key)) {
       breakdown.set(key, {
+        groupId: enrollment.groupId,
+        groupName: enrollment.group.name,
+        category,
         rateId: rate.id,
-        ageYears: currentAge,
+        ageYears: categoryAge,
         dailyRate: BigInt(rate.amount),
         attendedDays: 0,
         amount: 0n,
@@ -351,7 +376,6 @@ async function calculateMealCost({ childId, periodStart, periodEnd, ageYears }, 
     }
 
     const item = breakdown.get(key);
-
     item.attendedDays += 1;
     item.amount += BigInt(rate.amount);
   }
@@ -361,23 +385,19 @@ async function calculateMealCost({ childId, periodStart, periodEnd, ageYears }, 
     dailyRate: item.dailyRate.toString(),
     amount: item.amount.toString()
   }));
-
   const total = rateBreakdown.reduce((sum, item) => sum + BigInt(item.amount), 0n);
-
-  const attendedDays = attendanceRecords.length;
-
-  const singleRate = rateBreakdown.length === 1 ? rateBreakdown[0] : null;
 
   return {
     childId,
     periodStart: from.toISOString().slice(0, 10),
     periodEnd: to.toISOString().slice(0, 10),
-    attendedDays,
-    dailyRate: singleRate ? singleRate.dailyRate : null,
-    rateId: singleRate ? singleRate.rateId : null,
+    attendedDays: attendanceRecords.length,
+    dailyRate: rateBreakdown.length === 1 ? rateBreakdown[0].dailyRate : null,
+    rateId: rateBreakdown.length === 1 ? rateBreakdown[0].rateId : null,
     rateBreakdown,
     total: total.toString(),
-    currency: "UAH"
+    currency: "UAH",
+    analyticsExpenseCategory: "FOOD"
   };
 }
 

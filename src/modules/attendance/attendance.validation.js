@@ -51,7 +51,8 @@ const createAttendanceSchema = Joi.object({
   status: attendanceStatusSchema.default("PRESENT"),
   checkIn: timeSchema.allow(null),
   checkOut: timeSchema.allow(null),
-  note: Joi.string().trim().max(1000).allow("", null)
+  note: Joi.string().trim().max(1000).allow("", null),
+  absenceReason: Joi.string().trim().max(500).allow("", null)
 })
   .custom((value, helpers) => {
     if (value.checkIn && value.checkOut && value.checkOut <= value.checkIn) {
@@ -69,7 +70,8 @@ const updateAttendanceSchema = Joi.object({
   status: attendanceStatusSchema,
   checkIn: timeSchema.allow(null),
   checkOut: timeSchema.allow(null),
-  note: Joi.string().trim().max(1000).allow("", null)
+  note: Joi.string().trim().max(1000).allow("", null),
+  absenceReason: Joi.string().trim().max(500).allow("", null)
 })
   .min(1)
   .custom((value, helpers) => {

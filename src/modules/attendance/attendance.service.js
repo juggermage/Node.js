@@ -179,7 +179,8 @@ function buildAttendanceData(data, date) {
     ...(data.checkOut !== undefined && {
       checkOut: toTimeDate(data.checkOut, date)
     }),
-    ...(data.note !== undefined && { note: data.note })
+    ...(data.note !== undefined && { note: data.note }),
+    ...(data.absenceReason !== undefined && { absenceReason: data.absenceReason })
   };
 }
 
@@ -347,49 +348,61 @@ async function create(data, user) {
     );
   }
 
-  return prisma.$transaction(async (tx) => {
-    const record = await tx.attendance.create({
-      data: {
-        childId: data.childId,
-        date,
-        status: data.status,
-        checkIn,
-        checkOut,
-        note: data.note ?? null,
-        recordedById: context.employeeId
-      },
-      include: {
-        child: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            childCode: true
-          }
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const record = await tx.attendance.create({
+        data: {
+          childId: data.childId,
+          date,
+          status: data.status,
+          checkIn,
+          checkOut,
+          note: data.note ?? null,
+          absenceReason: data.absenceReason ?? null,
+          recordedById: context.employeeId
         },
-        recordedBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true
+        include: {
+          child: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              childCode: true
+            }
+          },
+          recordedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true
+            }
           }
         }
-      }
+      });
+
+      await auditService.createLog(
+        {
+          actorId: user.id,
+          action: "CREATE",
+          entityType: "Attendance",
+          entityId: record.id,
+          after: record
+        },
+        tx
+      );
+
+      return formatAttendance(record);
     });
-
-    await auditService.createLog(
-      {
-        actorId: user.id,
-        action: "CREATE",
-        entityType: "Attendance",
-        entityId: record.id,
-        after: record
-      },
-      tx
-    );
-
-    return formatAttendance(record);
-  });
+  } catch (error) {
+    if (error.code === "P2002") {
+      fail(
+        "Attendance record already exists for this child and date",
+        HTTP_STATUS.CONFLICT,
+        "ATTENDANCE_ALREADY_EXISTS"
+      );
+    }
+    throw error;
+  }
 }
 
 async function update(id, data, user) {
@@ -409,6 +422,20 @@ async function update(id, data, user) {
     const date = data.date ? toDate(data.date) : before.date;
 
     await ensureChildAccess(before.childId, date.toISOString().slice(0, 10), context);
+
+    if (data.date) {
+      const duplicate = await tx.attendance.findFirst({
+        where: { childId: before.childId, date, id: { not: id } },
+        select: { id: true }
+      });
+      if (duplicate) {
+        fail(
+          "Attendance record already exists for this child and date",
+          HTTP_STATUS.CONFLICT,
+          "ATTENDANCE_ALREADY_EXISTS"
+        );
+      }
+    }
 
     const checkIn =
       data.checkIn !== undefined
