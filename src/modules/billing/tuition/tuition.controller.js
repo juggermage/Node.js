@@ -11,7 +11,7 @@ async function getRates(req, res) {
 }
 
 async function createRate(req, res) {
-  const data = await service.createRate(res.locals.validated.body);
+  const data = await service.createRate(res.locals.validated.body, req.user.id);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,

@@ -45,7 +45,7 @@ function serializeAmount(value) {
 async function getSummary({ from, to }) {
   const { start, endExclusive } = getPeriod(from, to);
 
-  const [invoices, payments, salaries, expenses] = await Promise.all([
+  const [invoices, payments, salaries, expenses, attendanceRecords] = await Promise.all([
     prisma.invoice.findMany({
       where: {
         issuedAt: {
@@ -110,6 +110,18 @@ async function getSummary({ from, to }) {
         expenseDate: true,
         category: true
       }
+    }),
+
+    prisma.attendance.findMany({
+      where: {
+        date: {
+          gte: start,
+          lt: endExclusive
+        }
+      },
+      select: {
+        status: true
+      }
     })
   ]);
 
@@ -140,6 +152,31 @@ async function getSummary({ from, to }) {
       (expensesByCategory[expense.category] || 0n) + expense.amount;
   }
 
+  const attendanceStats = {
+    total: attendanceRecords.length,
+    present: 0,
+    absent: 0,
+    late: 0,
+    excused: 0
+  };
+
+  for (const record of attendanceRecords) {
+    switch (record.status) {
+      case "PRESENT":
+        attendanceStats.present++;
+        break;
+      case "ABSENT":
+        attendanceStats.absent++;
+        break;
+      case "LATE":
+        attendanceStats.late++;
+        break;
+      case "EXCUSED":
+        attendanceStats.excused++;
+        break;
+    }
+  }
+
   return {
     period: {
       from,
@@ -165,6 +202,7 @@ async function getSummary({ from, to }) {
         ])
       )
     },
+    attendance: attendanceStats,
     operatingProfit: serializeAmount(operatingProfit),
     currency: "UAH"
   };
@@ -178,7 +216,10 @@ function getInvoicePeriod(invoice) {
       ? new Date(Date.UTC(invoice.periodYear + 1, invoice.periodMonth - 1, 0))
       : new Date(Date.UTC(invoice.periodYear, invoice.periodMonth, 0));
 
-  return { start, end };
+  return {
+    start,
+    end
+  };
 }
 
 async function getGroupReport({ from, to }) {
@@ -287,7 +328,111 @@ async function getGroupReport({ from, to }) {
   };
 }
 
+async function getAttendanceReport({ from, to, groupId }) {
+  const { start, endExclusive } = getPeriod(from, to);
+
+  const attendanceRecords = await prisma.attendance.findMany({
+    where: {
+      date: {
+        gte: start,
+        lt: endExclusive
+      }
+    },
+    include: {
+      child: {
+        include: {
+          enrollments: {
+            include: {
+              group: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            },
+            orderBy: {
+              startDate: "desc"
+            }
+          }
+        }
+      }
+    },
+    orderBy: {
+      date: "asc"
+    }
+  });
+
+  const groups = new Map();
+
+  const summary = {
+    total: 0,
+    present: 0,
+    absent: 0,
+    late: 0,
+    excused: 0
+  };
+
+  for (const record of attendanceRecords) {
+    const enrollment = record.child.enrollments.find((item) => {
+      return item.startDate <= record.date && (!item.endDate || item.endDate >= record.date);
+    });
+
+    const currentGroupId = enrollment?.group?.id || "WITHOUT_GROUP";
+    const currentGroupName = enrollment?.group?.name || "Без групи";
+
+    if (groupId && currentGroupId !== groupId) {
+      continue;
+    }
+
+    if (!groups.has(currentGroupId)) {
+      groups.set(currentGroupId, {
+        groupId: currentGroupId,
+        groupName: currentGroupName,
+        total: 0,
+        present: 0,
+        absent: 0,
+        late: 0,
+        excused: 0
+      });
+    }
+
+    const group = groups.get(currentGroupId);
+
+    summary.total++;
+    group.total++;
+
+    switch (record.status) {
+      case "PRESENT":
+        summary.present++;
+        group.present++;
+        break;
+      case "ABSENT":
+        summary.absent++;
+        group.absent++;
+        break;
+      case "LATE":
+        summary.late++;
+        group.late++;
+        break;
+      case "EXCUSED":
+        summary.excused++;
+        group.excused++;
+        break;
+    }
+  }
+
+  return {
+    period: {
+      from,
+      to
+    },
+    summary,
+    groups: [...groups.values()]
+  };
+}
+
 module.exports = {
   getSummary,
-  getGroupReport
+  getGroupReport,
+  getAttendanceReport
 };

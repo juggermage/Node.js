@@ -1,0 +1,16 @@
+info:
+  name: Cancel Payment
+  type: http
+  seq: 8
+
+http:
+  method: PATCH
+  url: http://localhost:3000/api/v1/billing/payments/6ae7464e788588473266aa55/cancel
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
