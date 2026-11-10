@@ -33,7 +33,9 @@ const createExpenseSchema = Joi.object({
     "number.unsafe": "amount is too large"
   }),
 
-  expenseDate: dateSchema.required()
+  expenseDate: dateSchema.required(),
+
+  groupId: Joi.string().hex().length(24).optional().allow(null)
 });
 
 const expenseIdSchema = Joi.object({
@@ -44,6 +46,7 @@ const expenseIdSchema = Joi.object({
 
 const listExpensesSchema = Joi.object({
   category: Joi.string().valid(...CATEGORIES),
+  groupId: Joi.string().hex().length(24),
   from: dateSchema,
   to: dateSchema
 }).custom((value, helpers) => {
