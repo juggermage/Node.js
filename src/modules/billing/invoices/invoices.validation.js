@@ -43,9 +43,20 @@ const invoiceIdSchema = Joi.object({
   id: objectId.required()
 });
 
+const adjustmentIdSchema = Joi.object({
+  adjustmentId: objectId.required()
+});
+
+const createInvoiceAdjustmentSchema = Joi.object({
+  reason: Joi.string().trim().min(5).max(1000).required(),
+  adjustedAmount: Joi.number().integer().min(0).max(Number.MAX_SAFE_INTEGER).required()
+});
+
 module.exports = {
   createMonthlyInvoiceSchema,
   createAnnualInvoiceSchema,
   invoiceQuerySchema,
-  invoiceIdSchema
+  invoiceIdSchema,
+  adjustmentIdSchema,
+  createInvoiceAdjustmentSchema
 };

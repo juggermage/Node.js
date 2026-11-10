@@ -1,4 +1,5 @@
 const service = require("./invoices.service");
+const adjustmentsService = require("./invoice-adjustments.service");
 const HTTP_STATUS = require("../../../utils/http-status");
 
 async function createMonthly(req, res) {
@@ -46,10 +47,35 @@ async function cancel(req, res) {
   });
 }
 
+async function createAdjustment(req, res) {
+  const data = await adjustmentsService.create(
+    res.locals.validated.params.id,
+    res.locals.validated.body,
+    req.user.id
+  );
+  return res.status(HTTP_STATUS.CREATED).json({ success: true, data });
+}
+
+async function getAdjustmentHistory(req, res) {
+  const data = await adjustmentsService.getHistory(res.locals.validated.params.id, req.user);
+  return res.status(HTTP_STATUS.OK).json({ success: true, data });
+}
+
+async function cancelAdjustment(req, res) {
+  const data = await adjustmentsService.cancel(
+    res.locals.validated.params.adjustmentId,
+    req.user.id
+  );
+  return res.status(HTTP_STATUS.OK).json({ success: true, data });
+}
+
 module.exports = {
   createMonthly,
   createAnnual,
   getAll,
   getById,
-  cancel
+  cancel,
+  createAdjustment,
+  getAdjustmentHistory,
+  cancelAdjustment
 };

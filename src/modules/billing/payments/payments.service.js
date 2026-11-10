@@ -2,6 +2,7 @@ const prisma = require("../../../config/prisma");
 const AppError = require("../../../utils/app-error");
 const HTTP_STATUS = require("../../../utils/http-status");
 const auditService = require("../../audit/audit.service");
+const creditService = require("../credit-balance.service");
 
 function fail(message, status, code) {
   throw new AppError(message, status, code);
@@ -37,35 +38,17 @@ async function serializePayment(payment) {
       };
 
       if (allocation.invoice) {
-        const [currentInvoice, invoiceAllocations] = await Promise.all([
-          prisma.invoice.findUnique({
-            where: {
-              id: allocation.invoiceId
-            }
-          }),
-          prisma.paymentAllocation.findMany({
-            where: {
-              invoiceId: allocation.invoiceId,
-              payment: {
-                status: "COMPLETED"
-              }
-            },
-            select: {
-              amount: true
-            }
-          })
-        ]);
+        const currentInvoice = await prisma.invoice.findUnique({
+          where: { id: allocation.invoiceId }
+        });
 
         if (currentInvoice) {
-          const paidAmount = invoiceAllocations.reduce((sum, item) => sum + item.amount, 0n);
-
-          const amountDue = currentInvoice.amountDue;
-
+          const balance = await calculateInvoiceBalance(prisma, allocation.invoiceId);
           serialized.invoice = {
             ...currentInvoice,
-            amountDue: Number(amountDue),
-            paidAmount: Number(paidAmount),
-            outstandingBalance: Number(amountDue - paidAmount)
+            amountDue: balance.amountDue.toString(),
+            paidAmount: balance.paidAmount.toString(),
+            outstandingBalance: balance.balance.toString()
           };
         }
       }
@@ -82,42 +65,36 @@ async function serializePayment(payment) {
 }
 
 async function calculateInvoiceBalance(tx, invoiceId) {
-  const invoice = await tx.invoice.findUnique({
-    where: {
-      id: invoiceId
-    }
-  });
-
-  if (!invoice) {
-    fail("Invoice not found", HTTP_STATUS.NOT_FOUND, "INVOICE_NOT_FOUND");
-  }
+  const invoice = await tx.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice) fail("Invoice not found", HTTP_STATUS.NOT_FOUND, "INVOICE_NOT_FOUND");
 
   const allocations = await tx.paymentAllocation.findMany({
-    where: {
-      invoiceId,
-      payment: {
-        status: "COMPLETED"
-      }
-    },
-    select: {
-      amount: true
-    }
+    where: { invoiceId, payment: { status: "COMPLETED" } },
+    select: { amount: true }
   });
+  const cashPaid = allocations.reduce((sum, item) => sum + item.amount, 0n);
+  const amountDue = tx.invoiceAdjustment
+    ? await creditService.getEffectiveInvoiceAmount(tx, invoice)
+    : invoice.amountDue;
+  const creditPaid = tx.creditBalanceTransaction
+    ? await creditService.getInvoiceCreditPaidAmount(tx, invoiceId)
+    : 0n;
+  const adjustmentCredits = tx.creditBalanceTransaction
+    ? await tx.creditBalanceTransaction.findMany({
+        where: { invoiceId, type: { in: ["ADJUSTMENT_CREDIT", "REVERSAL"] } },
+        select: { amountDelta: true }
+      })
+    : [];
+  const issuedCredit = adjustmentCredits.reduce((sum, item) => sum + item.amountDelta, 0n);
+  const effectiveCashPaid = cashPaid - issuedCredit > 0n ? cashPaid - issuedCredit : 0n;
+  const paidAmount = effectiveCashPaid + creditPaid;
+  const balance = amountDue > paidAmount ? amountDue - paidAmount : 0n;
 
-  const paidAmount = allocations.reduce((sum, item) => sum + item.amount, 0n);
-
-  const amountDue = invoice.amountDue;
-  const balance = amountDue - paidAmount;
-
-  return {
-    invoice,
-    paidAmount,
-    balance
-  };
+  return { invoice, paidAmount, balance, amountDue };
 }
 
 async function updateInvoiceStatus(tx, invoiceId) {
-  const { invoice, paidAmount, balance } = await calculateInvoiceBalance(tx, invoiceId);
+  const { invoice, paidAmount, balance, amountDue } = await calculateInvoiceBalance(tx, invoiceId);
 
   if (invoice.status === "DRAFT" || invoice.status === "CANCELLED") {
     return {
@@ -129,7 +106,7 @@ async function updateInvoiceStatus(tx, invoiceId) {
 
   let status = "ISSUED";
 
-  if (paidAmount >= invoice.amountDue) {
+  if (paidAmount >= amountDue) {
     status = "PAID";
   } else if (paidAmount > 0n) {
     status = "PARTIALLY_PAID";
@@ -186,11 +163,11 @@ async function create(data, user) {
         return sum + amount;
       }, 0n);
 
-      if (allocationTotal !== paymentAmount) {
+      if (allocationTotal > paymentAmount) {
         fail(
-          "The sum of allocations must equal the payment amount",
+          "The sum of allocations cannot exceed the payment amount",
           HTTP_STATUS.UNPROCESSABLE_ENTITY,
-          "ALLOCATION_TOTAL_MISMATCH"
+          "ALLOCATION_TOTAL_EXCEEDS_PAYMENT"
         );
       }
 
@@ -308,6 +285,20 @@ async function create(data, user) {
         await updateInvoiceStatus(tx, invoiceId);
       }
 
+      const overpayment = paymentAmount - allocationTotal;
+      let overpaymentTransaction = null;
+      if (overpayment > 0n) {
+        overpaymentTransaction = await creditService.postTransaction(tx, {
+          parentId: data.payerId,
+          type: "OVERPAYMENT",
+          amountDelta: overpayment,
+          paymentId: createdPayment.id,
+          idempotencyKey: `payment-overpayment:${createdPayment.id}`,
+          actorId: user.id,
+          description: `Payment overpayment ${createdPayment.id}`
+        });
+      }
+
       await auditService.createLog(
         {
           actorId: user.id,
@@ -324,7 +315,9 @@ async function create(data, user) {
             allocations: createdPayment.allocations.map((item) => ({
               invoiceId: item.invoiceId,
               amount: item.amount
-            }))
+            })),
+            overpayment: overpayment.toString(),
+            creditTransactionId: overpaymentTransaction?.id || null
           }
         },
         tx
@@ -459,8 +452,12 @@ async function cancel(id, user) {
     });
 
     const invoiceIds = [...new Set(existingPayment.allocations.map((item) => item.invoiceId))];
+    if (tx.creditBalanceTransaction) {
+      const affectedByCredit = await creditService.reversePaymentCredits(tx, id, user.id);
+      invoiceIds.push(...affectedByCredit);
+    }
 
-    for (const invoiceId of invoiceIds) {
+    for (const invoiceId of [...new Set(invoiceIds)]) {
       await updateInvoiceStatus(tx, invoiceId);
     }
 
@@ -486,9 +483,56 @@ async function cancel(id, user) {
   return serializePayment(payment);
 }
 
+async function applyCredit(data, user) {
+  const parentId = user.role === "PARENT" ? await getParentId(user) : data.payerId;
+  if (!parentId) fail("Payer is required", HTTP_STATUS.UNPROCESSABLE_ENTITY, "PAYER_REQUIRED");
+  if (user.role === "PARENT" && data.payerId && data.payerId !== parentId) forbid();
+
+  return prisma.$transaction(async (tx) => {
+    const payer = await tx.parent.findUnique({ where: { id: parentId } });
+    if (!payer) fail("Payer not found", HTTP_STATUS.NOT_FOUND, "PAYER_NOT_FOUND");
+    if (payer.status !== "ACTIVE") {
+      fail("Payer is not active", HTTP_STATUS.UNPROCESSABLE_ENTITY, "PAYER_NOT_ACTIVE");
+    }
+
+    const result = await creditService.applyCredit(tx, {
+      parentId,
+      invoiceId: data.invoiceId,
+      amount: data.amount,
+      idempotencyKey: data.idempotencyKey,
+      actorId: user.id
+    });
+    await updateInvoiceStatus(tx, data.invoiceId);
+    return {
+      invoiceId: data.invoiceId,
+      appliedAmount: result.appliedAmount.toString(),
+      balance: result.balance.toString(),
+      transactions: result.transactions.map((item) => ({
+        ...item,
+        amountDelta: item.amountDelta.toString(),
+        balanceAfter: item.balanceAfter.toString()
+      }))
+    };
+  });
+}
+
+async function getCreditBalance(user, requestedPayerId) {
+  let parentId = requestedPayerId;
+  if (user.role === "PARENT") {
+    parentId = await getParentId(user);
+    if (requestedPayerId && requestedPayerId !== parentId) forbid();
+  }
+  if (!parentId) fail("Payer is required", HTTP_STATUS.UNPROCESSABLE_ENTITY, "PAYER_REQUIRED");
+  return creditService.getBalance(parentId);
+}
+
 module.exports = {
   create,
   getAll,
   getById,
-  cancel
+  cancel,
+  applyCredit,
+  getCreditBalance,
+  calculateInvoiceBalance,
+  updateInvoiceStatus
 };

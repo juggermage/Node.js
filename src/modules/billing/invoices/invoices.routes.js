@@ -10,7 +10,9 @@ const {
   createMonthlyInvoiceSchema,
   createAnnualInvoiceSchema,
   invoiceQuerySchema,
-  invoiceIdSchema
+  invoiceIdSchema,
+  adjustmentIdSchema,
+  createInvoiceAdjustmentSchema
 } = require("./invoices.validation");
 
 const router = Router();
@@ -36,6 +38,28 @@ router.post(
   authorizeRoles("ADMIN", "MANAGER"),
   validate(createAnnualInvoiceSchema, "body"),
   controller.createAnnual
+);
+
+router.get(
+  "/:id/adjustments",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(invoiceIdSchema, "params"),
+  controller.getAdjustmentHistory
+);
+
+router.post(
+  "/:id/adjustments",
+  authorizeRoles("ADMIN", "MANAGER"),
+  validate(invoiceIdSchema, "params"),
+  validate(createInvoiceAdjustmentSchema, "body"),
+  controller.createAdjustment
+);
+
+router.patch(
+  "/adjustments/:adjustmentId/cancel",
+  authorizeRoles("ADMIN", "MANAGER"),
+  validate(adjustmentIdSchema, "params"),
+  controller.cancelAdjustment
 );
 
 router.get(
