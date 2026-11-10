@@ -1,4 +1,3 @@
-
 const service = require("./analytics.service");
 const HTTP_STATUS = require("../../utils/http-status");
 
