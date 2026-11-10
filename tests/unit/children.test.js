@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   $transaction: jest.fn(),
   child: {
@@ -20,9 +19,7 @@ jest.mock("../../src/modules/children/children.service", () => ({
   remove: jest.fn()
 }));
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
 jest.mock("../../src/middleware/rbac.middleware", () =>
   jest.fn((...allowedRoles) => {
@@ -40,9 +37,7 @@ const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
 const childrenService = require("../../src/modules/children/children.service");
 
-const realService = jest.requireActual(
-  "../../src/modules/children/children.service"
-);
+const realService = jest.requireActual("../../src/modules/children/children.service");
 
 const controller = require("../../src/modules/children/children.controller");
 const router = require("../../src/modules/children/children.routes");
@@ -162,11 +157,7 @@ describe("Children Controller", () => {
 
     await controller.update(req, res);
 
-    expect(childrenService.update).toHaveBeenCalledWith(
-      "child-1",
-      body,
-      req.user
-    );
+    expect(childrenService.update).toHaveBeenCalledWith("child-1", body, req.user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -191,9 +182,7 @@ describe("Children Routes", () => {
   test("registers authentication middleware", () => {
     const authMiddleware = require("../../src/middleware/auth.middleware");
 
-    expect(
-      router.stack.some((layer) => layer.handle === authMiddleware)
-    ).toBe(true);
+    expect(router.stack.some((layer) => layer.handle === authMiddleware)).toBe(true);
   });
 
   test("registers role authorization middleware", () => {
@@ -476,16 +465,13 @@ describe("Children Validation", () => {
       expect(result.error).toBeUndefined();
     });
 
-    test.each(["ACTIVE", "INACTIVE"])(
-      "accepts status %s",
-      (status) => {
-        const result = validation.updateChildSchema.validate({
-          status
-        });
+    test.each(["ACTIVE", "INACTIVE"])("accepts status %s", (status) => {
+      const result = validation.updateChildSchema.validate({
+        status
+      });
 
-        expect(result.error).toBeUndefined();
-      }
-    );
+      expect(result.error).toBeUndefined();
+    });
 
     test("accepts multiple fields", () => {
       const result = validation.updateChildSchema.validate({
@@ -929,9 +915,7 @@ describe("Children Service", () => {
         birthDate: "2023-01-01"
       });
 
-      expect(result.birthDate).toEqual(
-        new Date("2023-01-01T00:00:00.000Z")
-      );
+      expect(result.birthDate).toEqual(new Date("2023-01-01T00:00:00.000Z"));
     });
 
     test("preserves other fields", () => {
@@ -1172,10 +1156,13 @@ describe("Children Service", () => {
 
     test("rejects unauthorized user", async () => {
       await expect(
-        realService.getAll({}, {
-          id: "user-1",
-          role: "STUDENT"
-        })
+        realService.getAll(
+          {},
+          {
+            id: "user-1",
+            role: "STUDENT"
+          }
+        )
       ).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
@@ -1266,9 +1253,7 @@ describe("Children Service", () => {
     test("rejects missing child", async () => {
       prisma.child.findFirst.mockResolvedValue(null);
 
-      await expect(
-        realService.getById(childId, admin)
-      ).rejects.toMatchObject({
+      await expect(realService.getById(childId, admin)).rejects.toMatchObject({
         code: "CHILD_NOT_FOUND"
       });
     });
@@ -1276,17 +1261,13 @@ describe("Children Service", () => {
     test("rejects archived child", async () => {
       prisma.child.findFirst.mockResolvedValue(null);
 
-      await expect(
-        realService.getById(childId, admin)
-      ).rejects.toMatchObject({
+      await expect(realService.getById(childId, admin)).rejects.toMatchObject({
         code: "CHILD_NOT_FOUND"
       });
     });
 
     test("rejects missing user", async () => {
-      await expect(
-        realService.getById(childId, null)
-      ).rejects.toMatchObject({
+      await expect(realService.getById(childId, null)).rejects.toMatchObject({
         code: "UNAUTHORIZED"
       });
     });
@@ -1364,9 +1345,7 @@ describe("Children Service", () => {
 
       const createData = tx.child.create.mock.calls[0][0].data;
 
-      expect(createData.birthDate).toEqual(
-        new Date("2023-01-01T00:00:00.000Z")
-      );
+      expect(createData.birthDate).toEqual(new Date("2023-01-01T00:00:00.000Z"));
     });
 
     test("allows manager to create a child", async () => {
@@ -1596,9 +1575,7 @@ describe("Children Service", () => {
     });
 
     test("rejects parent", async () => {
-      await expect(
-        realService.remove(childId, parent)
-      ).rejects.toMatchObject({
+      await expect(realService.remove(childId, parent)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
 
@@ -1606,9 +1583,7 @@ describe("Children Service", () => {
     });
 
     test("rejects missing user", async () => {
-      await expect(
-        realService.remove(childId, null)
-      ).rejects.toMatchObject({
+      await expect(realService.remove(childId, null)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
 
@@ -1618,9 +1593,7 @@ describe("Children Service", () => {
     test("rejects missing child", async () => {
       tx.child.findFirst.mockResolvedValue(null);
 
-      await expect(
-        realService.remove(childId, admin)
-      ).rejects.toMatchObject({
+      await expect(realService.remove(childId, admin)).rejects.toMatchObject({
         code: "CHILD_NOT_FOUND"
       });
 
@@ -1631,9 +1604,7 @@ describe("Children Service", () => {
     test("does not archive already archived child", async () => {
       tx.child.findFirst.mockResolvedValue(null);
 
-      await expect(
-        realService.remove(childId, admin)
-      ).rejects.toMatchObject({
+      await expect(realService.remove(childId, admin)).rejects.toMatchObject({
         code: "CHILD_NOT_FOUND"
       });
     });

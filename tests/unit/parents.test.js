@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => {
   const prisma = {
     parent: {
@@ -29,9 +28,7 @@ jest.mock("../../src/modules/audit/audit.service", () => ({
   createLog: jest.fn().mockResolvedValue(undefined)
 }));
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
 jest.mock("../../src/middleware/rbac.middleware", () =>
   jest.fn((...roles) => {
@@ -332,14 +329,11 @@ describe("Parents Validation", () => {
       expect(result.error).toBeDefined();
     });
 
-    test.each(["ACTIVE", "INACTIVE"])(
-      "accepts status %s",
-      (status) => {
-        const result = updateParentSchema.validate({ status });
+    test.each(["ACTIVE", "INACTIVE"])("accepts status %s", (status) => {
+      const result = updateParentSchema.validate({ status });
 
-        expect(result.error).toBeUndefined();
-      }
-    );
+      expect(result.error).toBeUndefined();
+    });
 
     test("rejects ARCHIVED status", () => {
       const result = updateParentSchema.validate({
@@ -402,14 +396,11 @@ describe("Parents Validation", () => {
       expect(result.value.limit).toBe(20);
     });
 
-    test.each(["ACTIVE", "INACTIVE", "ARCHIVED"])(
-      "accepts status %s",
-      (status) => {
-        const result = queryParentsSchema.validate({ status });
+    test.each(["ACTIVE", "INACTIVE", "ARCHIVED"])("accepts status %s", (status) => {
+      const result = queryParentsSchema.validate({ status });
 
-        expect(result.error).toBeUndefined();
-      }
-    );
+      expect(result.error).toBeUndefined();
+    });
 
     test("rejects an invalid status", () => {
       const result = queryParentsSchema.validate({
@@ -419,23 +410,17 @@ describe("Parents Validation", () => {
       expect(result.error).toBeDefined();
     });
 
-    test.each([0, -1, 1.5])(
-      "rejects invalid page value %s",
-      (page) => {
-        const result = queryParentsSchema.validate({ page });
+    test.each([0, -1, 1.5])("rejects invalid page value %s", (page) => {
+      const result = queryParentsSchema.validate({ page });
 
-        expect(result.error).toBeDefined();
-      }
-    );
+      expect(result.error).toBeDefined();
+    });
 
-    test.each([0, 101, 10.5])(
-      "rejects invalid limit value %s",
-      (limit) => {
-        const result = queryParentsSchema.validate({ limit });
+    test.each([0, 101, 10.5])("rejects invalid limit value %s", (limit) => {
+      const result = queryParentsSchema.validate({ limit });
 
-        expect(result.error).toBeDefined();
-      }
-    );
+      expect(result.error).toBeDefined();
+    });
 
     test("rejects search longer than 100 characters", () => {
       const result = queryParentsSchema.validate({
@@ -498,10 +483,7 @@ describe("Parents Controller", () => {
 
     await controller.getAll(req, res);
 
-    expect(service.getAll).toHaveBeenCalledWith(
-      { page: 1, limit: 20 },
-      ADMIN
-    );
+    expect(service.getAll).toHaveBeenCalledWith({ page: 1, limit: 20 }, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
@@ -539,10 +521,7 @@ describe("Parents Controller", () => {
 
     await controller.create(req, res);
 
-    expect(service.create).toHaveBeenCalledWith(
-      validParentData,
-      ADMIN
-    );
+    expect(service.create).toHaveBeenCalledWith(validParentData, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({
@@ -562,11 +541,7 @@ describe("Parents Controller", () => {
 
     await controller.update(req, res);
 
-    expect(service.update).toHaveBeenCalledWith(
-      PARENT_ID,
-      { firstName: "Петро" },
-      ADMIN
-    );
+    expect(service.update).toHaveBeenCalledWith(PARENT_ID, { firstName: "Петро" }, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
@@ -610,10 +585,7 @@ describe("Parents Controller", () => {
 
     await controller.getChildren(req, res);
 
-    expect(service.getChildren).toHaveBeenCalledWith(
-      PARENT_ID,
-      ADMIN
-    );
+    expect(service.getChildren).toHaveBeenCalledWith(PARENT_ID, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
@@ -626,26 +598,18 @@ describe("Parents Controller", () => {
 describe("Parents Routes", () => {
   function getRoute(method, path) {
     return router.stack.find(
-      (layer) =>
-        layer.route &&
-        layer.route.path === path &&
-        layer.route.methods[method]
+      (layer) => layer.route && layer.route.path === path && layer.route.methods[method]
     );
   }
 
   function getValidation(route, property) {
-    return route.route.stack.find(
-      (layer) =>
-        layer.handle.validationProperty === property
-    );
+    return route.route.stack.find((layer) => layer.handle.validationProperty === property);
   }
 
   test("uses authentication middleware", () => {
     const requireAuth = require("../../src/middleware/auth.middleware");
 
-    expect(
-      router.stack.some((layer) => layer.handle === requireAuth)
-    ).toBe(true);
+    expect(router.stack.some((layer) => layer.handle === requireAuth)).toBe(true);
   });
 
   test.each([
@@ -680,9 +644,7 @@ describe("Parents Routes", () => {
   });
 
   test("GET /:id/children uses params validation", () => {
-    expect(
-      getValidation(getRoute("get", "/:id/children"), "params")
-    ).toBeDefined();
+    expect(getValidation(getRoute("get", "/:id/children"), "params")).toBeDefined();
   });
 
   test("PATCH /:id uses params and body validation", () => {
@@ -706,38 +668,25 @@ describe("Parents Routes", () => {
     ];
 
     for (const route of routes) {
-      const accessMiddleware = route.route.stack.find(
-        (layer) =>
-          Array.isArray(layer.handle.allowedRoles)
+      const accessMiddleware = route.route.stack.find((layer) =>
+        Array.isArray(layer.handle.allowedRoles)
       );
 
       expect(accessMiddleware).toBeDefined();
-      expect(accessMiddleware.handle.allowedRoles).toEqual([
-        "ADMIN",
-        "MANAGER",
-        "PARENT"
-      ]);
+      expect(accessMiddleware.handle.allowedRoles).toEqual(["ADMIN", "MANAGER", "PARENT"]);
     }
   });
 
   test("POST, PATCH and DELETE routes allow ADMIN and MANAGER", () => {
-    const routes = [
-      getRoute("post", "/"),
-      getRoute("patch", "/:id"),
-      getRoute("delete", "/:id")
-    ];
+    const routes = [getRoute("post", "/"), getRoute("patch", "/:id"), getRoute("delete", "/:id")];
 
     for (const route of routes) {
-      const accessMiddleware = route.route.stack.find(
-        (layer) =>
-          Array.isArray(layer.handle.allowedRoles)
+      const accessMiddleware = route.route.stack.find((layer) =>
+        Array.isArray(layer.handle.allowedRoles)
       );
 
       expect(accessMiddleware).toBeDefined();
-      expect(accessMiddleware.handle.allowedRoles).toEqual([
-        "ADMIN",
-        "MANAGER"
-      ]);
+      expect(accessMiddleware.handle.allowedRoles).toEqual(["ADMIN", "MANAGER"]);
     }
   });
 });
@@ -763,17 +712,13 @@ describe("Parents Service", () => {
     });
 
     test("rejects unauthorized users", async () => {
-      await expect(
-        service.getAll({}, TEACHER)
-      ).rejects.toMatchObject({
+      await expect(service.getAll({}, TEACHER)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
 
     test("rejects a missing user", async () => {
-      await expect(
-        service.getAll({}, null)
-      ).rejects.toMatchObject({
+      await expect(service.getAll({}, null)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
@@ -790,10 +735,7 @@ describe("Parents Service", () => {
     });
 
     test("calculates pagination offset", async () => {
-      await service.getAll(
-        { page: 3, limit: 10 },
-        ADMIN
-      );
+      await service.getAll({ page: 3, limit: 10 }, ADMIN);
 
       expect(prisma.parent.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -806,19 +748,13 @@ describe("Parents Service", () => {
     test("calculates total pages", async () => {
       prisma.parent.count.mockResolvedValue(45);
 
-      const result = await service.getAll(
-        { page: 1, limit: 20 },
-        ADMIN
-      );
+      const result = await service.getAll({ page: 1, limit: 20 }, ADMIN);
 
       expect(result.pagination.totalPages).toBe(3);
     });
 
     test("filters by status", async () => {
-      await service.getAll(
-        { status: "INACTIVE" },
-        ADMIN
-      );
+      await service.getAll({ status: "INACTIVE" }, ADMIN);
 
       expect(prisma.parent.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -842,10 +778,7 @@ describe("Parents Service", () => {
     });
 
     test("searches by firstName, lastName, email and phone", async () => {
-      await service.getAll(
-        { search: "Іван" },
-        ADMIN
-      );
+      await service.getAll({ search: "Іван" }, ADMIN);
 
       const query = prisma.parent.findMany.mock.calls[0][0];
 
@@ -857,10 +790,7 @@ describe("Parents Service", () => {
     });
 
     test("trims the search value", async () => {
-      await service.getAll(
-        { search: "  Іван  " },
-        ADMIN
-      );
+      await service.getAll({ search: "  Іван  " }, ADMIN);
 
       const query = prisma.parent.findMany.mock.calls[0][0];
 
@@ -872,10 +802,7 @@ describe("Parents Service", () => {
 
       expect(prisma.parent.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          orderBy: [
-            { lastName: "asc" },
-            { firstName: "asc" }
-          ]
+          orderBy: [{ lastName: "asc" }, { firstName: "asc" }]
         })
       );
     });
@@ -908,9 +835,7 @@ describe("Parents Service", () => {
         firstName: "Олена"
       };
 
-      prisma.childParent.findMany.mockResolvedValue([
-        { child }
-      ]);
+      prisma.childParent.findMany.mockResolvedValue([{ child }]);
 
       const result = await service.getAll({}, PARENT_USER);
 
@@ -920,9 +845,7 @@ describe("Parents Service", () => {
     test("rejects PARENT without a parent profile", async () => {
       prisma.parent.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.getAll({}, PARENT_USER)
-      ).rejects.toMatchObject({
+      await expect(service.getAll({}, PARENT_USER)).rejects.toMatchObject({
         code: "PARENT_NOT_FOUND"
       });
     });
@@ -948,17 +871,13 @@ describe("Parents Service", () => {
     });
 
     test("rejects PARENT accessing another profile", async () => {
-      await expect(
-        service.getById(CHILD_ID, PARENT_USER)
-      ).rejects.toMatchObject({
+      await expect(service.getById(CHILD_ID, PARENT_USER)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
 
     test("rejects unauthorized roles", async () => {
-      await expect(
-        service.getById(PARENT_ID, TEACHER)
-      ).rejects.toMatchObject({
+      await expect(service.getById(PARENT_ID, TEACHER)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
@@ -966,9 +885,7 @@ describe("Parents Service", () => {
     test("rejects a missing parent", async () => {
       prisma.parent.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.getById(PARENT_ID, ADMIN)
-      ).rejects.toMatchObject({
+      await expect(service.getById(PARENT_ID, ADMIN)).rejects.toMatchObject({
         code: "PARENT_NOT_FOUND"
       });
     });
@@ -987,9 +904,7 @@ describe("Parents Service", () => {
     test("rejects PARENT without own profile", async () => {
       prisma.parent.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.getById(PARENT_ID, PARENT_USER)
-      ).rejects.toMatchObject({
+      await expect(service.getById(PARENT_ID, PARENT_USER)).rejects.toMatchObject({
         code: "PARENT_NOT_FOUND"
       });
     });
@@ -1010,17 +925,13 @@ describe("Parents Service", () => {
     });
 
     test("rejects PARENT creating a profile", async () => {
-      await expect(
-        service.create(validParentData, PARENT_USER)
-      ).rejects.toMatchObject({
+      await expect(service.create(validParentData, PARENT_USER)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
 
     test("rejects unauthorized roles", async () => {
-      await expect(
-        service.create(validParentData, TEACHER)
-      ).rejects.toMatchObject({
+      await expect(service.create(validParentData, TEACHER)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
@@ -1108,9 +1019,7 @@ describe("Parents Service", () => {
         return Promise.resolve(parent);
       });
 
-      await expect(
-        service.create(validParentData, ADMIN)
-      ).rejects.toMatchObject({
+      await expect(service.create(validParentData, ADMIN)).rejects.toMatchObject({
         code: "PARENT_EMAIL_EXISTS"
       });
 
@@ -1137,9 +1046,7 @@ describe("Parents Service", () => {
         code: "P2002"
       });
 
-      await expect(
-        service.create(validParentData, ADMIN)
-      ).rejects.toMatchObject({
+      await expect(service.create(validParentData, ADMIN)).rejects.toMatchObject({
         code: "DUPLICATE_RECORD"
       });
     });
@@ -1147,11 +1054,7 @@ describe("Parents Service", () => {
 
   describe("update", () => {
     test("updates a parent", async () => {
-      const result = await service.update(
-        PARENT_ID,
-        { firstName: "Петро" },
-        ADMIN
-      );
+      const result = await service.update(PARENT_ID, { firstName: "Петро" }, ADMIN);
 
       expect(result).toEqual(parent);
 
@@ -1162,22 +1065,14 @@ describe("Parents Service", () => {
     });
 
     test("allows MANAGER to update a parent", async () => {
-      await service.update(
-        PARENT_ID,
-        { firstName: "Петро" },
-        MANAGER
-      );
+      await service.update(PARENT_ID, { firstName: "Петро" }, MANAGER);
 
       expect(prisma.parent.update).toHaveBeenCalled();
     });
 
     test("rejects PARENT updating a profile", async () => {
       await expect(
-        service.update(
-          PARENT_ID,
-          { firstName: "Петро" },
-          PARENT_USER
-        )
+        service.update(PARENT_ID, { firstName: "Петро" }, PARENT_USER)
       ).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
@@ -1185,11 +1080,7 @@ describe("Parents Service", () => {
 
     test("rejects unauthorized roles", async () => {
       await expect(
-        service.update(
-          PARENT_ID,
-          { firstName: "Петро" },
-          TEACHER
-        )
+        service.update(PARENT_ID, { firstName: "Петро" }, TEACHER)
       ).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
@@ -1215,11 +1106,7 @@ describe("Parents Service", () => {
     });
 
     test("normalizes updated email", async () => {
-      await service.update(
-        PARENT_ID,
-        { email: "  NEW@EXAMPLE.COM  " },
-        ADMIN
-      );
+      await service.update(PARENT_ID, { email: "  NEW@EXAMPLE.COM  " }, ADMIN);
 
       expect(prisma.parent.update).toHaveBeenCalledWith({
         where: { id: PARENT_ID },
@@ -1230,11 +1117,7 @@ describe("Parents Service", () => {
     });
 
     test("checks email uniqueness excluding current parent", async () => {
-      await service.update(
-        PARENT_ID,
-        { email: "new@example.com" },
-        ADMIN
-      );
+      await service.update(PARENT_ID, { email: "new@example.com" }, ADMIN);
 
       expect(prisma.parent.findFirst).toHaveBeenCalledWith({
         where: {
@@ -1261,11 +1144,7 @@ describe("Parents Service", () => {
       });
 
       await expect(
-        service.update(
-          PARENT_ID,
-          { email: "ivan@example.com" },
-          ADMIN
-        )
+        service.update(PARENT_ID, { email: "ivan@example.com" }, ADMIN)
       ).rejects.toMatchObject({
         code: "PARENT_EMAIL_EXISTS"
       });
@@ -1274,11 +1153,7 @@ describe("Parents Service", () => {
     });
 
     test("does not check email uniqueness when email is not updated", async () => {
-      await service.update(
-        PARENT_ID,
-        { firstName: "Петро" },
-        ADMIN
-      );
+      await service.update(PARENT_ID, { firstName: "Петро" }, ADMIN);
 
       const emailQueries = prisma.parent.findFirst.mock.calls.filter(
         ([args]) => args?.where?.email
@@ -1290,23 +1165,13 @@ describe("Parents Service", () => {
     test("rejects updating a missing parent", async () => {
       prisma.parent.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.update(
-          PARENT_ID,
-          { firstName: "Петро" },
-          ADMIN
-        )
-      ).rejects.toMatchObject({
+      await expect(service.update(PARENT_ID, { firstName: "Петро" }, ADMIN)).rejects.toMatchObject({
         code: "PARENT_NOT_FOUND"
       });
     });
 
     test("writes an audit log after update", async () => {
-      await service.update(
-        PARENT_ID,
-        { firstName: "Петро" },
-        ADMIN
-      );
+      await service.update(PARENT_ID, { firstName: "Петро" }, ADMIN);
 
       expect(auditService.createLog).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1326,13 +1191,7 @@ describe("Parents Service", () => {
         code: "P2002"
       });
 
-      await expect(
-        service.update(
-          PARENT_ID,
-          { firstName: "Петро" },
-          ADMIN
-        )
-      ).rejects.toMatchObject({
+      await expect(service.update(PARENT_ID, { firstName: "Петро" }, ADMIN)).rejects.toMatchObject({
         code: "DUPLICATE_RECORD"
       });
     });
@@ -1342,13 +1201,7 @@ describe("Parents Service", () => {
         code: "P2025"
       });
 
-      await expect(
-        service.update(
-          PARENT_ID,
-          { firstName: "Петро" },
-          ADMIN
-        )
-      ).rejects.toMatchObject({
+      await expect(service.update(PARENT_ID, { firstName: "Петро" }, ADMIN)).rejects.toMatchObject({
         code: "PARENT_NOT_FOUND"
       });
     });
@@ -1376,17 +1229,13 @@ describe("Parents Service", () => {
     });
 
     test("rejects PARENT archiving a profile", async () => {
-      await expect(
-        service.remove(PARENT_ID, PARENT_USER)
-      ).rejects.toMatchObject({
+      await expect(service.remove(PARENT_ID, PARENT_USER)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
 
     test("rejects unauthorized roles", async () => {
-      await expect(
-        service.remove(PARENT_ID, TEACHER)
-      ).rejects.toMatchObject({
+      await expect(service.remove(PARENT_ID, TEACHER)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
@@ -1394,9 +1243,7 @@ describe("Parents Service", () => {
     test("rejects archiving a missing parent", async () => {
       prisma.parent.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.remove(PARENT_ID, ADMIN)
-      ).rejects.toMatchObject({
+      await expect(service.remove(PARENT_ID, ADMIN)).rejects.toMatchObject({
         code: "PARENT_NOT_FOUND"
       });
 
@@ -1431,9 +1278,7 @@ describe("Parents Service", () => {
         }
       };
 
-      prisma.childParent.findMany.mockResolvedValue([
-        childRelation
-      ]);
+      prisma.childParent.findMany.mockResolvedValue([childRelation]);
 
       const result = await service.getChildren(PARENT_ID, ADMIN);
 
@@ -1453,17 +1298,13 @@ describe("Parents Service", () => {
     });
 
     test("rejects PARENT accessing another parent's children", async () => {
-      await expect(
-        service.getChildren(CHILD_ID, PARENT_USER)
-      ).rejects.toMatchObject({
+      await expect(service.getChildren(CHILD_ID, PARENT_USER)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
 
     test("rejects unauthorized roles", async () => {
-      await expect(
-        service.getChildren(PARENT_ID, TEACHER)
-      ).rejects.toMatchObject({
+      await expect(service.getChildren(PARENT_ID, TEACHER)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
@@ -1471,9 +1312,7 @@ describe("Parents Service", () => {
     test("rejects a missing parent", async () => {
       prisma.parent.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.getChildren(PARENT_ID, ADMIN)
-      ).rejects.toMatchObject({
+      await expect(service.getChildren(PARENT_ID, ADMIN)).rejects.toMatchObject({
         code: "PARENT_NOT_FOUND"
       });
     });

@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   $transaction: jest.fn(),
   tuitionRate: {
@@ -25,13 +24,9 @@ jest.mock("../../src/modules/billing/tuition/tuition.service", () => ({
   calculateAnnualTuitionCost: jest.fn()
 }));
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
-jest.mock("../../src/middleware/rbac.middleware", () =>
-  jest.fn(() => (req, res, next) => next())
-);
+jest.mock("../../src/middleware/rbac.middleware", () => jest.fn(() => (req, res, next) => next()));
 
 jest.mock("../../src/middleware/validate.middleware", () =>
   jest.fn(() => (req, res, next) => next())
@@ -40,9 +35,7 @@ jest.mock("../../src/middleware/validate.middleware", () =>
 const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
 const tuitionService = require("../../src/modules/billing/tuition/tuition.service");
-const realTuitionService = jest.requireActual(
-  "../../src/modules/billing/tuition/tuition.service"
-);
+const realTuitionService = jest.requireActual("../../src/modules/billing/tuition/tuition.service");
 
 const controller = require("../../src/modules/billing/tuition/tuition.controller");
 const router = require("../../src/modules/billing/tuition/tuition.routes");
@@ -163,9 +156,7 @@ describe("Tuition Routes", () => {
     const authMiddleware = require("../../src/middleware/auth.middleware");
     const rbacMiddleware = require("../../src/middleware/rbac.middleware");
 
-    expect(
-      router.stack.some((layer) => layer.handle === authMiddleware)
-    ).toBe(true);
+    expect(router.stack.some((layer) => layer.handle === authMiddleware)).toBe(true);
 
     expect(rbacMiddleware).toHaveBeenCalledWith("ADMIN", "MANAGER");
   });
@@ -442,9 +433,7 @@ describe("Tuition Service", () => {
     test("throws when rate does not exist", async () => {
       prisma.tuitionRate.findFirst.mockResolvedValue(null);
 
-      await expect(
-        realTuitionService.getApplicableRate("2026-06-15")
-      ).rejects.toMatchObject({
+      await expect(realTuitionService.getApplicableRate("2026-06-15")).rejects.toMatchObject({
         code: "TUITION_RATE_NOT_FOUND"
       });
     });
@@ -557,10 +546,7 @@ describe("Tuition Service", () => {
 
   describe("validatePeriod", () => {
     test("returns valid period and number of days", () => {
-      const result = realTuitionService.validatePeriod(
-        "2026-01-01",
-        "2026-01-31"
-      );
+      const result = realTuitionService.validatePeriod("2026-01-01", "2026-01-31");
 
       expect(result.days).toBe(31);
       expect(result.from).toEqual(new Date("2026-01-01T00:00:00.000Z"));
@@ -568,15 +554,11 @@ describe("Tuition Service", () => {
     });
 
     test("rejects invalid date", () => {
-      expect(() =>
-        realTuitionService.validatePeriod("2026-02-30", "2026-03-01")
-      ).toThrow();
+      expect(() => realTuitionService.validatePeriod("2026-02-30", "2026-03-01")).toThrow();
     });
 
     test("rejects start date after end date", () => {
-      expect(() =>
-        realTuitionService.validatePeriod("2026-02-01", "2026-01-01")
-      ).toThrow();
+      expect(() => realTuitionService.validatePeriod("2026-02-01", "2026-01-01")).toThrow();
     });
   });
 

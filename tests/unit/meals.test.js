@@ -1,4 +1,3 @@
-
 const prisma = require("../../src/config/prisma");
 const service = require("../../src/modules/billing/meals/meals.service");
 const controller = require("../../src/modules/billing/meals/meals.controller");
@@ -143,9 +142,7 @@ describe("meals service", () => {
     });
 
     it("throws an error for an invalid birth date", () => {
-      expect(() =>
-        service.calculateAge("invalid-date", new Date("2025-05-10"))
-      ).toThrow(
+      expect(() => service.calculateAge("invalid-date", new Date("2025-05-10"))).toThrow(
         expect.objectContaining({
           code: "INVALID_BIRTH_DATE"
         })
@@ -191,9 +188,7 @@ describe("meals service", () => {
     });
 
     it("rejects an invalid date", () => {
-      expect(() =>
-        service.validatePeriod("2026-02-30", "2026-03-01")
-      ).toThrow(
+      expect(() => service.validatePeriod("2026-02-30", "2026-03-01")).toThrow(
         expect.objectContaining({
           code: "INVALID_DATE"
         })
@@ -201,9 +196,7 @@ describe("meals service", () => {
     });
 
     it("rejects an incorrectly formatted date", () => {
-      expect(() =>
-        service.validatePeriod("01-01-2026", "2026-01-05")
-      ).toThrow(
+      expect(() => service.validatePeriod("01-01-2026", "2026-01-05")).toThrow(
         expect.objectContaining({
           code: "INVALID_DATE"
         })
@@ -211,9 +204,7 @@ describe("meals service", () => {
     });
 
     it("rejects a period with start date after end date", () => {
-      expect(() =>
-        service.validatePeriod("2026-01-10", "2026-01-01")
-      ).toThrow(
+      expect(() => service.validatePeriod("2026-01-10", "2026-01-01")).toThrow(
         expect.objectContaining({
           code: "INVALID_PERIOD"
         })
@@ -365,9 +356,7 @@ describe("meals service", () => {
     it("returns the applicable rate", async () => {
       prisma.mealRate.findFirst.mockResolvedValue(validRate);
 
-      await expect(
-        service.getApplicableRate(3, "2026-05-01")
-      ).resolves.toEqual(validRate);
+      await expect(service.getApplicableRate(3, "2026-05-01")).resolves.toEqual(validRate);
 
       expect(prisma.mealRate.findFirst).toHaveBeenCalledWith({
         where: {
@@ -641,10 +630,7 @@ describe("meals service", () => {
     it("calculates the total meal cost", async () => {
       mockCalculationData();
 
-      const result = await service.calculateMealCost(
-        calculationInput,
-        admin
-      );
+      const result = await service.calculateMealCost(calculationInput, admin);
 
       expect(result).toEqual({
         childId: "child-1",
@@ -675,9 +661,7 @@ describe("meals service", () => {
 
     it("uses the rate matching the group category", async () => {
       mockCalculationData({
-        attendanceRecords: [
-          { date: new Date("2026-05-01T00:00:00.000Z") }
-        ],
+        attendanceRecords: [{ date: new Date("2026-05-01T00:00:00.000Z") }],
         rates: [
           {
             id: "rate-a2",
@@ -696,10 +680,7 @@ describe("meals service", () => {
         ]
       });
 
-      const result = await service.calculateMealCost(
-        calculationInput,
-        admin
-      );
+      const result = await service.calculateMealCost(calculationInput, admin);
 
       expect(result.total).toBe("450");
       expect(result.rateId).toBe("rate-a3");
@@ -707,9 +688,7 @@ describe("meals service", () => {
 
     it("supports rates defined by category", async () => {
       mockCalculationData({
-        attendanceRecords: [
-          { date: new Date("2026-05-01T00:00:00.000Z") }
-        ],
+        attendanceRecords: [{ date: new Date("2026-05-01T00:00:00.000Z") }],
         rates: [
           {
             id: "rate-category",
@@ -721,10 +700,7 @@ describe("meals service", () => {
         ]
       });
 
-      const result = await service.calculateMealCost(
-        calculationInput,
-        admin
-      );
+      const result = await service.calculateMealCost(calculationInput, admin);
 
       expect(result.total).toBe("500");
     });
@@ -823,10 +799,7 @@ describe("meals service", () => {
         attendanceRecords: []
       });
 
-      const result = await service.calculateMealCost(
-        calculationInput,
-        admin
-      );
+      const result = await service.calculateMealCost(calculationInput, admin);
 
       expect(result.attendedDays).toBe(0);
       expect(result.total).toBe("0");
@@ -876,10 +849,7 @@ describe("meals service", () => {
         parentId: "parent-1"
       });
 
-      const result = await service.calculateMealCost(
-        calculationInput,
-        parentUser
-      );
+      const result = await service.calculateMealCost(calculationInput, parentUser);
 
       expect(result.total).toBe("800");
       expect(prisma.childParent.findFirst).toHaveBeenCalled();
@@ -946,10 +916,7 @@ describe("meals controller", () => {
 
     jest.spyOn(service, "createRate").mockResolvedValue(data);
 
-    await controller.createRate(
-      { user: admin },
-      res
-    );
+    await controller.createRate({ user: admin }, res);
 
     expect(service.createRate).toHaveBeenCalledWith(body, admin);
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
@@ -975,15 +942,9 @@ describe("meals controller", () => {
 
     jest.spyOn(service, "calculateMealCost").mockResolvedValue(data);
 
-    await controller.calculate(
-      { user: parentUser },
-      res
-    );
+    await controller.calculate({ user: parentUser }, res);
 
-    expect(service.calculateMealCost).toHaveBeenCalledWith(
-      body,
-      parentUser
-    );
+    expect(service.calculateMealCost).toHaveBeenCalledWith(body, parentUser);
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
       success: true,
@@ -1232,10 +1193,7 @@ describe("meals validation", () => {
 describe("meals routes", () => {
   function getRoute(path, method) {
     return router.stack.find(
-      (layer) =>
-        layer.route &&
-        layer.route.path === path &&
-        layer.route.methods[method]
+      (layer) => layer.route && layer.route.path === path && layer.route.methods[method]
     );
   }
 
@@ -1257,10 +1215,7 @@ describe("meals routes", () => {
     const route = getRoute("/rates", "post");
 
     expect(route).toBeDefined();
-    expect(route.route.stack[0].handle.allowedRoles).toEqual([
-      "ADMIN",
-      "MANAGER"
-    ]);
+    expect(route.route.stack[0].handle.allowedRoles).toEqual(["ADMIN", "MANAGER"]);
     expect(route.route.stack[1].handle.validationProperty).toBe("body");
     expect(route.route.stack[1].handle.schema).toBe(createMealRateSchema);
   });
@@ -1269,11 +1224,7 @@ describe("meals routes", () => {
     const route = getRoute("/calculate", "post");
 
     expect(route).toBeDefined();
-    expect(route.route.stack[0].handle.allowedRoles).toEqual([
-      "ADMIN",
-      "MANAGER",
-      "PARENT"
-    ]);
+    expect(route.route.stack[0].handle.allowedRoles).toEqual(["ADMIN", "MANAGER", "PARENT"]);
     expect(route.route.stack[1].handle.validationProperty).toBe("body");
     expect(route.route.stack[1].handle.schema).toBe(calculateMealSchema);
   });

@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   discount: {
     findFirst: jest.fn(),
@@ -16,13 +15,9 @@ jest.mock("../../src/middleware/validate.middleware", () =>
   jest.fn(() => (req, res, next) => next())
 );
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
-jest.mock("../../src/middleware/rbac.middleware", () =>
-  jest.fn(() => (req, res, next) => next())
-);
+jest.mock("../../src/middleware/rbac.middleware", () => jest.fn(() => (req, res, next) => next()));
 
 const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
@@ -85,17 +80,14 @@ describe("Discount validation", () => {
       expect(error).toBeUndefined();
     });
 
-    it.each([0, 5, 15, 25, 40, -10])(
-      "should reject discount value %i",
-      (value) => {
-        const { error } = createDiscountSchema.validate({
-          name: "Discount",
-          value
-        });
+    it.each([0, 5, 15, 25, 40, -10])("should reject discount value %i", (value) => {
+      const { error } = createDiscountSchema.validate({
+        name: "Discount",
+        value
+      });
 
-        expect(error).toBeDefined();
-      }
-    );
+      expect(error).toBeDefined();
+    });
 
     it("should reject a non-integer discount value", () => {
       const { error } = createDiscountSchema.validate({
@@ -241,9 +233,7 @@ describe("Discount service", () => {
     beforeEach(() => {
       tx.discount.create.mockReset();
 
-      prisma.$transaction.mockImplementation(async (callback) =>
-        callback(tx)
-      );
+      prisma.$transaction.mockImplementation(async (callback) => callback(tx));
     });
 
     it("should create a discount successfully", async () => {
@@ -481,9 +471,7 @@ describe("Discount service", () => {
     it("should throw when discount does not exist", async () => {
       prisma.discount.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.getById(validId)
-      ).rejects.toThrow("Discount not found");
+      await expect(service.getById(validId)).rejects.toThrow("Discount not found");
     });
   });
 
@@ -499,9 +487,7 @@ describe("Discount service", () => {
       tx.discount.findUnique.mockReset();
       tx.discount.update.mockReset();
 
-      prisma.$transaction.mockImplementation(async (callback) =>
-        callback(tx)
-      );
+      prisma.$transaction.mockImplementation(async (callback) => callback(tx));
     });
 
     it("should deactivate an active discount and create an audit log", async () => {
@@ -564,9 +550,7 @@ describe("Discount service", () => {
     it("should throw when discount does not exist", async () => {
       tx.discount.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.deactivate(validId, actorId)
-      ).rejects.toThrow("Discount not found");
+      await expect(service.deactivate(validId, actorId)).rejects.toThrow("Discount not found");
 
       expect(tx.discount.update).not.toHaveBeenCalled();
       expect(auditService.createLog).not.toHaveBeenCalled();
@@ -579,9 +563,7 @@ describe("Discount service", () => {
         code: "P2025"
       });
 
-      await expect(
-        service.deactivate(validId, actorId)
-      ).rejects.toThrow("Discount not found");
+      await expect(service.deactivate(validId, actorId)).rejects.toThrow("Discount not found");
     });
 
     it("should rethrow unknown Prisma errors", async () => {
@@ -591,9 +573,9 @@ describe("Discount service", () => {
 
       tx.discount.update.mockRejectedValue(error);
 
-      await expect(
-        service.deactivate(validId, actorId)
-      ).rejects.toThrow("Database connection failed");
+      await expect(service.deactivate(validId, actorId)).rejects.toThrow(
+        "Database connection failed"
+      );
     });
   });
 });
@@ -622,10 +604,7 @@ describe("Discount controller", () => {
 
       await controller.create(req, res);
 
-      expect(service.create).toHaveBeenCalledWith(
-        res.locals.validated.body,
-        actorId
-      );
+      expect(service.create).toHaveBeenCalledWith(res.locals.validated.body, actorId);
 
       expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
       expect(res.json).toHaveBeenCalledWith({
@@ -776,9 +755,7 @@ describe("Discount routes", () => {
   });
 
   it("should register authentication and role middleware", () => {
-    const middlewareLayers = router.stack.filter(
-      (layer) => !layer.route
-    );
+    const middlewareLayers = router.stack.filter((layer) => !layer.route);
 
     expect(middlewareLayers.length).toBeGreaterThanOrEqual(2);
   });

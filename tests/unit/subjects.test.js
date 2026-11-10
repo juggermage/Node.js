@@ -123,7 +123,7 @@ describe("Subjects validation", () => {
       expect(result.value.description).toBe("Basic mathematics");
     });
 
-    test.each([null, ""]) ("accepts description value %p", (description) => {
+    test.each([null, ""])("accepts description value %p", (description) => {
       const result = validation.createSubjectSchema.validate({ name: "Mathematics", description });
       expect(result.error).toBeUndefined();
     });
@@ -165,12 +165,15 @@ describe("Subjects validation", () => {
       expect(validation.updateSubjectSchema.validate({ description: "" }).error).toBeUndefined();
     });
 
-    test.each([{}, { status: "ARCHIVED" }, { name: "" }, { name: "a".repeat(101) }, { extra: true }])(
-      "rejects invalid update data %p",
-      (data) => {
-        expect(validation.updateSubjectSchema.validate(data).error).toBeDefined();
-      }
-    );
+    test.each([
+      {},
+      { status: "ARCHIVED" },
+      { name: "" },
+      { name: "a".repeat(101) },
+      { extra: true }
+    ])("rejects invalid update data %p", (data) => {
+      expect(validation.updateSubjectSchema.validate(data).error).toBeDefined();
+    });
   });
 
   describe("querySubjectsSchema", () => {
@@ -237,13 +240,16 @@ describe("Subjects service", () => {
       });
     });
 
-    test.each([teacher, educator, assistant])("returns only active subjects for %s role", async (user) => {
-      await service.getAll({}, user);
-      expect(prisma.subject.findMany).toHaveBeenCalledWith({
-        where: { status: "ACTIVE" },
-        orderBy: { name: "asc" }
-      });
-    });
+    test.each([teacher, educator, assistant])(
+      "returns only active subjects for %s role",
+      async (user) => {
+        await service.getAll({}, user);
+        expect(prisma.subject.findMany).toHaveBeenCalledWith({
+          where: { status: "ACTIVE" },
+          orderBy: { name: "asc" }
+        });
+      }
+    );
 
     test("rejects unauthenticated user", async () => {
       await expectAppError(service.getAll({}, null), HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
@@ -284,7 +290,11 @@ describe("Subjects service", () => {
     });
 
     test("rejects unauthenticated user", async () => {
-      await expectAppError(service.getById(SUBJECT_ID, null), HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
+      await expectAppError(
+        service.getById(SUBJECT_ID, null),
+        HTTP_STATUS.UNAUTHORIZED,
+        "UNAUTHORIZED"
+      );
     });
 
     test("rejects unsupported role", async () => {
@@ -330,11 +340,7 @@ describe("Subjects service", () => {
     });
 
     test("rejects employee role from creating subject", async () => {
-      await expectAppError(
-        service.create(createData, teacher),
-        HTTP_STATUS.FORBIDDEN,
-        "FORBIDDEN"
-      );
+      await expectAppError(service.create(createData, teacher), HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
@@ -381,7 +387,9 @@ describe("Subjects service", () => {
     test("updates subject and writes audit log", async () => {
       const updated = { ...subject, name: "Physics" };
       prisma.subject.update.mockResolvedValue(updated);
-      await expect(service.update(SUBJECT_ID, { name: " Physics " }, admin)).resolves.toEqual(updated);
+      await expect(service.update(SUBJECT_ID, { name: " Physics " }, admin)).resolves.toEqual(
+        updated
+      );
       expect(prisma.subject.findUnique).toHaveBeenCalledWith({ where: { id: SUBJECT_ID } });
       expect(prisma.subject.findFirst).toHaveBeenCalledWith({
         where: { name: { equals: "Physics", mode: "insensitive" }, id: { not: SUBJECT_ID } }
@@ -404,7 +412,11 @@ describe("Subjects service", () => {
     });
 
     test("updates only supplied description and status", async () => {
-      await service.update(SUBJECT_ID, { description: "New description", status: "INACTIVE" }, manager);
+      await service.update(
+        SUBJECT_ID,
+        { description: "New description", status: "INACTIVE" },
+        manager
+      );
       expect(prisma.subject.update).toHaveBeenCalledWith({
         where: { id: SUBJECT_ID },
         data: { description: "New description", status: "INACTIVE" }
@@ -475,7 +487,9 @@ describe("Subjects service", () => {
     test("rethrows unknown Prisma errors", async () => {
       const error = new Error("Database unavailable");
       prisma.subject.update.mockRejectedValue(error);
-      await expect(service.update(SUBJECT_ID, { description: "Updated" }, admin)).rejects.toBe(error);
+      await expect(service.update(SUBJECT_ID, { description: "Updated" }, admin)).rejects.toBe(
+        error
+      );
     });
   });
 
@@ -545,11 +559,7 @@ describe("Subjects service", () => {
     });
 
     test("rejects employee role from archiving subject", async () => {
-      await expectAppError(
-        service.remove(SUBJECT_ID, teacher),
-        HTTP_STATUS.FORBIDDEN,
-        "FORBIDDEN"
-      );
+      await expectAppError(service.remove(SUBJECT_ID, teacher), HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
@@ -638,7 +648,11 @@ describe("Subjects routes", () => {
   test("GET / allows read roles and validates query", () => {
     const handlers = getHandlers("get", "/");
     expect(handlers[0].allowedRoles).toEqual([
-      "ADMIN", "MANAGER", "TEACHER", "EDUCATOR", "ASSISTANT"
+      "ADMIN",
+      "MANAGER",
+      "TEACHER",
+      "EDUCATOR",
+      "ASSISTANT"
     ]);
     expect(handlers[1].schema).toBe(validation.querySubjectsSchema);
     expect(handlers[1].validationProperty).toBe("query");
@@ -648,7 +662,11 @@ describe("Subjects routes", () => {
   test("GET /:id allows read roles and validates params", () => {
     const handlers = getHandlers("get", "/:id");
     expect(handlers[0].allowedRoles).toEqual([
-      "ADMIN", "MANAGER", "TEACHER", "EDUCATOR", "ASSISTANT"
+      "ADMIN",
+      "MANAGER",
+      "TEACHER",
+      "EDUCATOR",
+      "ASSISTANT"
     ]);
     expect(handlers[1].schema).toBe(validation.idParamsSchema);
     expect(handlers[1].validationProperty).toBe("params");

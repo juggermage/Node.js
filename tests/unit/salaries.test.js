@@ -37,13 +37,9 @@ jest.mock("../../src/modules/billing/salaries/salaries.service", () => ({
   cancelCalculation: jest.fn()
 }));
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
-jest.mock("../../src/middleware/rbac.middleware", () =>
-  jest.fn(() => (req, res, next) => next())
-);
+jest.mock("../../src/middleware/rbac.middleware", () => jest.fn(() => (req, res, next) => next()));
 
 jest.mock("../../src/middleware/validate.middleware", () =>
   jest.fn(() => (req, res, next) => next())
@@ -131,9 +127,7 @@ function createCalculation() {
 beforeEach(() => {
   jest.clearAllMocks();
 
-  prisma.$transaction.mockImplementation(async (callback) =>
-    callback(prisma)
-  );
+  prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
 });
 
 describe("Salaries controller", () => {
@@ -194,10 +188,7 @@ describe("Salaries controller", () => {
 
     await controller.createCalculations(req, res);
 
-    expect(salariesService.createCalculations).toHaveBeenCalledWith(
-      body,
-      actorId
-    );
+    expect(salariesService.createCalculations).toHaveBeenCalledWith(body, actorId);
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
     expect(res.json).toHaveBeenCalledWith({
       success: true,
@@ -230,9 +221,7 @@ describe("Salaries controller", () => {
 
     await controller.getCalculationById(req, res);
 
-    expect(salariesService.getCalculationById).toHaveBeenCalledWith(
-      calculationId
-    );
+    expect(salariesService.getCalculationById).toHaveBeenCalledWith(calculationId);
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
       success: true,
@@ -251,10 +240,7 @@ describe("Salaries controller", () => {
 
     await controller.cancelCalculation(req, res);
 
-    expect(salariesService.cancelCalculation).toHaveBeenCalledWith(
-      calculationId,
-      actorId
-    );
+    expect(salariesService.cancelCalculation).toHaveBeenCalledWith(calculationId, actorId);
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
       success: true,
@@ -283,9 +269,7 @@ describe("Salaries routes", () => {
   });
 
   test("uses authentication middleware", () => {
-    expect(router.stack[0].handle).toBe(
-      require("../../src/middleware/auth.middleware")
-    );
+    expect(router.stack[0].handle).toBe(require("../../src/middleware/auth.middleware"));
   });
 
   test("uses role authorization middleware", () => {
@@ -417,29 +401,23 @@ describe("Salaries validation", () => {
       expect(result.error).toBeDefined();
     });
 
-    test.each([1999, 2101, 2026.5])(
-      "rejects invalid periodYear: %s",
-      (periodYear) => {
-        const result = validation.createCalculationSchema.validate({
-          periodYear,
-          periodMonth: 5
-        });
+    test.each([1999, 2101, 2026.5])("rejects invalid periodYear: %s", (periodYear) => {
+      const result = validation.createCalculationSchema.validate({
+        periodYear,
+        periodMonth: 5
+      });
 
-        expect(result.error).toBeDefined();
-      }
-    );
+      expect(result.error).toBeDefined();
+    });
 
-    test.each([0, 13, 2.5])(
-      "rejects invalid periodMonth: %s",
-      (periodMonth) => {
-        const result = validation.createCalculationSchema.validate({
-          periodYear: 2026,
-          periodMonth
-        });
+    test.each([0, 13, 2.5])("rejects invalid periodMonth: %s", (periodMonth) => {
+      const result = validation.createCalculationSchema.validate({
+        periodYear: 2026,
+        periodMonth
+      });
 
-        expect(result.error).toBeDefined();
-      }
-    );
+      expect(result.error).toBeDefined();
+    });
 
     test("rejects invalid employeeId", () => {
       const result = validation.createCalculationSchema.validate({
@@ -510,16 +488,13 @@ describe("Salaries validation", () => {
       expect(result.error).toBeDefined();
     });
 
-    test.each(["DRAFT", "APPROVED", "PAID", "CANCELLED"])(
-      "accepts status %s",
-      (status) => {
-        const result = validation.listCalculationsSchema.validate({
-          status
-        });
+    test.each(["DRAFT", "APPROVED", "PAID", "CANCELLED"])("accepts status %s", (status) => {
+      const result = validation.listCalculationsSchema.validate({
+        status
+      });
 
-        expect(result.error).toBeUndefined();
-      }
-    );
+      expect(result.error).toBeUndefined();
+    });
 
     test("requires periodYear when periodMonth is provided", () => {
       const result = validation.listCalculationsSchema.validate({
@@ -601,9 +576,7 @@ describe("Salaries service", () => {
 
     auditService.createLog.mockReset();
 
-    prisma.$transaction.mockImplementation(async (callback) =>
-      callback(prisma)
-    );
+    prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
   });
 
   describe("getRates", () => {
@@ -713,10 +686,7 @@ describe("Salaries service", () => {
       prisma.employee.findUnique.mockResolvedValue(null);
 
       await expect(
-        realSalariesService.createRate(
-          { employeeId, validFrom: "2026-01-01" },
-          actorId
-        )
+        realSalariesService.createRate({ employeeId, validFrom: "2026-01-01" }, actorId)
       ).rejects.toMatchObject({
         code: "EMPLOYEE_NOT_FOUND"
       });
@@ -730,10 +700,7 @@ describe("Salaries service", () => {
       });
 
       await expect(
-        realSalariesService.createRate(
-          { employeeId, validFrom: "2026-01-01" },
-          actorId
-        )
+        realSalariesService.createRate({ employeeId, validFrom: "2026-01-01" }, actorId)
       ).rejects.toMatchObject({
         code: "EMPLOYEE_NOT_FOUND"
       });
@@ -747,10 +714,7 @@ describe("Salaries service", () => {
       });
 
       await expect(
-        realSalariesService.createRate(
-          { employeeId, validFrom: "2026-01-01" },
-          actorId
-        )
+        realSalariesService.createRate({ employeeId, validFrom: "2026-01-01" }, actorId)
       ).rejects.toMatchObject({
         code: "UNSUPPORTED_ROLE"
       });
@@ -851,9 +815,7 @@ describe("Salaries service", () => {
 
       prisma.salaryRate.findFirst.mockResolvedValue(createRate());
 
-      prisma.salaryCalculation.create.mockResolvedValue(
-        createCalculation()
-      );
+      prisma.salaryCalculation.create.mockResolvedValue(createCalculation());
 
       auditService.createLog.mockResolvedValue({});
     }
@@ -875,11 +837,7 @@ describe("Salaries service", () => {
           status: "ACTIVE",
           id: employeeId
         },
-        orderBy: [
-          { role: "asc" },
-          { lastName: "asc" },
-          { firstName: "asc" }
-        ]
+        orderBy: [{ role: "asc" }, { lastName: "asc" }, { firstName: "asc" }]
       });
 
       expect(prisma.salaryCalculation.create).toHaveBeenCalled();
@@ -1132,20 +1090,14 @@ describe("Salaries service", () => {
 
   describe("getCalculations", () => {
     test("returns all calculations", async () => {
-      prisma.salaryCalculation.findMany.mockResolvedValue([
-        createCalculation()
-      ]);
+      prisma.salaryCalculation.findMany.mockResolvedValue([createCalculation()]);
 
       const result = await realSalariesService.getCalculations();
 
       expect(prisma.salaryCalculation.findMany).toHaveBeenCalledWith({
         where: {},
         include: { employee: true },
-        orderBy: [
-          { periodYear: "desc" },
-          { periodMonth: "desc" },
-          { calculatedAt: "desc" }
-        ]
+        orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }, { calculatedAt: "desc" }]
       });
 
       expect(result).toHaveLength(1);
@@ -1187,13 +1139,9 @@ describe("Salaries service", () => {
 
   describe("getCalculationById", () => {
     test("returns calculation by id", async () => {
-      prisma.salaryCalculation.findUnique.mockResolvedValue(
-        createCalculation()
-      );
+      prisma.salaryCalculation.findUnique.mockResolvedValue(createCalculation());
 
-      const result = await realSalariesService.getCalculationById(
-        calculationId
-      );
+      const result = await realSalariesService.getCalculationById(calculationId);
 
       expect(prisma.salaryCalculation.findUnique).toHaveBeenCalledWith({
         where: { id: calculationId },
@@ -1207,9 +1155,7 @@ describe("Salaries service", () => {
     test("throws when calculation does not exist", async () => {
       prisma.salaryCalculation.findUnique.mockResolvedValue(null);
 
-      await expect(
-        realSalariesService.getCalculationById(calculationId)
-      ).rejects.toMatchObject({
+      await expect(realSalariesService.getCalculationById(calculationId)).rejects.toMatchObject({
         code: "SALARY_CALCULATION_NOT_FOUND"
       });
     });
@@ -1217,9 +1163,7 @@ describe("Salaries service", () => {
 
   describe("cancelCalculation", () => {
     test("cancels draft calculation", async () => {
-      prisma.salaryCalculation.findUnique.mockResolvedValue(
-        createCalculation()
-      );
+      prisma.salaryCalculation.findUnique.mockResolvedValue(createCalculation());
 
       prisma.salaryCalculation.update.mockResolvedValue({
         ...createCalculation(),
@@ -1228,10 +1172,7 @@ describe("Salaries service", () => {
 
       auditService.createLog.mockResolvedValue({});
 
-      const result = await realSalariesService.cancelCalculation(
-        calculationId,
-        actorId
-      );
+      const result = await realSalariesService.cancelCalculation(calculationId, actorId);
 
       expect(prisma.salaryCalculation.update).toHaveBeenCalledWith({
         where: { id: calculationId },

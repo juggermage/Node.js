@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   invoice: {
     findFirst: jest.fn(),
@@ -52,13 +51,9 @@ jest.mock("../../src/middleware/validate.middleware", () =>
   jest.fn(() => (req, res, next) => next())
 );
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
-jest.mock("../../src/middleware/rbac.middleware", () =>
-  jest.fn(() => (req, res, next) => next())
-);
+jest.mock("../../src/middleware/rbac.middleware", () => jest.fn(() => (req, res, next) => next()));
 
 const prisma = require("../../src/config/prisma");
 const tuitionService = require("../../src/modules/billing/tuition/tuition.service");
@@ -332,22 +327,16 @@ describe("Invoice validation", () => {
       expect(error).toBeUndefined();
     });
 
-    it.each(["MONTHLY", "ANNUAL", "ADJUSTMENT"])(
-      "should accept invoice type %s",
-      (type) => {
-        expect(invoiceQuerySchema.validate({ type }).error).toBeUndefined();
+    it.each(["MONTHLY", "ANNUAL", "ADJUSTMENT"])("should accept invoice type %s", (type) => {
+      expect(invoiceQuerySchema.validate({ type }).error).toBeUndefined();
+    });
+
+    it.each(["DRAFT", "ISSUED", "PARTIALLY_PAID", "PAID", "CANCELLED"])(
+      "should accept status %s",
+      (status) => {
+        expect(invoiceQuerySchema.validate({ status }).error).toBeUndefined();
       }
     );
-
-    it.each([
-      "DRAFT",
-      "ISSUED",
-      "PARTIALLY_PAID",
-      "PAID",
-      "CANCELLED"
-    ])("should accept status %s", (status) => {
-      expect(invoiceQuerySchema.validate({ status }).error).toBeUndefined();
-    });
 
     it("should reject an invalid type", () => {
       expect(
@@ -376,29 +365,21 @@ describe("Invoice validation", () => {
 
   describe("invoiceIdSchema", () => {
     it("should accept a valid invoice id", () => {
-      expect(
-        invoiceIdSchema.validate({ id: invoiceId }).error
-      ).toBeUndefined();
+      expect(invoiceIdSchema.validate({ id: invoiceId }).error).toBeUndefined();
     });
 
     it("should reject an invalid invoice id", () => {
-      expect(
-        invoiceIdSchema.validate({ id: "invalid" }).error
-      ).toBeDefined();
+      expect(invoiceIdSchema.validate({ id: "invalid" }).error).toBeDefined();
     });
   });
 
   describe("adjustmentIdSchema", () => {
     it("should accept a valid adjustment id", () => {
-      expect(
-        adjustmentIdSchema.validate({ adjustmentId }).error
-      ).toBeUndefined();
+      expect(adjustmentIdSchema.validate({ adjustmentId }).error).toBeUndefined();
     });
 
     it("should reject an invalid adjustment id", () => {
-      expect(
-        adjustmentIdSchema.validate({ adjustmentId: "invalid" }).error
-      ).toBeDefined();
+      expect(adjustmentIdSchema.validate({ adjustmentId: "invalid" }).error).toBeDefined();
     });
   });
 
@@ -953,9 +934,7 @@ describe("Invoices service", () => {
     it("should reject when parent profile does not exist", async () => {
       prisma.parent.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.getAll({}, parentUser)
-      ).rejects.toThrow("Parent profile not found");
+      await expect(service.getAll({}, parentUser)).rejects.toThrow("Parent profile not found");
 
       expect(prisma.invoice.findMany).not.toHaveBeenCalled();
     });
@@ -1009,9 +988,7 @@ describe("Invoices service", () => {
     it("should throw when invoice does not exist", async () => {
       prisma.invoice.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.getById(invoiceId, admin)
-      ).rejects.toThrow("Invoice not found");
+      await expect(service.getById(invoiceId, admin)).rejects.toThrow("Invoice not found");
     });
 
     it("should forbid a parent from viewing another parent's invoice", async () => {
@@ -1022,9 +999,9 @@ describe("Invoices service", () => {
         }
       });
 
-      await expect(
-        service.getById(invoiceId, parentUser)
-      ).rejects.toThrow("You do not have permission to access this invoice");
+      await expect(service.getById(invoiceId, parentUser)).rejects.toThrow(
+        "You do not have permission to access this invoice"
+      );
     });
 
     it("should allow a parent to view their own invoice", async () => {
@@ -1082,9 +1059,7 @@ describe("Invoices service", () => {
     it("should throw when invoice does not exist", async () => {
       tx.invoice.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.cancel(invoiceId, actorId)
-      ).rejects.toThrow("Invoice not found");
+      await expect(service.cancel(invoiceId, actorId)).rejects.toThrow("Invoice not found");
     });
 
     it("should reject an already cancelled invoice", async () => {
@@ -1093,9 +1068,9 @@ describe("Invoices service", () => {
         status: "CANCELLED"
       });
 
-      await expect(
-        service.cancel(invoiceId, actorId)
-      ).rejects.toThrow("Invoice is already cancelled");
+      await expect(service.cancel(invoiceId, actorId)).rejects.toThrow(
+        "Invoice is already cancelled"
+      );
     });
 
     it.each(["PAID", "PARTIALLY_PAID"])(
@@ -1108,9 +1083,9 @@ describe("Invoices service", () => {
           status
         });
 
-        await expect(
-          service.cancel(invoiceId, actorId)
-        ).rejects.toThrow("Paid or partially paid invoice cannot be cancelled");
+        await expect(service.cancel(invoiceId, actorId)).rejects.toThrow(
+          "Paid or partially paid invoice cannot be cancelled"
+        );
       }
     );
 
@@ -1121,9 +1096,9 @@ describe("Invoices service", () => {
         }
       ]);
 
-      await expect(
-        service.cancel(invoiceId, actorId)
-      ).rejects.toThrow("Cancel completed payments before cancelling this invoice");
+      await expect(service.cancel(invoiceId, actorId)).rejects.toThrow(
+        "Cancel completed payments before cancelling this invoice"
+      );
 
       expect(tx.invoice.update).not.toHaveBeenCalled();
     });
@@ -1255,26 +1230,23 @@ describe("Invoice adjustments service", () => {
       ).rejects.toThrow("Invoice not found");
     });
 
-    it.each(["DRAFT", "CANCELLED"])(
-      "should reject an invoice with status %s",
-      async (status) => {
-        tx.invoice.findUnique.mockResolvedValue({
-          ...baseAdjustmentInvoice,
-          status
-        });
+    it.each(["DRAFT", "CANCELLED"])("should reject an invoice with status %s", async (status) => {
+      tx.invoice.findUnique.mockResolvedValue({
+        ...baseAdjustmentInvoice,
+        status
+      });
 
-        await expect(
-          adjustmentsService.create(
-            invoiceId,
-            {
-              reason: "Correction of invoice",
-              adjustedAmount: 12000
-            },
-            actorId
-          )
-        ).rejects.toThrow("Only issued invoices can be adjusted");
-      }
-    );
+      await expect(
+        adjustmentsService.create(
+          invoiceId,
+          {
+            reason: "Correction of invoice",
+            adjustedAmount: 12000
+          },
+          actorId
+        )
+      ).rejects.toThrow("Only issued invoices can be adjusted");
+    });
 
     it("should reject an unchanged adjusted amount", async () => {
       await expect(
@@ -1396,10 +1368,7 @@ describe("Invoice adjustments service", () => {
         }
       ]);
 
-      const result = await adjustmentsService.getHistory(
-        invoiceId,
-        parentUser
-      );
+      const result = await adjustmentsService.getHistory(invoiceId, parentUser);
 
       expect(prisma.invoiceAdjustment.findMany).toHaveBeenCalledWith({
         where: {
@@ -1425,10 +1394,7 @@ describe("Invoice adjustments service", () => {
 
       prisma.invoiceAdjustment.findMany.mockResolvedValue([]);
 
-      const result = await adjustmentsService.getHistory(
-        invoiceId,
-        parentUser
-      );
+      const result = await adjustmentsService.getHistory(invoiceId, parentUser);
 
       expect(result).toEqual([]);
     });
@@ -1436,9 +1402,9 @@ describe("Invoice adjustments service", () => {
     it("should throw when invoice does not exist", async () => {
       prisma.invoice.findUnique.mockResolvedValue(null);
 
-      await expect(
-        adjustmentsService.getHistory(invoiceId, admin)
-      ).rejects.toThrow("Invoice not found");
+      await expect(adjustmentsService.getHistory(invoiceId, admin)).rejects.toThrow(
+        "Invoice not found"
+      );
     });
 
     it("should forbid a parent from viewing another parent's adjustment history", async () => {
@@ -1449,9 +1415,9 @@ describe("Invoice adjustments service", () => {
         }
       });
 
-      await expect(
-        adjustmentsService.getHistory(invoiceId, parentUser)
-      ).rejects.toThrow("You do not have permission to access this invoice");
+      await expect(adjustmentsService.getHistory(invoiceId, parentUser)).rejects.toThrow(
+        "You do not have permission to access this invoice"
+      );
 
       expect(prisma.invoiceAdjustment.findMany).not.toHaveBeenCalled();
     });
@@ -1498,10 +1464,7 @@ describe("Invoice adjustments service", () => {
     });
 
     it("should cancel an adjustment by creating a reversal document", async () => {
-      const result = await adjustmentsService.cancel(
-        adjustmentId,
-        actorId
-      );
+      const result = await adjustmentsService.cancel(adjustmentId, actorId);
 
       expect(tx.invoiceAdjustment.create).toHaveBeenCalledWith({
         data: {
@@ -1524,9 +1487,9 @@ describe("Invoice adjustments service", () => {
     it("should throw when adjustment does not exist", async () => {
       tx.invoiceAdjustment.findUnique.mockResolvedValue(null);
 
-      await expect(
-        adjustmentsService.cancel(adjustmentId, actorId)
-      ).rejects.toThrow("Adjustment not found");
+      await expect(adjustmentsService.cancel(adjustmentId, actorId)).rejects.toThrow(
+        "Adjustment not found"
+      );
     });
 
     it("should reject cancellation of a reversal document", async () => {
@@ -1535,9 +1498,9 @@ describe("Invoice adjustments service", () => {
         reversedFromId: "507f1f77bcf86cd799439018"
       });
 
-      await expect(
-        adjustmentsService.cancel(adjustmentId, actorId)
-      ).rejects.toThrow("A reversal document cannot be cancelled");
+      await expect(adjustmentsService.cancel(adjustmentId, actorId)).rejects.toThrow(
+        "A reversal document cannot be cancelled"
+      );
     });
 
     it("should reject an already cancelled adjustment", async () => {
@@ -1545,9 +1508,9 @@ describe("Invoice adjustments service", () => {
         id: "507f1f77bcf86cd799439019"
       });
 
-      await expect(
-        adjustmentsService.cancel(adjustmentId, actorId)
-      ).rejects.toThrow("Adjustment is already cancelled");
+      await expect(adjustmentsService.cancel(adjustmentId, actorId)).rejects.toThrow(
+        "Adjustment is already cancelled"
+      );
     });
 
     it("should reject cancellation when adjustment is not the latest", async () => {
@@ -1560,9 +1523,9 @@ describe("Invoice adjustments service", () => {
         };
       });
 
-      await expect(
-        adjustmentsService.cancel(adjustmentId, actorId)
-      ).rejects.toThrow("Only the latest adjustment can be cancelled");
+      await expect(adjustmentsService.cancel(adjustmentId, actorId)).rejects.toThrow(
+        "Only the latest adjustment can be cancelled"
+      );
     });
 
     it("should create an audit log for the reversal", async () => {
@@ -1604,10 +1567,7 @@ describe("Invoices controller", () => {
 
     await controller.createMonthly(req, res);
 
-    expect(service.createMonthly).toHaveBeenCalledWith(
-      res.locals.validated.body,
-      actorId
-    );
+    expect(service.createMonthly).toHaveBeenCalledWith(res.locals.validated.body, actorId);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
     expect(res.json).toHaveBeenCalledWith({
@@ -1635,10 +1595,7 @@ describe("Invoices controller", () => {
 
     await controller.createAnnual(req, res);
 
-    expect(service.createAnnual).toHaveBeenCalledWith(
-      res.locals.validated.body,
-      actorId
-    );
+    expect(service.createAnnual).toHaveBeenCalledWith(res.locals.validated.body, actorId);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
   });
@@ -1657,10 +1614,7 @@ describe("Invoices controller", () => {
 
     await controller.getAll(req, res);
 
-    expect(service.getAll).toHaveBeenCalledWith(
-      res.locals.validated.query,
-      req.user
-    );
+    expect(service.getAll).toHaveBeenCalledWith(res.locals.validated.query, req.user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -1755,10 +1709,7 @@ describe("Invoices controller", () => {
 
     await controller.getAdjustmentHistory(req, res);
 
-    expect(adjustmentsService.getHistory).toHaveBeenCalledWith(
-      invoiceId,
-      req.user
-    );
+    expect(adjustmentsService.getHistory).toHaveBeenCalledWith(invoiceId, req.user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
   });
@@ -1781,10 +1732,7 @@ describe("Invoices controller", () => {
 
     await controller.cancelAdjustment(req, res);
 
-    expect(adjustmentsService.cancel).toHaveBeenCalledWith(
-      adjustmentId,
-      actorId
-    );
+    expect(adjustmentsService.cancel).toHaveBeenCalledWith(adjustmentId, actorId);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
   });
@@ -1812,9 +1760,7 @@ describe("Invoices routes", () => {
   });
 
   it("should register authentication middleware", () => {
-    const middlewareLayers = router.stack.filter(
-      (layer) => !layer.route
-    );
+    const middlewareLayers = router.stack.filter((layer) => !layer.route);
 
     expect(middlewareLayers.length).toBeGreaterThan(0);
   });

@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   invoice: { findMany: jest.fn() },
   payment: { findMany: jest.fn() },
@@ -13,13 +12,9 @@ jest.mock("../../src/config/prisma", () => ({
   room: { findMany: jest.fn() }
 }));
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
-jest.mock("../../src/middleware/rbac.middleware", () =>
-  jest.fn(() => (req, res, next) => next())
-);
+jest.mock("../../src/middleware/rbac.middleware", () => jest.fn(() => (req, res, next) => next()));
 
 jest.mock("../../src/middleware/validate.middleware", () =>
   jest.fn((schema, property) => {
@@ -79,32 +74,20 @@ function mockDatabaseWithResources() {
     { childId: "child-2", groupId: "group-1" }
   ]);
 
-  prisma.employee.findMany.mockResolvedValue([
-    { id: "employee-1" },
-    { id: "employee-2" }
-  ]);
+  prisma.employee.findMany.mockResolvedValue([{ id: "employee-1" }, { id: "employee-2" }]);
 
-  prisma.schedule.findMany.mockResolvedValue([
-    { id: "schedule-1", groupId: "group-1" }
-  ]);
+  prisma.schedule.findMany.mockResolvedValue([{ id: "schedule-1", groupId: "group-1" }]);
 
-  prisma.child.findMany.mockResolvedValue([
-    { id: "child-1" },
-    { id: "child-2" }
-  ]);
+  prisma.child.findMany.mockResolvedValue([{ id: "child-1" }, { id: "child-2" }]);
 
-  prisma.group.findMany.mockResolvedValue([
-    { id: "group-1" }
-  ]);
+  prisma.group.findMany.mockResolvedValue([{ id: "group-1" }]);
 
   prisma.scheduleItem.findMany.mockResolvedValue([
     { roomId: "room-1", teacherId: "teacher-1" },
     { roomId: "room-1", teacherId: "teacher-2" }
   ]);
 
-  prisma.room.findMany.mockResolvedValue([
-    { id: "room-1", capacity: 20 }
-  ]);
+  prisma.room.findMany.mockResolvedValue([{ id: "room-1", capacity: 20 }]);
 }
 
 function mockFinancialData() {
@@ -136,9 +119,7 @@ function mockFinancialData() {
     }
   ]);
 
-  prisma.salaryCalculation.findMany.mockResolvedValue([
-    { totalAmount: 200n }
-  ]);
+  prisma.salaryCalculation.findMany.mockResolvedValue([{ totalAmount: 200n }]);
 
   prisma.expense.findMany.mockResolvedValue([
     { amount: 100n, category: "FOOD" },
@@ -385,11 +366,13 @@ describe("Optimization Validation", () => {
       const result = compareScenariosSchema.validate({
         from: FROM,
         to: TO,
-        scenarios: [{
-          ...validScenario,
-          children: 10,
-          groups: 0
-        }]
+        scenarios: [
+          {
+            ...validScenario,
+            children: 10,
+            groups: 0
+          }
+        ]
       });
 
       expect(result.error).toBeDefined();
@@ -400,11 +383,13 @@ describe("Optimization Validation", () => {
       const result = compareScenariosSchema.validate({
         from: FROM,
         to: TO,
-        scenarios: [{
-          ...validScenario,
-          children: 10,
-          rooms: 0
-        }]
+        scenarios: [
+          {
+            ...validScenario,
+            children: 10,
+            rooms: 0
+          }
+        ]
       });
 
       expect(result.error).toBeDefined();
@@ -415,11 +400,13 @@ describe("Optimization Validation", () => {
       const result = compareScenariosSchema.validate({
         from: FROM,
         to: TO,
-        scenarios: [{
-          ...validScenario,
-          children: 10,
-          employees: 0
-        }]
+        scenarios: [
+          {
+            ...validScenario,
+            children: 10,
+            employees: 0
+          }
+        ]
       });
 
       expect(result.error).toBeDefined();
@@ -430,13 +417,15 @@ describe("Optimization Validation", () => {
       const result = compareScenariosSchema.validate({
         from: FROM,
         to: TO,
-        scenarios: [{
-          ...validScenario,
-          children: 0,
-          groups: 0,
-          employees: 0,
-          rooms: 0
-        }]
+        scenarios: [
+          {
+            ...validScenario,
+            children: 0,
+            groups: 0,
+            employees: 0,
+            rooms: 0
+          }
+        ]
       });
 
       expect(result.error).toBeUndefined();
@@ -525,44 +514,32 @@ describe("Optimization Routes", () => {
   });
 
   test("should register GET / route", () => {
-    const route = router.stack.find(
-      (layer) => layer.route && layer.route.path === "/"
-    );
+    const route = router.stack.find((layer) => layer.route && layer.route.path === "/");
 
     expect(route).toBeDefined();
     expect(route.route.methods.get).toBe(true);
   });
 
   test("should register POST /scenarios route", () => {
-    const route = router.stack.find(
-      (layer) => layer.route && layer.route.path === "/scenarios"
-    );
+    const route = router.stack.find((layer) => layer.route && layer.route.path === "/scenarios");
 
     expect(route).toBeDefined();
     expect(route.route.methods.post).toBe(true);
   });
 
   test("GET / should use query validation", () => {
-    const route = router.stack.find(
-      (layer) => layer.route && layer.route.path === "/"
-    );
+    const route = router.stack.find((layer) => layer.route && layer.route.path === "/");
 
-    const validation = route.route.stack.find(
-      (layer) => layer.handle.validationProperty
-    );
+    const validation = route.route.stack.find((layer) => layer.handle.validationProperty);
 
     expect(validation).toBeDefined();
     expect(validation.handle.validationProperty).toBe("query");
   });
 
   test("POST /scenarios should use body validation", () => {
-    const route = router.stack.find(
-      (layer) => layer.route && layer.route.path === "/scenarios"
-    );
+    const route = router.stack.find((layer) => layer.route && layer.route.path === "/scenarios");
 
-    const validation = route.route.stack.find(
-      (layer) => layer.handle.validationProperty
-    );
+    const validation = route.route.stack.find((layer) => layer.handle.validationProperty);
 
     expect(validation).toBeDefined();
     expect(validation.handle.validationProperty).toBe("body");
@@ -726,9 +703,7 @@ describe("Optimization Service", () => {
     });
 
     test("should calculate total expenses", async () => {
-      prisma.salaryCalculation.findMany.mockResolvedValue([
-        { totalAmount: 1000n }
-      ]);
+      prisma.salaryCalculation.findMany.mockResolvedValue([{ totalAmount: 1000n }]);
 
       prisma.expense.findMany.mockResolvedValue([
         { amount: 500n, category: "FOOD" },
@@ -756,9 +731,7 @@ describe("Optimization Service", () => {
         }
       ]);
 
-      prisma.salaryCalculation.findMany.mockResolvedValue([
-        { totalAmount: 500n }
-      ]);
+      prisma.salaryCalculation.findMany.mockResolvedValue([{ totalAmount: 500n }]);
 
       prisma.expense.findMany.mockResolvedValue([
         { amount: 300n, category: "FOOD" },
@@ -847,13 +820,9 @@ describe("Optimization Service", () => {
 
       const query = prisma.invoice.findMany.mock.calls[0][0];
 
-      expect(query.where.issuedAt.gte).toEqual(
-        new Date(`${FROM}T00:00:00.000Z`)
-      );
+      expect(query.where.issuedAt.gte).toEqual(new Date(`${FROM}T00:00:00.000Z`));
 
-      expect(query.where.issuedAt.lt).toEqual(
-        new Date("2026-02-01T00:00:00.000Z")
-      );
+      expect(query.where.issuedAt.lt).toEqual(new Date("2026-02-01T00:00:00.000Z"));
     });
 
     test("should exclude draft and cancelled invoices", async () => {
@@ -926,11 +895,13 @@ describe("Optimization Service", () => {
       const result = await service.compareScenarios({
         from: FROM,
         to: TO,
-        scenarios: [{
-          ...validScenario,
-          children: 10,
-          groups: 2
-        }]
+        scenarios: [
+          {
+            ...validScenario,
+            children: 10,
+            groups: 2
+          }
+        ]
       });
 
       expect(result.scenarios[0].indicators.childrenPerGroup).toBe(5);
@@ -940,11 +911,13 @@ describe("Optimization Service", () => {
       const result = await service.compareScenarios({
         from: FROM,
         to: TO,
-        scenarios: [{
-          ...validScenario,
-          children: 10,
-          rooms: 2
-        }]
+        scenarios: [
+          {
+            ...validScenario,
+            children: 10,
+            rooms: 2
+          }
+        ]
       });
 
       expect(result.scenarios[0].indicators.childrenPerRoom).toBe(5);
@@ -954,11 +927,13 @@ describe("Optimization Service", () => {
       const result = await service.compareScenarios({
         from: FROM,
         to: TO,
-        scenarios: [{
-          ...validScenario,
-          employees: 6,
-          groups: 2
-        }]
+        scenarios: [
+          {
+            ...validScenario,
+            employees: 6,
+            groups: 2
+          }
+        ]
       });
 
       expect(result.scenarios[0].indicators.employeesPerGroup).toBe(3);
@@ -968,13 +943,15 @@ describe("Optimization Service", () => {
       const result = await service.compareScenarios({
         from: FROM,
         to: TO,
-        scenarios: [{
-          ...validScenario,
-          children: 0,
-          groups: 0,
-          employees: 0,
-          rooms: 0
-        }]
+        scenarios: [
+          {
+            ...validScenario,
+            children: 0,
+            groups: 0,
+            employees: 0,
+            rooms: 0
+          }
+        ]
       });
 
       expect(result.scenarios[0].indicators).toEqual({
@@ -988,13 +965,15 @@ describe("Optimization Service", () => {
       const result = await service.compareScenarios({
         from: FROM,
         to: TO,
-        scenarios: [{
-          ...validScenario,
-          children: 0,
-          groups: 0,
-          employees: 0,
-          rooms: 3
-        }]
+        scenarios: [
+          {
+            ...validScenario,
+            children: 0,
+            groups: 0,
+            employees: 0,
+            rooms: 3
+          }
+        ]
       });
 
       expect(result.scenarios[0].expenses.roomNormative).toBe("15000000");
@@ -1007,13 +986,15 @@ describe("Optimization Service", () => {
       const result = await service.compareScenarios({
         from: FROM,
         to: TO,
-        scenarios: [{
-          name: "Тестовий сценарій",
-          children: 4,
-          groups: 2,
-          employees: 2,
-          rooms: 1
-        }]
+        scenarios: [
+          {
+            name: "Тестовий сценарій",
+            children: 4,
+            groups: 2,
+            employees: 2,
+            rooms: 1
+          }
+        ]
       });
 
       const scenario = result.scenarios[0];
@@ -1041,13 +1022,15 @@ describe("Optimization Service", () => {
       const result = await service.compareScenarios({
         from: FROM,
         to: TO,
-        scenarios: [{
-          name: "Тестовий сценарій",
-          children: 4,
-          groups: 2,
-          employees: 2,
-          rooms: 1
-        }]
+        scenarios: [
+          {
+            name: "Тестовий сценарій",
+            children: 4,
+            groups: 2,
+            employees: 2,
+            rooms: 1
+          }
+        ]
       });
 
       expect(result.scenarios[0].modelProfit).toBe("-4997500");
@@ -1141,18 +1124,18 @@ describe("Optimization Service", () => {
       const result = await service.compareScenarios({
         from: FROM,
         to: TO,
-        scenarios: [{
-          name: "Багато груп",
-          children: 1,
-          groups: 2,
-          employees: 2,
-          rooms: 1
-        }]
+        scenarios: [
+          {
+            name: "Багато груп",
+            children: 1,
+            groups: 2,
+            employees: 2,
+            rooms: 1
+          }
+        ]
       });
 
-      expect(result.scenarios[0].warnings).toContain(
-        "Кількість груп перевищує кількість дітей"
-      );
+      expect(result.scenarios[0].warnings).toContain("Кількість груп перевищує кількість дітей");
     });
 
     test("should warn when room capacity is insufficient", async () => {
@@ -1161,13 +1144,15 @@ describe("Optimization Service", () => {
       const result = await service.compareScenarios({
         from: FROM,
         to: TO,
-        scenarios: [{
-          name: "Недостатньо місць",
-          children: 50,
-          groups: 2,
-          employees: 4,
-          rooms: 1
-        }]
+        scenarios: [
+          {
+            name: "Недостатньо місць",
+            children: 50,
+            groups: 2,
+            employees: 4,
+            rooms: 1
+          }
+        ]
       });
 
       expect(result.scenarios[0].warnings).toContain(

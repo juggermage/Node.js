@@ -1,4 +1,3 @@
-
 const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
 const HTTP_STATUS = require("../../src/utils/http-status");
@@ -130,19 +129,11 @@ describe("teacher-subjects service", () => {
     });
 
     it("rejects unauthenticated users", async () => {
-      await expectAppError(
-        service.getAll(null),
-        HTTP_STATUS.UNAUTHORIZED,
-        "UNAUTHORIZED"
-      );
+      await expectAppError(service.getAll(null), HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
     });
 
     it("rejects users with unsupported roles", async () => {
-      await expectAppError(
-        service.getAll(educator),
-        HTTP_STATUS.FORBIDDEN,
-        "FORBIDDEN"
-      );
+      await expectAppError(service.getAll(educator), HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
     });
   });
 
@@ -163,10 +154,7 @@ describe("teacher-subjects service", () => {
       auditService.createLog.mockResolvedValue({});
 
       await expect(
-        service.create(
-          { employeeId: "employee-1", subjectId: "subject-1" },
-          admin
-        )
+        service.create({ employeeId: "employee-1", subjectId: "subject-1" }, admin)
       ).resolves.toEqual(assignment);
 
       expect(tx.teacherSubject.create).toHaveBeenCalledWith({
@@ -192,10 +180,7 @@ describe("teacher-subjects service", () => {
       tx.teacherSubject.findUnique.mockResolvedValue(null);
       tx.teacherSubject.create.mockResolvedValue(assignment);
 
-      await service.create(
-        { employeeId: "employee-1", subjectId: "subject-1" },
-        manager
-      );
+      await service.create({ employeeId: "employee-1", subjectId: "subject-1" }, manager);
 
       expect(tx.teacherSubject.create).toHaveBeenCalled();
     });
@@ -317,9 +302,9 @@ describe("teacher-subjects service", () => {
       });
       prisma.teacherSubject.findMany.mockResolvedValue([assignment]);
 
-      await expect(
-        service.getTeacherSubjects("employee-1", teacher)
-      ).resolves.toEqual([assignment]);
+      await expect(service.getTeacherSubjects("employee-1", teacher)).resolves.toEqual([
+        assignment
+      ]);
 
       expect(prisma.teacherSubject.findMany).toHaveBeenCalledWith({
         where: { employeeId: "employee-1" },
@@ -551,9 +536,7 @@ describe("teacher-subjects validation", () => {
   });
 
   it("accepts a valid id parameter", () => {
-    expect(
-      idParamsSchema.validate({ id: "123456789012123456789012" }).error
-    ).toBeUndefined();
+    expect(idParamsSchema.validate({ id: "123456789012123456789012" }).error).toBeUndefined();
   });
 
   it("rejects an invalid id parameter", () => {
@@ -588,11 +571,7 @@ describe("teacher-subjects routes", () => {
   it("registers GET / with read roles", () => {
     const route = getRoute("/", "get");
     expect(route).toBeDefined();
-    expect(route.route.stack[0].handle.allowedRoles).toEqual([
-      "ADMIN",
-      "MANAGER",
-      "TEACHER"
-    ]);
+    expect(route.route.stack[0].handle.allowedRoles).toEqual(["ADMIN", "MANAGER", "TEACHER"]);
   });
 
   it("registers POST / with management roles and body validation", () => {
@@ -606,11 +585,7 @@ describe("teacher-subjects routes", () => {
   it("registers GET /employee/:employeeId with read roles and params validation", () => {
     const route = getRoute("/employee/:employeeId", "get");
     expect(route).toBeDefined();
-    expect(route.route.stack[0].handle.allowedRoles).toEqual([
-      "ADMIN",
-      "MANAGER",
-      "TEACHER"
-    ]);
+    expect(route.route.stack[0].handle.allowedRoles).toEqual(["ADMIN", "MANAGER", "TEACHER"]);
     expect(route.route.stack[1].handle.validationProperty).toBe("params");
     expect(route.route.stack[1].handle.schema).toBe(employeeParamsSchema);
   });

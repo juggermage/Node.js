@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   room: {
     findMany: jest.fn(),
@@ -310,10 +309,7 @@ describe("Rooms controller", () => {
 
     await roomsController.getAll(req, res);
 
-    expect(roomsService.getAll).toHaveBeenCalledWith(
-      { search: "Room" },
-      teacher
-    );
+    expect(roomsService.getAll).toHaveBeenCalledWith({ search: "Room" }, teacher);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -342,10 +338,7 @@ describe("Rooms controller", () => {
 
     await roomsController.create(req, res);
 
-    expect(roomsService.create).toHaveBeenCalledWith(
-      createRoomData,
-      admin
-    );
+    expect(roomsService.create).toHaveBeenCalledWith(createRoomData, admin);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
     expect(res.json).toHaveBeenCalledWith({
@@ -369,11 +362,7 @@ describe("Rooms controller", () => {
 
     await roomsController.update(req, res);
 
-    expect(roomsService.update).toHaveBeenCalledWith(
-      ROOM_ID,
-      { name: "Updated Room" },
-      manager
-    );
+    expect(roomsService.update).toHaveBeenCalledWith(ROOM_ID, { name: "Updated Room" }, manager);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -484,10 +473,13 @@ describe("Rooms service", () => {
 
     test("rejects user without read permissions", async () => {
       await expectErrorCode(
-        roomsService.getAll({}, {
-          id: USER_ID,
-          role: "PARENT"
-        }),
+        roomsService.getAll(
+          {},
+          {
+            id: USER_ID,
+            role: "PARENT"
+          }
+        ),
         "FORBIDDEN"
       );
 
@@ -495,10 +487,7 @@ describe("Rooms service", () => {
     });
 
     test("rejects unauthenticated user", async () => {
-      await expectErrorCode(
-        roomsService.getAll({}, null),
-        "UNAUTHORIZED"
-      );
+      await expectErrorCode(roomsService.getAll({}, null), "UNAUTHORIZED");
 
       expect(prisma.room.findMany).not.toHaveBeenCalled();
     });
@@ -533,10 +522,7 @@ describe("Rooms service", () => {
     });
 
     test("throws ROOM_NOT_FOUND when room does not exist", async () => {
-      await expectErrorCode(
-        roomsService.getById(ROOM_ID, admin),
-        "ROOM_NOT_FOUND"
-      );
+      await expectErrorCode(roomsService.getById(ROOM_ID, admin), "ROOM_NOT_FOUND");
     });
 
     test("rejects user without read permissions", async () => {
@@ -598,10 +584,7 @@ describe("Rooms service", () => {
     test("rejects duplicate room name", async () => {
       prisma.room.findFirst.mockResolvedValue(room);
 
-      await expectErrorCode(
-        roomsService.create(createRoomData, admin),
-        "ROOM_NAME_EXISTS"
-      );
+      await expectErrorCode(roomsService.create(createRoomData, admin), "ROOM_NAME_EXISTS");
 
       expect(prisma.room.create).not.toHaveBeenCalled();
     });
@@ -624,10 +607,7 @@ describe("Rooms service", () => {
     });
 
     test("rejects teacher access", async () => {
-      await expectErrorCode(
-        roomsService.create(createRoomData, teacher),
-        "FORBIDDEN"
-      );
+      await expectErrorCode(roomsService.create(createRoomData, teacher), "FORBIDDEN");
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -641,10 +621,7 @@ describe("Rooms service", () => {
         code: prismaCode
       });
 
-      await expectErrorCode(
-        roomsService.create(createRoomData, admin),
-        expectedCode
-      );
+      await expectErrorCode(roomsService.create(createRoomData, admin), expectedCode);
     });
   });
 
@@ -655,17 +632,11 @@ describe("Rooms service", () => {
         name: "Updated Room"
       };
 
-      prisma.room.findFirst
-        .mockResolvedValueOnce(room)
-        .mockResolvedValueOnce(null);
+      prisma.room.findFirst.mockResolvedValueOnce(room).mockResolvedValueOnce(null);
 
       prisma.room.update.mockResolvedValue(updatedRoom);
 
-      const result = await roomsService.update(
-        ROOM_ID,
-        { name: " Updated Room " },
-        admin
-      );
+      const result = await roomsService.update(ROOM_ID, { name: " Updated Room " }, admin);
 
       expect(result).toEqual(updatedRoom);
 
@@ -692,11 +663,7 @@ describe("Rooms service", () => {
     test("updates only provided fields", async () => {
       prisma.room.findFirst.mockResolvedValueOnce(room);
 
-      await roomsService.update(
-        ROOM_ID,
-        { capacity: 30 },
-        manager
-      );
+      await roomsService.update(ROOM_ID, { capacity: 30 }, manager);
 
       expect(prisma.room.update).toHaveBeenCalledWith({
         where: { id: ROOM_ID },
@@ -709,25 +676,15 @@ describe("Rooms service", () => {
     test("does not check uniqueness when name is not provided", async () => {
       prisma.room.findFirst.mockResolvedValueOnce(room);
 
-      await roomsService.update(
-        ROOM_ID,
-        { purpose: "New purpose" },
-        admin
-      );
+      await roomsService.update(ROOM_ID, { purpose: "New purpose" }, admin);
 
       expect(prisma.room.findFirst).toHaveBeenCalledTimes(1);
     });
 
     test("checks unique name excluding current room", async () => {
-      prisma.room.findFirst
-        .mockResolvedValueOnce(room)
-        .mockResolvedValueOnce(null);
+      prisma.room.findFirst.mockResolvedValueOnce(room).mockResolvedValueOnce(null);
 
-      await roomsService.update(
-        ROOM_ID,
-        { name: "New Room" },
-        admin
-      );
+      await roomsService.update(ROOM_ID, { name: "New Room" }, admin);
 
       expect(prisma.room.findFirst).toHaveBeenNthCalledWith(2, {
         where: {
@@ -743,19 +700,13 @@ describe("Rooms service", () => {
     });
 
     test("rejects duplicate room name", async () => {
-      prisma.room.findFirst
-        .mockResolvedValueOnce(room)
-        .mockResolvedValueOnce({
-          ...room,
-          id: "507f1f77bcf86cd799439099"
-        });
+      prisma.room.findFirst.mockResolvedValueOnce(room).mockResolvedValueOnce({
+        ...room,
+        id: "507f1f77bcf86cd799439099"
+      });
 
       await expectErrorCode(
-        roomsService.update(
-          ROOM_ID,
-          { name: "Room 101" },
-          admin
-        ),
+        roomsService.update(ROOM_ID, { name: "Room 101" }, admin),
         "ROOM_NAME_EXISTS"
       );
 
@@ -764,22 +715,14 @@ describe("Rooms service", () => {
 
     test("throws ROOM_NOT_FOUND when room does not exist", async () => {
       await expectErrorCode(
-        roomsService.update(
-          ROOM_ID,
-          { name: "New Room" },
-          admin
-        ),
+        roomsService.update(ROOM_ID, { name: "New Room" }, admin),
         "ROOM_NOT_FOUND"
       );
     });
 
     test("rejects teacher access", async () => {
       await expectErrorCode(
-        roomsService.update(
-          ROOM_ID,
-          { name: "New Room" },
-          teacher
-        ),
+        roomsService.update(ROOM_ID, { name: "New Room" }, teacher),
         "FORBIDDEN"
       );
 
@@ -794,11 +737,7 @@ describe("Rooms service", () => {
       });
 
       await expectErrorCode(
-        roomsService.update(
-          ROOM_ID,
-          { capacity: 30 },
-          admin
-        ),
+        roomsService.update(ROOM_ID, { capacity: 30 }, admin),
         "ROOM_NAME_EXISTS"
       );
     });
@@ -811,11 +750,7 @@ describe("Rooms service", () => {
       });
 
       await expectErrorCode(
-        roomsService.update(
-          ROOM_ID,
-          { capacity: 30 },
-          admin
-        ),
+        roomsService.update(ROOM_ID, { capacity: 30 }, admin),
         "RELATED_RECORD_NOT_FOUND"
       );
     });
@@ -866,10 +801,7 @@ describe("Rooms service", () => {
       prisma.room.findFirst.mockResolvedValue(room);
       prisma.group.count.mockResolvedValue(1);
 
-      await expectErrorCode(
-        roomsService.remove(ROOM_ID, admin),
-        "ROOM_IN_USE"
-      );
+      await expectErrorCode(roomsService.remove(ROOM_ID, admin), "ROOM_IN_USE");
 
       expect(prisma.room.update).not.toHaveBeenCalled();
       expect(auditService.createLog).not.toHaveBeenCalled();
@@ -885,19 +817,13 @@ describe("Rooms service", () => {
     });
 
     test("throws ROOM_NOT_FOUND when room does not exist", async () => {
-      await expectErrorCode(
-        roomsService.remove(ROOM_ID, admin),
-        "ROOM_NOT_FOUND"
-      );
+      await expectErrorCode(roomsService.remove(ROOM_ID, admin), "ROOM_NOT_FOUND");
 
       expect(prisma.group.count).not.toHaveBeenCalled();
     });
 
     test("rejects teacher access", async () => {
-      await expectErrorCode(
-        roomsService.remove(ROOM_ID, teacher),
-        "FORBIDDEN"
-      );
+      await expectErrorCode(roomsService.remove(ROOM_ID, teacher), "FORBIDDEN");
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -916,9 +842,7 @@ describe("Rooms routes", () => {
   }
 
   test("uses authentication middleware", () => {
-    const authLayer = roomsRoutes.stack.find(
-      (layer) => layer.handle === requireAuth
-    );
+    const authLayer = roomsRoutes.stack.find((layer) => layer.handle === requireAuth);
 
     expect(authLayer).toBeDefined();
   });
@@ -926,9 +850,7 @@ describe("Rooms routes", () => {
   test("defines all required routes", () => {
     const routes = getRoutes();
 
-    expect(
-      routes.map(({ method, path }) => `${method} ${path}`)
-    ).toEqual([
+    expect(routes.map(({ method, path }) => `${method} ${path}`)).toEqual([
       "get /",
       "get /:id",
       "post /",
@@ -940,21 +862,11 @@ describe("Rooms routes", () => {
   test("GET routes allow all read roles", () => {
     const routes = getRoutes();
 
-    const expectedRoles = [
-      "ADMIN",
-      "MANAGER",
-      "TEACHER",
-      "EDUCATOR",
-      "ASSISTANT"
-    ];
+    const expectedRoles = ["ADMIN", "MANAGER", "TEACHER", "EDUCATOR", "ASSISTANT"];
 
-    const getAllRoute = routes.find(
-      (item) => item.method === "get" && item.path === "/"
-    );
+    const getAllRoute = routes.find((item) => item.method === "get" && item.path === "/");
 
-    const getByIdRoute = routes.find(
-      (item) => item.method === "get" && item.path === "/:id"
-    );
+    const getByIdRoute = routes.find((item) => item.method === "get" && item.path === "/:id");
 
     expect(getAllRoute.handlers[0].allowedRoles).toEqual(expectedRoles);
     expect(getByIdRoute.handlers[0].allowedRoles).toEqual(expectedRoles);
@@ -965,17 +877,11 @@ describe("Rooms routes", () => {
 
     const expectedRoles = ["ADMIN", "MANAGER"];
 
-    const postRoute = routes.find(
-      (item) => item.method === "post" && item.path === "/"
-    );
+    const postRoute = routes.find((item) => item.method === "post" && item.path === "/");
 
-    const patchRoute = routes.find(
-      (item) => item.method === "patch" && item.path === "/:id"
-    );
+    const patchRoute = routes.find((item) => item.method === "patch" && item.path === "/:id");
 
-    const deleteRoute = routes.find(
-      (item) => item.method === "delete" && item.path === "/:id"
-    );
+    const deleteRoute = routes.find((item) => item.method === "delete" && item.path === "/:id");
 
     expect(postRoute.handlers[0].allowedRoles).toEqual(expectedRoles);
     expect(patchRoute.handlers[0].allowedRoles).toEqual(expectedRoles);
@@ -983,36 +889,28 @@ describe("Rooms routes", () => {
   });
 
   test("GET / uses query validation", () => {
-    const route = getRoutes().find(
-      (item) => item.method === "get" && item.path === "/"
-    );
+    const route = getRoutes().find((item) => item.method === "get" && item.path === "/");
 
     expect(route.handlers[1].validationProperty).toBe("query");
     expect(route.handlers[1].schema).toBe(validation.searchRoomSchema);
   });
 
   test("GET /:id uses params validation", () => {
-    const route = getRoutes().find(
-      (item) => item.method === "get" && item.path === "/:id"
-    );
+    const route = getRoutes().find((item) => item.method === "get" && item.path === "/:id");
 
     expect(route.handlers[1].validationProperty).toBe("params");
     expect(route.handlers[1].schema).toBe(validation.roomIdSchema);
   });
 
   test("POST / uses body validation", () => {
-    const route = getRoutes().find(
-      (item) => item.method === "post" && item.path === "/"
-    );
+    const route = getRoutes().find((item) => item.method === "post" && item.path === "/");
 
     expect(route.handlers[1].validationProperty).toBe("body");
     expect(route.handlers[1].schema).toBe(validation.createRoomSchema);
   });
 
   test("PATCH /:id validates params and body", () => {
-    const route = getRoutes().find(
-      (item) => item.method === "patch" && item.path === "/:id"
-    );
+    const route = getRoutes().find((item) => item.method === "patch" && item.path === "/:id");
 
     expect(route.handlers[1].validationProperty).toBe("params");
     expect(route.handlers[1].schema).toBe(validation.roomIdSchema);
@@ -1022,9 +920,7 @@ describe("Rooms routes", () => {
   });
 
   test("DELETE /:id uses params validation", () => {
-    const route = getRoutes().find(
-      (item) => item.method === "delete" && item.path === "/:id"
-    );
+    const route = getRoutes().find((item) => item.method === "delete" && item.path === "/:id");
 
     expect(route.handlers[1].validationProperty).toBe("params");
     expect(route.handlers[1].schema).toBe(validation.roomIdSchema);

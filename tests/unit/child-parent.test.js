@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   $transaction: jest.fn(),
   child: {
@@ -30,9 +29,7 @@ jest.mock("../../src/modules/child-parent/child-parent.service", () => ({
   complete: jest.fn()
 }));
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
 jest.mock("../../src/middleware/rbac.middleware", () =>
   jest.fn((...allowedRoles) => {
@@ -49,9 +46,7 @@ jest.mock("../../src/middleware/validate.middleware", () =>
 const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
 const service = require("../../src/modules/child-parent/child-parent.service");
-const realService = jest.requireActual(
-  "../../src/modules/child-parent/child-parent.service"
-);
+const realService = jest.requireActual("../../src/modules/child-parent/child-parent.service");
 
 const controller = require("../../src/modules/child-parent/child-parent.controller");
 const router = require("../../src/modules/child-parent/child-parent.routes");
@@ -135,11 +130,7 @@ describe("Child-Parent Controller", () => {
 
     await controller.getForChild(req, res);
 
-    expect(service.getForChild).toHaveBeenCalledWith(
-      "child-1",
-      true,
-      req.user
-    );
+    expect(service.getForChild).toHaveBeenCalledWith("child-1", true, req.user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -157,11 +148,7 @@ describe("Child-Parent Controller", () => {
 
     await controller.getForParent(req, res);
 
-    expect(service.getForParent).toHaveBeenCalledWith(
-      "parent-1",
-      false,
-      req.user
-    );
+    expect(service.getForParent).toHaveBeenCalledWith("parent-1", false, req.user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -191,9 +178,7 @@ describe("Child-Parent Routes", () => {
   test("registers authentication middleware", () => {
     const authMiddleware = require("../../src/middleware/auth.middleware");
 
-    expect(
-      router.stack.some((layer) => layer.handle === authMiddleware)
-    ).toBe(true);
+    expect(router.stack.some((layer) => layer.handle === authMiddleware)).toBe(true);
   });
 
   test("registers role authorization middleware", () => {
@@ -264,21 +249,18 @@ describe("Child-Parent Validation", () => {
       expect(result.error).toBeUndefined();
     });
 
-    test.each([
-      "MOTHER",
-      "FATHER",
-      "GUARDIAN",
-      "GRANDPARENT",
-      "OTHER"
-    ])("accepts relation %s", (relation) => {
-      const result = validation.createLinkSchema.validate({
-        childId,
-        parentId,
-        relation
-      });
+    test.each(["MOTHER", "FATHER", "GUARDIAN", "GRANDPARENT", "OTHER"])(
+      "accepts relation %s",
+      (relation) => {
+        const result = validation.createLinkSchema.validate({
+          childId,
+          parentId,
+          relation
+        });
 
-      expect(result.error).toBeUndefined();
-    });
+        expect(result.error).toBeUndefined();
+      }
+    );
 
     test("rejects invalid childId", () => {
       const result = validation.createLinkSchema.validate({
@@ -803,17 +785,13 @@ describe("Child-Parent Service", () => {
     test("rejects missing relationship", async () => {
       prisma.childParent.findFirst.mockResolvedValue(null);
 
-      await expect(
-        realService.getById(linkId, admin)
-      ).rejects.toMatchObject({
+      await expect(realService.getById(linkId, admin)).rejects.toMatchObject({
         code: "CHILD_PARENT_NOT_FOUND"
       });
     });
 
     test("rejects missing user", async () => {
-      await expect(
-        realService.getById(linkId, null)
-      ).rejects.toMatchObject({
+      await expect(realService.getById(linkId, null)).rejects.toMatchObject({
         code: "UNAUTHORIZED"
       });
     });
@@ -909,9 +887,7 @@ describe("Child-Parent Service", () => {
     test("rejects child not accessible to user", async () => {
       prisma.child.findFirst.mockResolvedValue(null);
 
-      await expect(
-        realService.getForChild(childId, false, admin)
-      ).rejects.toMatchObject({
+      await expect(realService.getForChild(childId, false, admin)).rejects.toMatchObject({
         code: "CHILD_NOT_FOUND"
       });
 
@@ -987,9 +963,7 @@ describe("Child-Parent Service", () => {
         status: "ACTIVE"
       });
 
-      await expect(
-        realService.getForParent(parentId, false, parentUser)
-      ).rejects.toMatchObject({
+      await expect(realService.getForParent(parentId, false, parentUser)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
@@ -997,9 +971,7 @@ describe("Child-Parent Service", () => {
     test("rejects parent without parent record", async () => {
       prisma.parent.findFirst.mockResolvedValue(null);
 
-      await expect(
-        realService.getForParent(parentId, false, parentUser)
-      ).rejects.toMatchObject({
+      await expect(realService.getForParent(parentId, false, parentUser)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
     });
@@ -1067,18 +1039,14 @@ describe("Child-Parent Service", () => {
     test("rejects employee when parent does not exist", async () => {
       prisma.parent.findUnique.mockResolvedValue(null);
 
-      await expect(
-        realService.getForParent(parentId, false, teacher)
-      ).rejects.toMatchObject({
+      await expect(realService.getForParent(parentId, false, teacher)).rejects.toMatchObject({
         code: "PARENT_NOT_FOUND"
       });
     });
 
     test("returns empty list when employee has no accessible links", async () => {
       prisma.parent.findUnique.mockResolvedValue(activeParent);
-      prisma.childParent.findMany
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([]);
+      prisma.childParent.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
 
       const result = await realService.getForParent(parentId, false, teacher);
 
@@ -1137,9 +1105,7 @@ describe("Child-Parent Service", () => {
     });
 
     test("rejects user without management access", async () => {
-      await expect(
-        realService.complete(linkId, parentUser)
-      ).rejects.toMatchObject({
+      await expect(realService.complete(linkId, parentUser)).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
 
@@ -1149,9 +1115,7 @@ describe("Child-Parent Service", () => {
     test("rejects missing relationship", async () => {
       tx.childParent.findUnique.mockResolvedValue(null);
 
-      await expect(
-        realService.complete(linkId, admin)
-      ).rejects.toMatchObject({
+      await expect(realService.complete(linkId, admin)).rejects.toMatchObject({
         code: "CHILD_PARENT_NOT_FOUND"
       });
     });
@@ -1162,9 +1126,7 @@ describe("Child-Parent Service", () => {
         endDate: new Date("2026-02-01")
       });
 
-      await expect(
-        realService.complete(linkId, admin)
-      ).rejects.toMatchObject({
+      await expect(realService.complete(linkId, admin)).rejects.toMatchObject({
         code: "RELATIONSHIP_ALREADY_ENDED"
       });
 
@@ -1176,9 +1138,7 @@ describe("Child-Parent Service", () => {
         code: "P2025"
       });
 
-      await expect(
-        realService.complete(linkId, admin)
-      ).rejects.toMatchObject({
+      await expect(realService.complete(linkId, admin)).rejects.toMatchObject({
         code: "RELATED_RECORD_NOT_FOUND"
       });
     });

@@ -1,4 +1,3 @@
-
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -28,18 +27,13 @@ jest.mock("../../src/middleware/validate.middleware", () =>
   jest.fn(() => (req, res, next) => next())
 );
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
 const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
 const authService = require("../../src/modules/auth/auth.service");
 const authController = require("../../src/modules/auth/auth.controller");
-const {
-  registerSchema,
-  loginSchema
-} = require("../../src/modules/auth/auth.validation");
+const { registerSchema, loginSchema } = require("../../src/modules/auth/auth.validation");
 const HTTP_STATUS = require("../../src/utils/http-status");
 
 const authRouter = require("../../src/modules/auth/auth.routes");
@@ -251,9 +245,7 @@ describe("Auth service", () => {
 
   describe("getJwtSecret", () => {
     it("should return a valid JWT secret", () => {
-      expect(authService.getJwtSecret()).toBe(
-        "test-secret-that-is-at-least-32-characters"
-      );
+      expect(authService.getJwtSecret()).toBe("test-secret-that-is-at-least-32-characters");
     });
 
     it("should throw when JWT_SECRET is missing", () => {
@@ -338,9 +330,7 @@ describe("Auth service", () => {
     beforeEach(() => {
       tx.user.create.mockReset();
 
-      prisma.$transaction.mockImplementation(async (callback) =>
-        callback(tx)
-      );
+      prisma.$transaction.mockImplementation(async (callback) => callback(tx));
     });
 
     it("should register a new user successfully", async () => {
@@ -391,9 +381,9 @@ describe("Auth service", () => {
     it("should reject registration when email already exists", async () => {
       prisma.user.findUnique.mockResolvedValue(validUser);
 
-      await expect(
-        authService.register(registrationData)
-      ).rejects.toThrow("Email is already registered");
+      await expect(authService.register(registrationData)).rejects.toThrow(
+        "Email is already registered"
+      );
 
       expect(bcrypt.hash).not.toHaveBeenCalled();
       expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -407,9 +397,9 @@ describe("Auth service", () => {
         code: "P2002"
       });
 
-      await expect(
-        authService.register(registrationData)
-      ).rejects.toThrow("Email is already registered");
+      await expect(authService.register(registrationData)).rejects.toThrow(
+        "Email is already registered"
+      );
     });
 
     it("should rethrow other transaction errors", async () => {
@@ -420,17 +410,15 @@ describe("Auth service", () => {
 
       prisma.$transaction.mockRejectedValue(error);
 
-      await expect(
-        authService.register(registrationData)
-      ).rejects.toThrow("Database error");
+      await expect(authService.register(registrationData)).rejects.toThrow("Database error");
     });
 
     it("should not create a token when registration fails", async () => {
       prisma.user.findUnique.mockResolvedValue(validUser);
 
-      await expect(
-        authService.register(registrationData)
-      ).rejects.toThrow("Email is already registered");
+      await expect(authService.register(registrationData)).rejects.toThrow(
+        "Email is already registered"
+      );
 
       expect(jwt.sign).not.toHaveBeenCalled();
     });
@@ -455,10 +443,7 @@ describe("Auth service", () => {
         }
       });
 
-      expect(bcrypt.compare).toHaveBeenCalledWith(
-        "password123",
-        validUser.passwordHash
-      );
+      expect(bcrypt.compare).toHaveBeenCalledWith("password123", validUser.passwordHash);
 
       expect(result).toEqual({
         user: publicUser,
@@ -469,9 +454,7 @@ describe("Auth service", () => {
     it("should reject login when user does not exist", async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(
-        authService.login(loginData)
-      ).rejects.toThrow("Invalid email or password");
+      await expect(authService.login(loginData)).rejects.toThrow("Invalid email or password");
 
       expect(bcrypt.compare).not.toHaveBeenCalled();
     });
@@ -482,9 +465,7 @@ describe("Auth service", () => {
         passwordHash: null
       });
 
-      await expect(
-        authService.login(loginData)
-      ).rejects.toThrow("Invalid email or password");
+      await expect(authService.login(loginData)).rejects.toThrow("Invalid email or password");
 
       expect(bcrypt.compare).not.toHaveBeenCalled();
     });
@@ -493,9 +474,7 @@ describe("Auth service", () => {
       prisma.user.findUnique.mockResolvedValue(validUser);
       bcrypt.compare.mockResolvedValue(false);
 
-      await expect(
-        authService.login(loginData)
-      ).rejects.toThrow("Invalid email or password");
+      await expect(authService.login(loginData)).rejects.toThrow("Invalid email or password");
 
       expect(jwt.sign).not.toHaveBeenCalled();
     });
@@ -508,9 +487,7 @@ describe("Auth service", () => {
 
       bcrypt.compare.mockResolvedValue(true);
 
-      await expect(
-        authService.login(loginData)
-      ).rejects.toThrow("Invalid email or password");
+      await expect(authService.login(loginData)).rejects.toThrow("Invalid email or password");
 
       expect(jwt.sign).not.toHaveBeenCalled();
     });
@@ -536,9 +513,7 @@ describe("Auth service", () => {
     it("should reject when user does not exist", async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(
-        authService.getMe(validUser.id)
-      ).rejects.toThrow("User not found or inactive");
+      await expect(authService.getMe(validUser.id)).rejects.toThrow("User not found or inactive");
     });
 
     it("should reject when user is inactive", async () => {
@@ -547,9 +522,7 @@ describe("Auth service", () => {
         isActive: false
       });
 
-      await expect(
-        authService.getMe(validUser.id)
-      ).rejects.toThrow("User not found or inactive");
+      await expect(authService.getMe(validUser.id)).rejects.toThrow("User not found or inactive");
     });
   });
 
@@ -565,9 +538,7 @@ describe("Auth service", () => {
       tx.user.findUnique.mockReset();
       tx.user.update.mockReset();
 
-      prisma.$transaction.mockImplementation(async (callback) =>
-        callback(tx)
-      );
+      prisma.$transaction.mockImplementation(async (callback) => callback(tx));
     });
 
     it("should increment tokenVersion and create an audit log", async () => {
@@ -621,9 +592,7 @@ describe("Auth service", () => {
     it("should throw when user does not exist", async () => {
       tx.user.findUnique.mockResolvedValue(null);
 
-      await expect(
-        authService.logout(validUser.id)
-      ).rejects.toThrow("User not found");
+      await expect(authService.logout(validUser.id)).rejects.toThrow("User not found");
 
       expect(tx.user.update).not.toHaveBeenCalled();
       expect(auditService.createLog).not.toHaveBeenCalled();
@@ -656,9 +625,7 @@ describe("Auth controller", () => {
 
       await authController.register(req, res);
 
-      expect(authService.register).toHaveBeenCalledWith(
-        res.locals.validated.body
-      );
+      expect(authService.register).toHaveBeenCalledWith(res.locals.validated.body);
 
       expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
       expect(res.json).toHaveBeenCalledWith({
@@ -687,9 +654,7 @@ describe("Auth controller", () => {
 
       await authController.login(req, res);
 
-      expect(authService.login).toHaveBeenCalledWith(
-        res.locals.validated.body
-      );
+      expect(authService.login).toHaveBeenCalledWith(res.locals.validated.body);
 
       expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
       expect(res.json).toHaveBeenCalledWith({
@@ -786,13 +751,9 @@ describe("Auth routes", () => {
   it("should use validation middleware for registration and login", () => {
     const routes = authRouter.stack.filter((layer) => layer.route);
 
-    const registerHandlers = routes.find(
-      (layer) => layer.route.path === "/register"
-    ).route.stack;
+    const registerHandlers = routes.find((layer) => layer.route.path === "/register").route.stack;
 
-    const loginHandlers = routes.find(
-      (layer) => layer.route.path === "/login"
-    ).route.stack;
+    const loginHandlers = routes.find((layer) => layer.route.path === "/login").route.stack;
 
     expect(registerHandlers).toHaveLength(2);
     expect(loginHandlers).toHaveLength(2);
@@ -801,13 +762,9 @@ describe("Auth routes", () => {
   it("should use authentication middleware for protected routes", () => {
     const routes = authRouter.stack.filter((layer) => layer.route);
 
-    const meHandlers = routes.find(
-      (layer) => layer.route.path === "/me"
-    ).route.stack;
+    const meHandlers = routes.find((layer) => layer.route.path === "/me").route.stack;
 
-    const logoutHandlers = routes.find(
-      (layer) => layer.route.path === "/logout"
-    ).route.stack;
+    const logoutHandlers = routes.find((layer) => layer.route.path === "/logout").route.stack;
 
     expect(meHandlers).toHaveLength(2);
     expect(logoutHandlers).toHaveLength(2);

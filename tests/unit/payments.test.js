@@ -37,13 +37,9 @@ jest.mock("../../src/modules/billing/payments/payments.service", () => ({
   getCreditBalance: jest.fn()
 }));
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
-jest.mock("../../src/middleware/rbac.middleware", () =>
-  jest.fn(() => (req, res, next) => next())
-);
+jest.mock("../../src/middleware/rbac.middleware", () => jest.fn(() => (req, res, next) => next()));
 
 jest.mock("../../src/middleware/validate.middleware", () =>
   jest.fn(() => (req, res, next) => next())
@@ -53,7 +49,9 @@ const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
 const creditService = require("../../src/modules/billing/credit-balance.service");
 const paymentsService = require("../../src/modules/billing/payments/payments.service");
-const realPaymentsService = jest.requireActual("../../src/modules/billing/payments/payments.service");
+const realPaymentsService = jest.requireActual(
+  "../../src/modules/billing/payments/payments.service"
+);
 const controller = require("../../src/modules/billing/payments/payments.controller");
 const router = require("../../src/modules/billing/payments/payments.routes");
 const validation = require("../../src/modules/billing/payments/payments.validation");
@@ -487,10 +485,7 @@ describe("Payments service", () => {
       const payments = [{ id: paymentId, amount: 1000, allocations: [] }];
       prisma.payment.findMany.mockResolvedValue(payments);
 
-      const result = await realPaymentsService.getAll(
-        { payerId, status: "COMPLETED" },
-        user
-      );
+      const result = await realPaymentsService.getAll({ payerId, status: "COMPLETED" }, user);
 
       expect(prisma.payment.findMany).toHaveBeenCalledWith({
         where: { payerId, status: "COMPLETED" },
@@ -536,10 +531,7 @@ describe("Payments service", () => {
     test("applies date filters", async () => {
       prisma.payment.findMany.mockResolvedValue([]);
 
-      await realPaymentsService.getAll(
-        { from: "2026-01-01", to: "2026-12-31" },
-        user
-      );
+      await realPaymentsService.getAll({ from: "2026-01-01", to: "2026-12-31" }, user);
 
       expect(prisma.payment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -581,9 +573,9 @@ describe("Payments service", () => {
     test("throws when payment does not exist", async () => {
       prisma.payment.findUnique.mockResolvedValue(null);
 
-      await expect(
-        realPaymentsService.getById(paymentId, user)
-      ).rejects.toMatchObject({ code: "PAYMENT_NOT_FOUND" });
+      await expect(realPaymentsService.getById(paymentId, user)).rejects.toMatchObject({
+        code: "PAYMENT_NOT_FOUND"
+      });
     });
 
     test("forbids parent from accessing another parent's payment", async () => {
@@ -610,15 +602,9 @@ describe("Payments service", () => {
         status: "ISSUED"
       });
 
-      prisma.paymentAllocation.findMany.mockResolvedValue([
-        { amount: 300n },
-        { amount: 200n }
-      ]);
+      prisma.paymentAllocation.findMany.mockResolvedValue([{ amount: 300n }, { amount: 200n }]);
 
-      const result = await realPaymentsService.calculateInvoiceBalance(
-        prisma,
-        invoiceId
-      );
+      const result = await realPaymentsService.calculateInvoiceBalance(prisma, invoiceId);
 
       expect(result.paidAmount).toBe(500n);
       expect(result.balance).toBe(500n);
@@ -640,14 +626,9 @@ describe("Payments service", () => {
         status: "ISSUED"
       });
 
-      prisma.paymentAllocation.findMany.mockResolvedValue([
-        { amount: 200n }
-      ]);
+      prisma.paymentAllocation.findMany.mockResolvedValue([{ amount: 200n }]);
 
-      const result = await realPaymentsService.calculateInvoiceBalance(
-        prisma,
-        invoiceId
-      );
+      const result = await realPaymentsService.calculateInvoiceBalance(prisma, invoiceId);
 
       expect(result.balance).toBe(0n);
     });
@@ -661,19 +642,14 @@ describe("Payments service", () => {
         status: "ISSUED"
       });
 
-      prisma.paymentAllocation.findMany.mockResolvedValue([
-        { amount: 1000n }
-      ]);
+      prisma.paymentAllocation.findMany.mockResolvedValue([{ amount: 1000n }]);
 
       prisma.invoice.update.mockResolvedValue({
         id: invoiceId,
         status: "PAID"
       });
 
-      const result = await realPaymentsService.updateInvoiceStatus(
-        prisma,
-        invoiceId
-      );
+      const result = await realPaymentsService.updateInvoiceStatus(prisma, invoiceId);
 
       expect(prisma.invoice.update).toHaveBeenCalledWith({
         where: { id: invoiceId },
@@ -690,9 +666,7 @@ describe("Payments service", () => {
         status: "ISSUED"
       });
 
-      prisma.paymentAllocation.findMany.mockResolvedValue([
-        { amount: 300n }
-      ]);
+      prisma.paymentAllocation.findMany.mockResolvedValue([{ amount: 300n }]);
 
       prisma.invoice.update.mockResolvedValue({
         id: invoiceId,
@@ -811,50 +785,59 @@ describe("Payments service", () => {
 
     test("rejects non-positive allocation amount", async () => {
       await expect(
-        realPaymentsService.create({
-          ...validPayment,
-          allocations: [{ invoiceId, amount: 0 }]
-        }, user)
+        realPaymentsService.create(
+          {
+            ...validPayment,
+            allocations: [{ invoiceId, amount: 0 }]
+          },
+          user
+        )
       ).rejects.toMatchObject({ code: "INVALID_ALLOCATION_AMOUNT" });
     });
 
     test("rejects allocations exceeding payment amount", async () => {
       await expect(
-        realPaymentsService.create({
-          ...validPayment,
-          amount: 100,
-          allocations: [{ invoiceId, amount: 200 }]
-        }, user)
+        realPaymentsService.create(
+          {
+            ...validPayment,
+            amount: 100,
+            allocations: [{ invoiceId, amount: 200 }]
+          },
+          user
+        )
       ).rejects.toMatchObject({ code: "ALLOCATION_TOTAL_EXCEEDS_PAYMENT" });
     });
 
     test("rejects duplicate invoice allocations", async () => {
       await expect(
-        realPaymentsService.create({
-          ...validPayment,
-          allocations: [
-            { invoiceId, amount: 100 },
-            { invoiceId, amount: 200 }
-          ]
-        }, user)
+        realPaymentsService.create(
+          {
+            ...validPayment,
+            allocations: [
+              { invoiceId, amount: 100 },
+              { invoiceId, amount: 200 }
+            ]
+          },
+          user
+        )
       ).rejects.toMatchObject({ code: "DUPLICATE_INVOICE_ALLOCATION" });
     });
 
     test("rejects duplicate idempotency key", async () => {
       prisma.payment.findUnique.mockResolvedValue({ id: paymentId });
 
-      await expect(
-        realPaymentsService.create(validPayment, user)
-      ).rejects.toMatchObject({ code: "DUPLICATE_PAYMENT" });
+      await expect(realPaymentsService.create(validPayment, user)).rejects.toMatchObject({
+        code: "DUPLICATE_PAYMENT"
+      });
     });
 
     test("rejects missing payer", async () => {
       prisma.payment.findUnique.mockResolvedValue(null);
       prisma.parent.findUnique.mockResolvedValue(null);
 
-      await expect(
-        realPaymentsService.create(validPayment, user)
-      ).rejects.toMatchObject({ code: "PAYER_NOT_FOUND" });
+      await expect(realPaymentsService.create(validPayment, user)).rejects.toMatchObject({
+        code: "PAYER_NOT_FOUND"
+      });
     });
 
     test("rejects inactive payer", async () => {
@@ -864,9 +847,9 @@ describe("Payments service", () => {
         status: "INACTIVE"
       });
 
-      await expect(
-        realPaymentsService.create(validPayment, user)
-      ).rejects.toMatchObject({ code: "PAYER_NOT_ACTIVE" });
+      await expect(realPaymentsService.create(validPayment, user)).rejects.toMatchObject({
+        code: "PAYER_NOT_ACTIVE"
+      });
     });
 
     test("forbids parent from paying for another payer", async () => {
@@ -894,9 +877,9 @@ describe("Payments service", () => {
       });
       prisma.invoice.findMany.mockResolvedValue([]);
 
-      await expect(
-        realPaymentsService.create(validPayment, user)
-      ).rejects.toMatchObject({ code: "INVOICE_NOT_FOUND" });
+      await expect(realPaymentsService.create(validPayment, user)).rejects.toMatchObject({
+        code: "INVOICE_NOT_FOUND"
+      });
     });
 
     test("rejects invoice payer mismatch", async () => {
@@ -910,9 +893,9 @@ describe("Payments service", () => {
         }
       ]);
 
-      await expect(
-        realPaymentsService.create(validPayment, user)
-      ).rejects.toMatchObject({ code: "PAYER_MISMATCH" });
+      await expect(realPaymentsService.create(validPayment, user)).rejects.toMatchObject({
+        code: "PAYER_MISMATCH"
+      });
     });
 
     test("rejects non-payable invoice", async () => {
@@ -926,9 +909,9 @@ describe("Payments service", () => {
         }
       ]);
 
-      await expect(
-        realPaymentsService.create(validPayment, user)
-      ).rejects.toMatchObject({ code: "INVOICE_NOT_PAYABLE" });
+      await expect(realPaymentsService.create(validPayment, user)).rejects.toMatchObject({
+        code: "INVOICE_NOT_PAYABLE"
+      });
     });
 
     test("rejects allocation exceeding invoice balance", async () => {
@@ -940,18 +923,21 @@ describe("Payments service", () => {
         amountDue: 500n
       });
 
-      await expect(
-        realPaymentsService.create(validPayment, user)
-      ).rejects.toMatchObject({ code: "ALLOCATION_EXCEEDS_BALANCE" });
+      await expect(realPaymentsService.create(validPayment, user)).rejects.toMatchObject({
+        code: "ALLOCATION_EXCEEDS_BALANCE"
+      });
     });
 
     test("creates overpayment credit transaction", async () => {
       setupCreate();
 
-      await realPaymentsService.create({
-        ...validPayment,
-        amount: 1500
-      }, user);
+      await realPaymentsService.create(
+        {
+          ...validPayment,
+          amount: 1500
+        },
+        user
+      );
 
       expect(creditService.postTransaction).toHaveBeenCalledWith(
         prisma,
@@ -1011,9 +997,9 @@ describe("Payments service", () => {
     test("throws when payment does not exist", async () => {
       prisma.payment.findUnique.mockResolvedValue(null);
 
-      await expect(
-        realPaymentsService.cancel(paymentId, user)
-      ).rejects.toMatchObject({ code: "PAYMENT_NOT_FOUND" });
+      await expect(realPaymentsService.cancel(paymentId, user)).rejects.toMatchObject({
+        code: "PAYMENT_NOT_FOUND"
+      });
     });
 
     test("throws when payment is already cancelled", async () => {
@@ -1023,9 +1009,9 @@ describe("Payments service", () => {
         allocations: []
       });
 
-      await expect(
-        realPaymentsService.cancel(paymentId, user)
-      ).rejects.toMatchObject({ code: "PAYMENT_ALREADY_CANCELLED" });
+      await expect(realPaymentsService.cancel(paymentId, user)).rejects.toMatchObject({
+        code: "PAYMENT_ALREADY_CANCELLED"
+      });
     });
 
     test("throws when payment is not completed", async () => {
@@ -1035,9 +1021,9 @@ describe("Payments service", () => {
         allocations: []
       });
 
-      await expect(
-        realPaymentsService.cancel(paymentId, user)
-      ).rejects.toMatchObject({ code: "PAYMENT_NOT_COMPLETED" });
+      await expect(realPaymentsService.cancel(paymentId, user)).rejects.toMatchObject({
+        code: "PAYMENT_NOT_COMPLETED"
+      });
     });
   });
 
@@ -1072,12 +1058,15 @@ describe("Payments service", () => {
         status: "PARTIALLY_PAID"
       });
 
-      const result = await realPaymentsService.applyCredit({
-        payerId,
-        invoiceId,
-        amount: 500,
-        idempotencyKey: "credit-key-123"
-      }, user);
+      const result = await realPaymentsService.applyCredit(
+        {
+          payerId,
+          invoiceId,
+          amount: 500,
+          idempotencyKey: "credit-key-123"
+        },
+        user
+      );
 
       expect(creditService.applyCredit).toHaveBeenCalledWith(
         prisma,
@@ -1105,10 +1094,13 @@ describe("Payments service", () => {
 
     test("requires payer for non-parent user", async () => {
       await expect(
-        realPaymentsService.applyCredit({
-          invoiceId,
-          idempotencyKey: "credit-key-123"
-        }, user)
+        realPaymentsService.applyCredit(
+          {
+            invoiceId,
+            idempotencyKey: "credit-key-123"
+          },
+          user
+        )
       ).rejects.toMatchObject({ code: "PAYER_REQUIRED" });
     });
 
@@ -1116,11 +1108,14 @@ describe("Payments service", () => {
       prisma.parent.findUnique.mockResolvedValue(null);
 
       await expect(
-        realPaymentsService.applyCredit({
-          payerId,
-          invoiceId,
-          idempotencyKey: "credit-key-123"
-        }, user)
+        realPaymentsService.applyCredit(
+          {
+            payerId,
+            invoiceId,
+            idempotencyKey: "credit-key-123"
+          },
+          user
+        )
       ).rejects.toMatchObject({ code: "PAYER_NOT_FOUND" });
     });
 
@@ -1131,11 +1126,14 @@ describe("Payments service", () => {
       });
 
       await expect(
-        realPaymentsService.applyCredit({
-          payerId,
-          invoiceId,
-          idempotencyKey: "credit-key-123"
-        }, user)
+        realPaymentsService.applyCredit(
+          {
+            payerId,
+            invoiceId,
+            idempotencyKey: "credit-key-123"
+          },
+          user
+        )
       ).rejects.toMatchObject({ code: "PAYER_NOT_ACTIVE" });
     });
 
@@ -1160,13 +1158,16 @@ describe("Payments service", () => {
       prisma.paymentAllocation.findMany.mockResolvedValue([]);
       prisma.invoice.update.mockResolvedValue({ id: invoiceId });
 
-      await realPaymentsService.applyCredit({
-        invoiceId,
-        idempotencyKey: "credit-key-123"
-      }, {
-        id: "parent-user",
-        role: "PARENT"
-      });
+      await realPaymentsService.applyCredit(
+        {
+          invoiceId,
+          idempotencyKey: "credit-key-123"
+        },
+        {
+          id: "parent-user",
+          role: "PARENT"
+        }
+      );
 
       expect(prisma.parent.findUnique).toHaveBeenCalledWith({
         where: { userId: "parent-user" },
@@ -1178,14 +1179,17 @@ describe("Payments service", () => {
       prisma.parent.findUnique.mockResolvedValue({ id: payerId });
 
       await expect(
-        realPaymentsService.applyCredit({
-          payerId: "another-payer",
-          invoiceId,
-          idempotencyKey: "credit-key-123"
-        }, {
-          id: "parent-user",
-          role: "PARENT"
-        })
+        realPaymentsService.applyCredit(
+          {
+            payerId: "another-payer",
+            invoiceId,
+            idempotencyKey: "credit-key-123"
+          },
+          {
+            id: "parent-user",
+            role: "PARENT"
+          }
+        )
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
@@ -1201,9 +1205,9 @@ describe("Payments service", () => {
     });
 
     test("requires payerId for admin", async () => {
-      await expect(
-        realPaymentsService.getCreditBalance(user)
-      ).rejects.toMatchObject({ code: "PAYER_REQUIRED" });
+      await expect(realPaymentsService.getCreditBalance(user)).rejects.toMatchObject({
+        code: "PAYER_REQUIRED"
+      });
     });
 
     test("uses parent's own profile", async () => {
@@ -1223,10 +1227,13 @@ describe("Payments service", () => {
       prisma.parent.findUnique.mockResolvedValue({ id: payerId });
 
       await expect(
-        realPaymentsService.getCreditBalance({
-          id: "parent-user",
-          role: "PARENT"
-        }, "another-payer")
+        realPaymentsService.getCreditBalance(
+          {
+            id: "parent-user",
+            role: "PARENT"
+          },
+          "another-payer"
+        )
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });

@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   expense: {
     findMany: jest.fn(),
@@ -15,13 +14,9 @@ jest.mock("../../src/middleware/validate.middleware", () =>
   jest.fn(() => (req, res, next) => next())
 );
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
-jest.mock("../../src/middleware/rbac.middleware", () =>
-  jest.fn(() => (req, res, next) => next())
-);
+jest.mock("../../src/middleware/rbac.middleware", () => jest.fn(() => (req, res, next) => next()));
 
 const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
@@ -378,10 +373,7 @@ describe("Expenses service", () => {
 
       expect(prisma.expense.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
 
       expect(result).toEqual([serializedExpense]);
@@ -399,10 +391,7 @@ describe("Expenses service", () => {
         where: {
           category
         },
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
     });
 
@@ -417,10 +406,7 @@ describe("Expenses service", () => {
         where: {
           groupId
         },
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
     });
 
@@ -437,10 +423,7 @@ describe("Expenses service", () => {
             gte: new Date("2026-01-01T00:00:00.000Z")
           }
         },
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
     });
 
@@ -457,10 +440,7 @@ describe("Expenses service", () => {
             lt: new Date("2026-02-01T00:00:00.000Z")
           }
         },
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
     });
 
@@ -479,10 +459,7 @@ describe("Expenses service", () => {
             lt: new Date("2026-02-01T00:00:00.000Z")
           }
         },
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
     });
 
@@ -505,10 +482,7 @@ describe("Expenses service", () => {
             lt: new Date("2026-02-01T00:00:00.000Z")
           }
         },
-        orderBy: [
-          { expenseDate: "desc" },
-          { createdAt: "desc" }
-        ]
+        orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }]
       });
     });
 
@@ -553,9 +527,7 @@ describe("Expenses service", () => {
     it("should throw when expense does not exist", async () => {
       prisma.expense.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.getById(validId)
-      ).rejects.toThrow("Expense not found");
+      await expect(service.getById(validId)).rejects.toThrow("Expense not found");
     });
   });
 
@@ -580,9 +552,7 @@ describe("Expenses service", () => {
       tx.group.findUnique.mockReset();
       tx.expense.create.mockReset();
 
-      prisma.$transaction.mockImplementation(async (callback) =>
-        callback(tx)
-      );
+      prisma.$transaction.mockImplementation(async (callback) => callback(tx));
     });
 
     it("should create an expense successfully without a group", async () => {
@@ -699,9 +669,7 @@ describe("Expenses service", () => {
 
       prisma.$transaction.mockRejectedValue(error);
 
-      await expect(
-        service.create(createData, actorId)
-      ).rejects.toThrow("Database error");
+      await expect(service.create(createData, actorId)).rejects.toThrow("Database error");
     });
   });
 });
@@ -713,9 +681,7 @@ describe("Expenses controller", () => {
 
   describe("getAll", () => {
     it("should return all expenses", async () => {
-      jest.spyOn(service, "getAll").mockResolvedValue([
-        serializedExpense
-      ]);
+      jest.spyOn(service, "getAll").mockResolvedValue([serializedExpense]);
 
       const req = {};
       const res = createResponse();
@@ -740,9 +706,7 @@ describe("Expenses controller", () => {
 
   describe("getById", () => {
     it("should return an expense by id", async () => {
-      jest.spyOn(service, "getById").mockResolvedValue(
-        serializedExpense
-      );
+      jest.spyOn(service, "getById").mockResolvedValue(serializedExpense);
 
       const req = {};
       const res = createResponse();
@@ -764,9 +728,7 @@ describe("Expenses controller", () => {
 
   describe("create", () => {
     it("should create an expense and return 201", async () => {
-      jest.spyOn(service, "create").mockResolvedValue(
-        serializedExpense
-      );
+      jest.spyOn(service, "create").mockResolvedValue(serializedExpense);
 
       const req = {
         user: {
@@ -785,10 +747,7 @@ describe("Expenses controller", () => {
 
       await controller.create(req, res);
 
-      expect(service.create).toHaveBeenCalledWith(
-        res.locals.validated.body,
-        actorId
-      );
+      expect(service.create).toHaveBeenCalledWith(res.locals.validated.body, actorId);
 
       expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
       expect(res.json).toHaveBeenCalledWith({
@@ -831,9 +790,7 @@ describe("Expenses routes", () => {
   });
 
   it("should register authentication and role middleware", () => {
-    const middlewareLayers = router.stack.filter(
-      (layer) => !layer.route
-    );
+    const middlewareLayers = router.stack.filter((layer) => !layer.route);
 
     expect(middlewareLayers.length).toBeGreaterThanOrEqual(2);
   });

@@ -1,25 +1,20 @@
-
 jest.mock("../../src/config/prisma", () => ({
   auditLog: {
     create: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
-    findUnique: jest.fn(),
+    findUnique: jest.fn()
   },
-  $transaction: jest.fn(),
+  $transaction: jest.fn()
 }));
 
 jest.mock("../../src/middleware/validate.middleware", () =>
-  jest.fn(() => (req, res, next) => next()),
+  jest.fn(() => (req, res, next) => next())
 );
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next()),
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
-jest.mock("../../src/middleware/rbac.middleware", () =>
-  jest.fn(() => (req, res, next) => next()),
-);
+jest.mock("../../src/middleware/rbac.middleware", () => jest.fn(() => (req, res, next) => next()));
 
 const prisma = require("../../src/config/prisma");
 const service = require("../../src/modules/audit/audit.service");
@@ -28,7 +23,7 @@ const controller = require("../../src/modules/audit/audit.controller");
 const {
   auditActionSchema,
   auditFiltersSchema,
-  auditIdSchema,
+  auditIdSchema
 } = require("../../src/modules/audit/audit.validation");
 
 const HTTP_STATUS = require("../../src/utils/http-status");
@@ -45,8 +40,8 @@ const validAuditData = {
   before: null,
   after: {
     firstName: "Іван",
-    lastName: "Іваненко",
-  },
+    lastName: "Іваненко"
+  }
 };
 
 function createAuditLog(overrides = {}) {
@@ -59,28 +54,23 @@ function createAuditLog(overrides = {}) {
     before: null,
     after: {
       firstName: "Іван",
-      lastName: "Іваненко",
+      lastName: "Іваненко"
     },
     createdAt: new Date("2026-10-10T10:00:00.000Z"),
-    ...overrides,
+    ...overrides
   };
 }
 
 describe("Audit validation", () => {
   describe("auditActionSchema", () => {
-    test.each([
-      "CREATE",
-      "UPDATE",
-      "DELETE",
-      "ARCHIVE",
-      "RESTORE",
-      "PAYMENT",
-      "CANCEL",
-    ])("accepts action %s", (action) => {
-      const result = auditActionSchema.validate(action);
+    test.each(["CREATE", "UPDATE", "DELETE", "ARCHIVE", "RESTORE", "PAYMENT", "CANCEL"])(
+      "accepts action %s",
+      (action) => {
+        const result = auditActionSchema.validate(action);
 
-      expect(result.error).toBeUndefined();
-    });
+        expect(result.error).toBeUndefined();
+      }
+    );
 
     test("rejects an unsupported action", () => {
       const result = auditActionSchema.validate("LOGIN");
@@ -112,22 +102,14 @@ describe("Audit validation", () => {
         entityType: "Child",
         action: "CREATE",
         page: 2,
-        limit: 50,
+        limit: 50
       });
 
       expect(result.error).toBeUndefined();
     });
 
     test("accepts every valid audit action", () => {
-      const actions = [
-        "CREATE",
-        "UPDATE",
-        "DELETE",
-        "ARCHIVE",
-        "RESTORE",
-        "PAYMENT",
-        "CANCEL",
-      ];
+      const actions = ["CREATE", "UPDATE", "DELETE", "ARCHIVE", "RESTORE", "PAYMENT", "CANCEL"];
 
       actions.forEach((action) => {
         const result = auditFiltersSchema.validate({ action });
@@ -138,7 +120,7 @@ describe("Audit validation", () => {
 
     test("rejects an invalid action", () => {
       const result = auditFiltersSchema.validate({
-        action: "LOGIN",
+        action: "LOGIN"
       });
 
       expect(result.error).toBeDefined();
@@ -146,7 +128,7 @@ describe("Audit validation", () => {
 
     test("rejects an invalid actor ID", () => {
       const result = auditFiltersSchema.validate({
-        actorId: "invalid-id",
+        actorId: "invalid-id"
       });
 
       expect(result.error).toBeDefined();
@@ -154,7 +136,7 @@ describe("Audit validation", () => {
 
     test("rejects an invalid date", () => {
       const result = auditFiltersSchema.validate({
-        from: "not-a-date",
+        from: "not-a-date"
       });
 
       expect(result.error).toBeDefined();
@@ -163,19 +145,17 @@ describe("Audit validation", () => {
     test("rejects a reversed date range", () => {
       const result = auditFiltersSchema.validate({
         from: "2026-10-31T00:00:00.000Z",
-        to: "2026-10-01T00:00:00.000Z",
+        to: "2026-10-01T00:00:00.000Z"
       });
 
       expect(result.error).toBeDefined();
-      expect(result.error.message).toContain(
-        '"from" must be earlier than or equal to "to"',
-      );
+      expect(result.error.message).toContain('"from" must be earlier than or equal to "to"');
     });
 
     test("accepts equal from and to dates", () => {
       const result = auditFiltersSchema.validate({
         from: "2026-10-10T10:00:00.000Z",
-        to: "2026-10-10T10:00:00.000Z",
+        to: "2026-10-10T10:00:00.000Z"
       });
 
       expect(result.error).toBeUndefined();
@@ -183,7 +163,7 @@ describe("Audit validation", () => {
 
     test("trims entityType", () => {
       const result = auditFiltersSchema.validate({
-        entityType: "  Child  ",
+        entityType: "  Child  "
       });
 
       expect(result.error).toBeUndefined();
@@ -192,7 +172,7 @@ describe("Audit validation", () => {
 
     test("rejects an empty entityType", () => {
       const result = auditFiltersSchema.validate({
-        entityType: "   ",
+        entityType: "   "
       });
 
       expect(result.error).toBeDefined();
@@ -200,7 +180,7 @@ describe("Audit validation", () => {
 
     test("rejects entityType longer than 100 characters", () => {
       const result = auditFiltersSchema.validate({
-        entityType: "a".repeat(101),
+        entityType: "a".repeat(101)
       });
 
       expect(result.error).toBeDefined();
@@ -208,7 +188,7 @@ describe("Audit validation", () => {
 
     test("rejects page less than 1", () => {
       const result = auditFiltersSchema.validate({
-        page: 0,
+        page: 0
       });
 
       expect(result.error).toBeDefined();
@@ -216,7 +196,7 @@ describe("Audit validation", () => {
 
     test("rejects a non-integer page", () => {
       const result = auditFiltersSchema.validate({
-        page: 1.5,
+        page: 1.5
       });
 
       expect(result.error).toBeDefined();
@@ -224,7 +204,7 @@ describe("Audit validation", () => {
 
     test("rejects limit less than 1", () => {
       const result = auditFiltersSchema.validate({
-        limit: 0,
+        limit: 0
       });
 
       expect(result.error).toBeDefined();
@@ -232,7 +212,7 @@ describe("Audit validation", () => {
 
     test("rejects limit greater than 100", () => {
       const result = auditFiltersSchema.validate({
-        limit: 101,
+        limit: 101
       });
 
       expect(result.error).toBeDefined();
@@ -240,7 +220,7 @@ describe("Audit validation", () => {
 
     test("rejects a non-integer limit", () => {
       const result = auditFiltersSchema.validate({
-        limit: 10.5,
+        limit: 10.5
       });
 
       expect(result.error).toBeDefined();
@@ -248,7 +228,7 @@ describe("Audit validation", () => {
 
     test("accepts the maximum limit", () => {
       const result = auditFiltersSchema.validate({
-        limit: 100,
+        limit: 100
       });
 
       expect(result.error).toBeUndefined();
@@ -258,7 +238,7 @@ describe("Audit validation", () => {
   describe("auditIdSchema", () => {
     test("accepts a valid MongoDB ObjectId", () => {
       const result = auditIdSchema.validate({
-        id: auditId,
+        id: auditId
       });
 
       expect(result.error).toBeUndefined();
@@ -266,7 +246,7 @@ describe("Audit validation", () => {
 
     test("rejects an invalid ID", () => {
       const result = auditIdSchema.validate({
-        id: "invalid",
+        id: "invalid"
       });
 
       expect(result.error).toBeDefined();
@@ -280,7 +260,7 @@ describe("Audit validation", () => {
 
     test("accepts an uppercase hexadecimal ID", () => {
       const result = auditIdSchema.validate({
-        id: "507F1F77BCF86CD799439012",
+        id: "507F1F77BCF86CD799439012"
       });
 
       expect(result.error).toBeUndefined();
@@ -305,9 +285,7 @@ describe("Audit service", () => {
     test("converts Date to ISO string", () => {
       const date = new Date("2026-10-10T10:00:00.000Z");
 
-      expect(service.prepareSnapshot(date)).toBe(
-        "2026-10-10T10:00:00.000Z",
-      );
+      expect(service.prepareSnapshot(date)).toBe("2026-10-10T10:00:00.000Z");
     });
 
     test("converts BigInt to string", () => {
@@ -333,8 +311,8 @@ describe("Audit service", () => {
         null,
         {
           name: "Іван",
-          password: "secret",
-        },
+          password: "secret"
+        }
       ]);
 
       expect(result).toEqual([
@@ -342,19 +320,19 @@ describe("Audit service", () => {
         "2026-10-10T10:00:00.000Z",
         null,
         {
-          name: "Іван",
-        },
+          name: "Іван"
+        }
       ]);
     });
 
     test("removes password fields", () => {
       const result = service.prepareSnapshot({
         username: "admin",
-        password: "secret",
+        password: "secret"
       });
 
       expect(result).toEqual({
-        username: "admin",
+        username: "admin"
       });
     });
 
@@ -362,44 +340,44 @@ describe("Audit service", () => {
       const result = service.prepareSnapshot({
         accessToken: "access",
         refreshToken: "refresh",
-        name: "Іван",
+        name: "Іван"
       });
 
       expect(result).toEqual({
-        name: "Іван",
+        name: "Іван"
       });
     });
 
     test("removes secret fields", () => {
       const result = service.prepareSnapshot({
         secretKey: "secret",
-        name: "Іван",
+        name: "Іван"
       });
 
       expect(result).toEqual({
-        name: "Іван",
+        name: "Іван"
       });
     });
 
     test("removes authorization fields", () => {
       const result = service.prepareSnapshot({
         authorization: "Bearer token",
-        name: "Іван",
+        name: "Іван"
       });
 
       expect(result).toEqual({
-        name: "Іван",
+        name: "Іван"
       });
     });
 
     test("removes cookie fields", () => {
       const result = service.prepareSnapshot({
         cookie: "session",
-        name: "Іван",
+        name: "Іван"
       });
 
       expect(result).toEqual({
-        name: "Іван",
+        name: "Іван"
       });
     });
 
@@ -407,22 +385,22 @@ describe("Audit service", () => {
       const result = service.prepareSnapshot({
         apiKey: "secret",
         api_key: "secret",
-        name: "Іван",
+        name: "Іван"
       });
 
       expect(result).toEqual({
-        name: "Іван",
+        name: "Іван"
       });
     });
 
     test("removes credential fields", () => {
       const result = service.prepareSnapshot({
         credentials: "secret",
-        name: "Іван",
+        name: "Іван"
       });
 
       expect(result).toEqual({
-        name: "Іван",
+        name: "Іван"
       });
     });
 
@@ -433,29 +411,29 @@ describe("Audit service", () => {
           password: "secret",
           profile: {
             accessToken: "token",
-            age: 20,
-          },
-        },
+            age: 20
+          }
+        }
       });
 
       expect(result).toEqual({
         user: {
           name: "Іван",
           profile: {
-            age: 20,
-          },
-        },
+            age: 20
+          }
+        }
       });
     });
 
     test("does not include undefined object properties", () => {
       const result = service.prepareSnapshot({
         name: "Іван",
-        surname: undefined,
+        surname: undefined
       });
 
       expect(result).toEqual({
-        name: "Іван",
+        name: "Іван"
       });
     });
 
@@ -464,20 +442,17 @@ describe("Audit service", () => {
         items: [
           {
             id: 1,
-            password: "secret",
+            password: "secret"
           },
           {
             id: 2,
-            token: "secret",
-          },
-        ],
+            token: "secret"
+          }
+        ]
       });
 
       expect(result).toEqual({
-        items: [
-          { id: 1 },
-          { id: 2 },
-        ],
+        items: [{ id: 1 }, { id: 2 }]
       });
     });
   });
@@ -499,9 +474,9 @@ describe("Audit service", () => {
           before: null,
           after: {
             firstName: "Іван",
-            lastName: "Іваненко",
-          },
-        },
+            lastName: "Іваненко"
+          }
+        }
       });
 
       expect(result).toBe(log);
@@ -513,7 +488,7 @@ describe("Audit service", () => {
       await service.createLog({
         action: "DELETE",
         entityType: "Child",
-        entityId,
+        entityId
       });
 
       expect(prisma.auditLog.create).toHaveBeenCalledWith({
@@ -523,8 +498,8 @@ describe("Audit service", () => {
           entityType: "Child",
           entityId,
           before: null,
-          after: null,
-        },
+          after: null
+        }
       });
     });
 
@@ -534,14 +509,14 @@ describe("Audit service", () => {
       await service.createLog({
         action: "CREATE",
         entityType: "  Child  ",
-        entityId: `  ${entityId}  `,
+        entityId: `  ${entityId}  `
       });
 
       expect(prisma.auditLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           entityType: "Child",
-          entityId,
-        }),
+          entityId
+        })
       });
     });
 
@@ -557,25 +532,25 @@ describe("Audit service", () => {
         before: {
           amount: 1000n,
           createdAt: date,
-          password: "secret",
-        },
+          password: "secret"
+        }
       });
 
       expect(prisma.auditLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           before: {
             amount: "1000",
-            createdAt: "2026-10-10T10:00:00.000Z",
-          },
-        }),
+            createdAt: "2026-10-10T10:00:00.000Z"
+          }
+        })
       });
     });
 
     test("uses the supplied transaction", async () => {
       const tx = {
         auditLog: {
-          create: jest.fn().mockResolvedValue(createAuditLog()),
-        },
+          create: jest.fn().mockResolvedValue(createAuditLog())
+        }
       };
 
       await service.createLog(validAuditData, tx);
@@ -588,12 +563,12 @@ describe("Audit service", () => {
       await expect(
         service.createLog({
           ...validAuditData,
-          action: "LOGIN",
-        }),
+          action: "LOGIN"
+        })
       ).rejects.toMatchObject({
         message: "Invalid audit action",
         code: "INVALID_AUDIT_ACTION",
-        statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+        statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY
       });
 
       expect(prisma.auditLog.create).not.toHaveBeenCalled();
@@ -603,8 +578,8 @@ describe("Audit service", () => {
       await expect(
         service.createLog({
           entityType: "Child",
-          entityId,
-        }),
+          entityId
+        })
       ).rejects.toThrow("Invalid audit action");
     });
 
@@ -612,11 +587,11 @@ describe("Audit service", () => {
       await expect(
         service.createLog({
           action: "CREATE",
-          entityId,
-        }),
+          entityId
+        })
       ).rejects.toMatchObject({
         message: "Entity type and entity ID are required",
-        code: "INVALID_AUDIT_ENTITY",
+        code: "INVALID_AUDIT_ENTITY"
       });
     });
 
@@ -625,8 +600,8 @@ describe("Audit service", () => {
         service.createLog({
           action: "CREATE",
           entityType: "   ",
-          entityId,
-        }),
+          entityId
+        })
       ).rejects.toThrow("Entity type and entity ID are required");
     });
 
@@ -634,8 +609,8 @@ describe("Audit service", () => {
       await expect(
         service.createLog({
           action: "CREATE",
-          entityType: "Child",
-        }),
+          entityType: "Child"
+        })
       ).rejects.toThrow("Entity type and entity ID are required");
     });
 
@@ -644,8 +619,8 @@ describe("Audit service", () => {
         service.createLog({
           action: "CREATE",
           entityType: "Child",
-          entityId: "   ",
-        }),
+          entityId: "   "
+        })
       ).rejects.toThrow("Entity type and entity ID are required");
     });
 
@@ -653,11 +628,11 @@ describe("Audit service", () => {
       await expect(
         service.createLog({
           ...validAuditData,
-          actorId: "invalid-id",
-        }),
+          actorId: "invalid-id"
+        })
       ).rejects.toMatchObject({
         message: "Invalid audit actor ID",
-        code: "INVALID_AUDIT_ACTOR",
+        code: "INVALID_AUDIT_ACTOR"
       });
 
       expect(prisma.auditLog.create).not.toHaveBeenCalled();
@@ -667,8 +642,8 @@ describe("Audit service", () => {
       await expect(
         service.createLog({
           ...validAuditData,
-          actorId: 123,
-        }),
+          actorId: 123
+        })
       ).rejects.toThrow("Invalid audit actor ID");
     });
 
@@ -677,13 +652,13 @@ describe("Audit service", () => {
 
       await service.createLog({
         ...validAuditData,
-        actorId: null,
+        actorId: null
       });
 
       expect(prisma.auditLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          actorId: null,
-        }),
+          actorId: null
+        })
       });
     });
 
@@ -692,7 +667,7 @@ describe("Audit service", () => {
 
       await service.createLog({
         ...validAuditData,
-        actorId: "507F1F77BCF86CD799439011",
+        actorId: "507F1F77BCF86CD799439011"
       });
 
       expect(prisma.auditLog.create).toHaveBeenCalled();
@@ -712,14 +687,14 @@ describe("Audit service", () => {
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
         where: {},
         orderBy: {
-          createdAt: "desc",
+          createdAt: "desc"
         },
         skip: 0,
-        take: 20,
+        take: 20
       });
 
       expect(prisma.auditLog.count).toHaveBeenCalledWith({
-        where: {},
+        where: {}
       });
 
       expect(result).toEqual({
@@ -728,8 +703,8 @@ describe("Audit service", () => {
           page: 1,
           limit: 20,
           total: 45,
-          totalPages: 3,
-        },
+          totalPages: 3
+        }
       });
     });
 
@@ -738,21 +713,21 @@ describe("Audit service", () => {
 
       const result = await service.getAll({
         page: 3,
-        limit: 10,
+        limit: 10
       });
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           skip: 20,
-          take: 10,
-        }),
+          take: 10
+        })
       );
 
       expect(result.pagination).toEqual({
         page: 3,
         limit: 10,
         total: 100,
-        totalPages: 10,
+        totalPages: 10
       });
     });
 
@@ -760,17 +735,17 @@ describe("Audit service", () => {
       prisma.$transaction.mockResolvedValue([[], 0]);
 
       await service.getAll({
-        from: "2026-10-01T00:00:00.000Z",
+        from: "2026-10-01T00:00:00.000Z"
       });
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             createdAt: {
-              gte: "2026-10-01T00:00:00.000Z",
-            },
-          },
-        }),
+              gte: "2026-10-01T00:00:00.000Z"
+            }
+          }
+        })
       );
     });
 
@@ -778,17 +753,17 @@ describe("Audit service", () => {
       prisma.$transaction.mockResolvedValue([[], 0]);
 
       await service.getAll({
-        to: "2026-10-31T23:59:59.000Z",
+        to: "2026-10-31T23:59:59.000Z"
       });
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             createdAt: {
-              lte: "2026-10-31T23:59:59.000Z",
-            },
-          },
-        }),
+              lte: "2026-10-31T23:59:59.000Z"
+            }
+          }
+        })
       );
     });
 
@@ -797,7 +772,7 @@ describe("Audit service", () => {
 
       await service.getAll({
         from: "2026-10-01T00:00:00.000Z",
-        to: "2026-10-31T23:59:59.000Z",
+        to: "2026-10-31T23:59:59.000Z"
       });
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
@@ -805,10 +780,10 @@ describe("Audit service", () => {
           where: {
             createdAt: {
               gte: "2026-10-01T00:00:00.000Z",
-              lte: "2026-10-31T23:59:59.000Z",
-            },
-          },
-        }),
+              lte: "2026-10-31T23:59:59.000Z"
+            }
+          }
+        })
       );
     });
 
@@ -819,8 +794,8 @@ describe("Audit service", () => {
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { actorId },
-        }),
+          where: { actorId }
+        })
       );
     });
 
@@ -831,8 +806,8 @@ describe("Audit service", () => {
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { entityType: "Child" },
-        }),
+          where: { entityType: "Child" }
+        })
       );
     });
 
@@ -843,8 +818,8 @@ describe("Audit service", () => {
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { action: "UPDATE" },
-        }),
+          where: { action: "UPDATE" }
+        })
       );
     });
 
@@ -856,7 +831,7 @@ describe("Audit service", () => {
         to: "2026-10-31T23:59:59.000Z",
         actorId,
         entityType: "Child",
-        action: "UPDATE",
+        action: "UPDATE"
       });
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
@@ -864,13 +839,13 @@ describe("Audit service", () => {
           where: {
             createdAt: {
               gte: "2026-10-01T00:00:00.000Z",
-              lte: "2026-10-31T23:59:59.000Z",
+              lte: "2026-10-31T23:59:59.000Z"
             },
             actorId,
             entityType: "Child",
-            action: "UPDATE",
-          },
-        }),
+            action: "UPDATE"
+          }
+        })
       );
     });
 
@@ -895,10 +870,7 @@ describe("Audit service", () => {
 
       await service.getAll({});
 
-      expect(prisma.$transaction).toHaveBeenCalledWith([
-        expect.any(Promise),
-        expect.any(Promise),
-      ]);
+      expect(prisma.$transaction).toHaveBeenCalledWith([expect.any(Promise), expect.any(Promise)]);
     });
   });
 
@@ -911,7 +883,7 @@ describe("Audit service", () => {
       const result = await service.getById(auditId);
 
       expect(prisma.auditLog.findUnique).toHaveBeenCalledWith({
-        where: { id: auditId },
+        where: { id: auditId }
       });
 
       expect(result).toBe(log);
@@ -923,7 +895,7 @@ describe("Audit service", () => {
       await expect(service.getById(auditId)).rejects.toMatchObject({
         message: "Audit log not found",
         code: "AUDIT_LOG_NOT_FOUND",
-        statusCode: HTTP_STATUS.NOT_FOUND,
+        statusCode: HTTP_STATUS.NOT_FOUND
       });
     });
   });
@@ -942,13 +914,13 @@ describe("Audit controller", () => {
         validated: {
           query: {
             page: 2,
-            limit: 10,
+            limit: 10
           },
           params: {
-            id: auditId,
-          },
-        },
-      },
+            id: auditId
+          }
+        }
+      }
     };
   });
 
@@ -963,19 +935,17 @@ describe("Audit controller", () => {
         page: 2,
         limit: 10,
         total: 25,
-        totalPages: 3,
-      },
+        totalPages: 3
+      }
     };
 
-    const spy = jest
-      .spyOn(service, "getAll")
-      .mockResolvedValue(result);
+    const spy = jest.spyOn(service, "getAll").mockResolvedValue(result);
 
     await controller.getAll({}, res);
 
     expect(spy).toHaveBeenCalledWith({
       page: 2,
-      limit: 10,
+      limit: 10
     });
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
@@ -983,16 +953,14 @@ describe("Audit controller", () => {
     expect(res.json).toHaveBeenCalledWith({
       success: true,
       data: result.items,
-      pagination: result.pagination,
+      pagination: result.pagination
     });
   });
 
   test("getById returns an audit log", async () => {
     const log = createAuditLog();
 
-    const spy = jest
-      .spyOn(service, "getById")
-      .mockResolvedValue(log);
+    const spy = jest.spyOn(service, "getById").mockResolvedValue(log);
 
     await controller.getById({}, res);
 
@@ -1002,28 +970,20 @@ describe("Audit controller", () => {
 
     expect(res.json).toHaveBeenCalledWith({
       success: true,
-      data: log,
+      data: log
     });
   });
 
   test("getAll propagates service errors", async () => {
-    jest
-      .spyOn(service, "getAll")
-      .mockRejectedValue(new Error("Database error"));
+    jest.spyOn(service, "getAll").mockRejectedValue(new Error("Database error"));
 
-    await expect(controller.getAll({}, res)).rejects.toThrow(
-      "Database error",
-    );
+    await expect(controller.getAll({}, res)).rejects.toThrow("Database error");
   });
 
   test("getById propagates service errors", async () => {
-    jest
-      .spyOn(service, "getById")
-      .mockRejectedValue(new Error("Audit log not found"));
+    jest.spyOn(service, "getById").mockRejectedValue(new Error("Audit log not found"));
 
-    await expect(controller.getById({}, res)).rejects.toThrow(
-      "Audit log not found",
-    );
+    await expect(controller.getById({}, res)).rejects.toThrow("Audit log not found");
   });
 });
 
@@ -1035,21 +995,19 @@ describe("Audit routes", () => {
       .filter((layer) => layer.route)
       .map((layer) => ({
         path: layer.route.path,
-        method: Object.keys(layer.route.methods)[0],
+        method: Object.keys(layer.route.methods)[0]
       }));
 
     expect(routes).toEqual([
       { path: "/", method: "get" },
-      { path: "/:id", method: "get" },
+      { path: "/:id", method: "get" }
     ]);
   });
 
   test("registers authentication and authorization middleware", () => {
     const router = require("../../src/modules/audit/audit.routes");
 
-    const middlewareLayers = router.stack.filter(
-      (layer) => !layer.route,
-    );
+    const middlewareLayers = router.stack.filter((layer) => !layer.route);
 
     expect(middlewareLayers.length).toBeGreaterThan(0);
   });

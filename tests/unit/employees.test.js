@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   $transaction: jest.fn(),
   employee: {
@@ -35,9 +34,7 @@ jest.mock("../../src/modules/employees/employees.service", () => ({
   remove: jest.fn()
 }));
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
 jest.mock("../../src/middleware/rbac.middleware", () =>
   jest.fn((...allowedRoles) => {
@@ -73,15 +70,12 @@ const {
 
 const employeeRouter = require("../../src/modules/employees/employees.routes");
 
-const realService = jest.requireActual(
-  "../../src/modules/employees/employees.service"
-);
+const realService = jest.requireActual("../../src/modules/employees/employees.service");
 
 const ADMIN = {
   id: "111111111111111111111111",
   role: "ADMIN"
 };
-
 
 const USER_ID = "333333333333333333333333";
 const EMPLOYEE_ID = "aaaaaaaaaaaaaaaaaaaaaaaa";
@@ -146,10 +140,7 @@ describe("Employees Controller", () => {
 
     await controller.getAll(req, res);
 
-    expect(service.getAll).toHaveBeenCalledWith(
-      { status: "ACTIVE" },
-      ADMIN
-    );
+    expect(service.getAll).toHaveBeenCalledWith({ status: "ACTIVE" }, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -167,10 +158,7 @@ describe("Employees Controller", () => {
 
     await controller.getById(req, res);
 
-    expect(service.getById).toHaveBeenCalledWith(
-      EMPLOYEE_ID,
-      ADMIN
-    );
+    expect(service.getById).toHaveBeenCalledWith(EMPLOYEE_ID, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -188,10 +176,7 @@ describe("Employees Controller", () => {
 
     await controller.create(req, res);
 
-    expect(service.create).toHaveBeenCalledWith(
-      validEmployee,
-      ADMIN
-    );
+    expect(service.create).toHaveBeenCalledWith(validEmployee, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
     expect(res.json).toHaveBeenCalledWith({
@@ -215,11 +200,7 @@ describe("Employees Controller", () => {
 
     await controller.update(req, res);
 
-    expect(service.update).toHaveBeenCalledWith(
-      EMPLOYEE_ID,
-      updateData,
-      ADMIN
-    );
+    expect(service.update).toHaveBeenCalledWith(EMPLOYEE_ID, updateData, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
   });
@@ -233,14 +214,9 @@ describe("Employees Controller", () => {
 
     await controller.remove(req, res);
 
-    expect(service.remove).toHaveBeenCalledWith(
-      EMPLOYEE_ID,
-      ADMIN
-    );
+    expect(service.remove).toHaveBeenCalledWith(EMPLOYEE_ID, ADMIN);
 
-    expect(res.status).toHaveBeenCalledWith(
-      HTTP_STATUS.NO_CONTENT
-    );
+    expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.NO_CONTENT);
 
     expect(res.send).toHaveBeenCalled();
   });
@@ -248,9 +224,7 @@ describe("Employees Controller", () => {
 
 describe("Employees Routes", () => {
   test("should register authentication middleware", () => {
-    const registered = employeeRouter.stack.some(
-      (layer) => layer.handle === authMiddleware
-    );
+    const registered = employeeRouter.stack.some((layer) => layer.handle === authMiddleware);
 
     expect(registered).toBe(true);
   });
@@ -529,10 +503,7 @@ describe("Employees Service", () => {
   });
 
   test("getAll should filter employees by status", async () => {
-    await realService.getAll(
-      { status: "INACTIVE" },
-      ADMIN
-    );
+    await realService.getAll({ status: "INACTIVE" }, ADMIN);
 
     expect(prisma.employee.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -544,10 +515,7 @@ describe("Employees Service", () => {
   });
 
   test("getAll should filter employees by role", async () => {
-    await realService.getAll(
-      { role: "TEACHER" },
-      ADMIN
-    );
+    await realService.getAll({ role: "TEACHER" }, ADMIN);
 
     expect(prisma.employee.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -560,10 +528,7 @@ describe("Employees Service", () => {
   });
 
   test("getAll should search by name and employee code", async () => {
-    await realService.getAll(
-      { search: "Ivan" },
-      ADMIN
-    );
+    await realService.getAll({ search: "Ivan" }, ADMIN);
 
     expect(prisma.employee.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -608,29 +573,27 @@ describe("Employees Service", () => {
   });
 
   test("getAll should reject unauthenticated user", async () => {
-    await expect(
-      realService.getAll({}, null)
-    ).rejects.toMatchObject({
+    await expect(realService.getAll({}, null)).rejects.toMatchObject({
       code: "UNAUTHORIZED"
     });
   });
 
   test("getAll should reject user with unsupported role", async () => {
     await expect(
-      realService.getAll({}, {
-        id: USER_ID,
-        role: "PARENT"
-      })
+      realService.getAll(
+        {},
+        {
+          id: USER_ID,
+          role: "PARENT"
+        }
+      )
     ).rejects.toMatchObject({
       code: "FORBIDDEN"
     });
   });
 
   test("getById should return employee for administrator", async () => {
-    const result = await realService.getById(
-      EMPLOYEE_ID,
-      ADMIN
-    );
+    const result = await realService.getById(EMPLOYEE_ID, ADMIN);
 
     expect(result).toEqual(employee);
 
@@ -658,18 +621,13 @@ describe("Employees Service", () => {
   test("getById should reject when employee does not exist", async () => {
     prisma.employee.findUnique.mockResolvedValue(null);
 
-    await expect(
-      realService.getById(EMPLOYEE_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.getById(EMPLOYEE_ID, ADMIN)).rejects.toMatchObject({
       code: "EMPLOYEE_NOT_FOUND"
     });
   });
 
   test("create should create employee", async () => {
-    const result = await realService.create(
-      validEmployee,
-      ADMIN
-    );
+    const result = await realService.create(validEmployee, ADMIN);
 
     expect(result).toEqual(employee);
 
@@ -749,9 +707,7 @@ describe("Employees Service", () => {
       employeeCode: "EMP001"
     });
 
-    await expect(
-      realService.create(validEmployee, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.create(validEmployee, ADMIN)).rejects.toMatchObject({
       code: "EMPLOYEE_CODE_EXISTS"
     });
   });
@@ -759,9 +715,7 @@ describe("Employees Service", () => {
   test("create should reject when linked user does not exist", async () => {
     tx.user.findUnique.mockResolvedValue(null);
 
-    await expect(
-      realService.create(validEmployee, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.create(validEmployee, ADMIN)).rejects.toMatchObject({
       code: "USER_NOT_FOUND"
     });
   });
@@ -772,9 +726,7 @@ describe("Employees Service", () => {
       role: "EDUCATOR"
     });
 
-    await expect(
-      realService.create(validEmployee, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.create(validEmployee, ADMIN)).rejects.toMatchObject({
       code: "USER_ROLE_MISMATCH"
     });
   });
@@ -782,9 +734,7 @@ describe("Employees Service", () => {
   test("create should reject when user is already linked", async () => {
     tx.employee.findFirst.mockResolvedValue(employee);
 
-    await expect(
-      realService.create(validEmployee, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.create(validEmployee, ADMIN)).rejects.toMatchObject({
       code: "USER_ALREADY_LINKED"
     });
   });
@@ -799,9 +749,7 @@ describe("Employees Service", () => {
   });
 
   test("create should reject user without management permissions", async () => {
-    await expect(
-      realService.create(validEmployee, TEACHER)
-    ).rejects.toMatchObject({
+    await expect(realService.create(validEmployee, TEACHER)).rejects.toMatchObject({
       code: "FORBIDDEN"
     });
   });
@@ -814,11 +762,7 @@ describe("Employees Service", () => {
 
     tx.employee.update.mockResolvedValue(updatedEmployee);
 
-    const result = await realService.update(
-      EMPLOYEE_ID,
-      { firstName: "Petro" },
-      ADMIN
-    );
+    const result = await realService.update(EMPLOYEE_ID, { firstName: "Petro" }, ADMIN);
 
     expect(result).toEqual(updatedEmployee);
 
@@ -846,11 +790,7 @@ describe("Employees Service", () => {
     tx.employee.findUnique.mockResolvedValue(null);
 
     await expect(
-      realService.update(
-        EMPLOYEE_ID,
-        { firstName: "Petro" },
-        ADMIN
-      )
+      realService.update(EMPLOYEE_ID, { firstName: "Petro" }, ADMIN)
     ).rejects.toMatchObject({
       code: "EMPLOYEE_NOT_FOUND"
     });
@@ -860,11 +800,7 @@ describe("Employees Service", () => {
     tx.staffAssignment.count.mockResolvedValue(1);
 
     await expect(
-      realService.update(
-        EMPLOYEE_ID,
-        { role: "EDUCATOR" },
-        ADMIN
-      )
+      realService.update(EMPLOYEE_ID, { role: "EDUCATOR" }, ADMIN)
     ).rejects.toMatchObject({
       code: "EMPLOYEE_HAS_ASSIGNMENTS"
     });
@@ -874,11 +810,7 @@ describe("Employees Service", () => {
     tx.staffAssignment.count.mockResolvedValue(1);
 
     await expect(
-      realService.update(
-        EMPLOYEE_ID,
-        { status: "INACTIVE" },
-        ADMIN
-      )
+      realService.update(EMPLOYEE_ID, { status: "INACTIVE" }, ADMIN)
     ).rejects.toMatchObject({
       code: "EMPLOYEE_HAS_ASSIGNMENTS"
     });
@@ -888,11 +820,7 @@ describe("Employees Service", () => {
     tx.teacherSubject.count.mockResolvedValue(1);
 
     await expect(
-      realService.update(
-        EMPLOYEE_ID,
-        { role: "EDUCATOR" },
-        ADMIN
-      )
+      realService.update(EMPLOYEE_ID, { role: "EDUCATOR" }, ADMIN)
     ).rejects.toMatchObject({
       code: "EMPLOYEE_HAS_SUBJECTS"
     });
@@ -902,11 +830,7 @@ describe("Employees Service", () => {
     tx.scheduleItem.count.mockResolvedValue(1);
 
     await expect(
-      realService.update(
-        EMPLOYEE_ID,
-        { role: "EDUCATOR" },
-        ADMIN
-      )
+      realService.update(EMPLOYEE_ID, { role: "EDUCATOR" }, ADMIN)
     ).rejects.toMatchObject({
       code: "EMPLOYEE_HAS_SCHEDULE_ITEMS"
     });
@@ -920,11 +844,7 @@ describe("Employees Service", () => {
 
     tx.employee.update.mockResolvedValue(updatedEmployee);
 
-    await realService.update(
-      EMPLOYEE_ID,
-      { status: "INACTIVE" },
-      ADMIN
-    );
+    await realService.update(EMPLOYEE_ID, { status: "INACTIVE" }, ADMIN);
 
     expect(tx.user.update).toHaveBeenCalledWith({
       where: { id: USER_ID },
@@ -937,11 +857,7 @@ describe("Employees Service", () => {
 
   test("update should reject user without management permissions", async () => {
     await expect(
-      realService.update(
-        EMPLOYEE_ID,
-        { firstName: "Petro" },
-        TEACHER
-      )
+      realService.update(EMPLOYEE_ID, { firstName: "Petro" }, TEACHER)
     ).rejects.toMatchObject({
       code: "FORBIDDEN"
     });
@@ -955,10 +871,7 @@ describe("Employees Service", () => {
 
     tx.employee.update.mockResolvedValue(archivedEmployee);
 
-    const result = await realService.remove(
-      EMPLOYEE_ID,
-      ADMIN
-    );
+    const result = await realService.remove(EMPLOYEE_ID, ADMIN);
 
     expect(result).toEqual(archivedEmployee);
 
@@ -995,9 +908,7 @@ describe("Employees Service", () => {
   test("remove should reject employee with active responsibilities", async () => {
     tx.staffAssignment.count.mockResolvedValue(1);
 
-    await expect(
-      realService.remove(EMPLOYEE_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.remove(EMPLOYEE_ID, ADMIN)).rejects.toMatchObject({
       code: "EMPLOYEE_HAS_RESPONSIBILITIES"
     });
   });
@@ -1005,9 +916,7 @@ describe("Employees Service", () => {
   test("remove should reject employee with assigned subjects", async () => {
     tx.teacherSubject.count.mockResolvedValue(1);
 
-    await expect(
-      realService.remove(EMPLOYEE_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.remove(EMPLOYEE_ID, ADMIN)).rejects.toMatchObject({
       code: "EMPLOYEE_HAS_RESPONSIBILITIES"
     });
   });
@@ -1015,9 +924,7 @@ describe("Employees Service", () => {
   test("remove should reject employee with active schedule items", async () => {
     tx.scheduleItem.count.mockResolvedValue(1);
 
-    await expect(
-      realService.remove(EMPLOYEE_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.remove(EMPLOYEE_ID, ADMIN)).rejects.toMatchObject({
       code: "EMPLOYEE_HAS_RESPONSIBILITIES"
     });
   });
@@ -1025,17 +932,13 @@ describe("Employees Service", () => {
   test("remove should reject when employee does not exist", async () => {
     tx.employee.findUnique.mockResolvedValue(null);
 
-    await expect(
-      realService.remove(EMPLOYEE_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.remove(EMPLOYEE_ID, ADMIN)).rejects.toMatchObject({
       code: "EMPLOYEE_NOT_FOUND"
     });
   });
 
   test("remove should reject user without management permissions", async () => {
-    await expect(
-      realService.remove(EMPLOYEE_ID, TEACHER)
-    ).rejects.toMatchObject({
+    await expect(realService.remove(EMPLOYEE_ID, TEACHER)).rejects.toMatchObject({
       code: "FORBIDDEN"
     });
   });
