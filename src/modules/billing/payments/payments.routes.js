@@ -1,18 +1,63 @@
 const express = require("express");
 
 const paymentsController = require("./payments.controller");
+
 const validate = require("../../../middleware/validate.middleware");
+const requireAuth = require("../../../middleware/auth.middleware");
+const authorizeRoles = require("../../../middleware/rbac.middleware");
+
 const {
   createPaymentSchema,
   paymentIdSchema,
-  listPaymentsSchema
+  listPaymentsSchema,
+  applyCreditSchema,
+  creditBalanceQuerySchema
 } = require("./payments.validation");
 
 const router = express.Router();
 
-router.get("/", validate(listPaymentsSchema, "query"), paymentsController.getAll);
-router.get("/:id", validate(paymentIdSchema, "params"), paymentsController.getById);
-router.post("/", validate(createPaymentSchema), paymentsController.create);
-router.patch("/:id/cancel", validate(paymentIdSchema, "params"), paymentsController.cancel);
+router.use(requireAuth);
+
+router.get(
+  "/",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(listPaymentsSchema, "query"),
+  paymentsController.getAll
+);
+
+router.get(
+  "/credit-balance",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(creditBalanceQuerySchema, "query"),
+  paymentsController.getCreditBalance
+);
+
+router.post(
+  "/credit/apply",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(applyCreditSchema, "body"),
+  paymentsController.applyCredit
+);
+
+router.get(
+  "/:id",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(paymentIdSchema, "params"),
+  paymentsController.getById
+);
+
+router.post(
+  "/",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(createPaymentSchema, "body"),
+  paymentsController.create
+);
+
+router.patch(
+  "/:id/cancel",
+  authorizeRoles("ADMIN", "MANAGER"),
+  validate(paymentIdSchema, "params"),
+  paymentsController.cancel
+);
 
 module.exports = router;

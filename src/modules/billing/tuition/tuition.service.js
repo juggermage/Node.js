@@ -1,6 +1,7 @@
 const prisma = require("../../../config/prisma");
 const AppError = require("../../../utils/app-error");
 const HTTP_STATUS = require("../../../utils/http-status");
+const auditService = require("../../audit/audit.service");
 
 const DEFAULT_TUITION_RATE = 15000;
 const ANNUAL_PREPAYMENT_DISCOUNT = 12;
@@ -17,6 +18,7 @@ function parseDay(value) {
   }
 
   const validFormat = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+
   const date = validFormat ? new Date(`${value}T00:00:00.000Z`) : new Date(NaN);
 
   if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
@@ -31,10 +33,14 @@ function validatePeriod(start, end) {
   const to = parseDay(end);
 
   if (from > to) {
-    fail("Period start is after period end", 422, "INVALID_PERIOD");
+    fail("Period start is after period end", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_PERIOD");
   }
 
-  return { from, to, days: Math.round((to - from) / DAY_MS) + 1 };
+  return {
+    from,
+    to,
+    days: Math.round((to - from) / DAY_MS) + 1
+  };
 }
 
 function roundPercentage(amount, percentage) {
@@ -62,13 +68,18 @@ async function getAllRates({ onDate } = {}) {
   if (onDate) {
     const date = parseDay(onDate);
 
-    where.validFrom = { lte: date };
+    where.validFrom = {
+      lte: date
+    };
+
     where.OR = [{ validTo: null }, { validTo: { gte: date } }];
   }
 
   const rates = await prisma.tuitionRate.findMany({
     where,
-    orderBy: { validFrom: "desc" }
+    orderBy: {
+      validFrom: "desc"
+    }
   });
 
   return rates.map(serializeRate);
@@ -79,14 +90,18 @@ async function getApplicableRate(onDate) {
 
   const rate = await prisma.tuitionRate.findFirst({
     where: {
-      validFrom: { lte: date },
+      validFrom: {
+        lte: date
+      },
       OR: [{ validTo: null }, { validTo: { gte: date } }]
     },
-    orderBy: { validFrom: "desc" }
+    orderBy: {
+      validFrom: "desc"
+    }
   });
 
   if (!rate) {
-    fail("Tuition rate not found", 404, "TUITION_RATE_NOT_FOUND");
+    fail("Tuition rate not found", HTTP_STATUS.NOT_FOUND, "TUITION_RATE_NOT_FOUND");
   }
 
   return rate;
@@ -96,60 +111,75 @@ async function getRateForPeriod(from, to) {
   const rate = await getApplicableRate(from);
 
   if (rate.validFrom > from || (rate.validTo && rate.validTo < to)) {
-    fail("Rate changes during period", 409, "RATE_PERIOD_CONFLICT");
+    fail("Rate changes during period", HTTP_STATUS.CONFLICT, "RATE_PERIOD_CONFLICT");
   }
 
   return rate;
 }
 
-async function createRate({ name, amount, validFrom, validTo = null }) {
+async function createRate({ name, amount, validFrom, validTo = null }, actorId) {
   if (!Number.isSafeInteger(amount) || amount <= 0) {
-    fail("Invalid tuition rate", 422, "INVALID_TUITION_RATE");
+    fail("Invalid tuition rate", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_TUITION_RATE");
   }
 
   const normalizedName = name.trim();
 
   if (!normalizedName) {
-    fail("Rate name is required", 422, "INVALID_RATE_NAME");
+    fail("Rate name is required", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_RATE_NAME");
   }
 
   const from = parseDay(validFrom);
   const to = validTo === null ? null : parseDay(validTo);
 
   if (to && to < from) {
-    fail("Invalid rate period", 422, "INVALID_PERIOD");
+    fail("Invalid rate period", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_PERIOD");
   }
 
-  const overlap = await prisma.tuitionRate.findFirst({
-    where: {
-      validFrom: {
-        lte: to || new Date("9999-12-31T00:00:00.000Z")
+  return prisma.$transaction(async (tx) => {
+    const overlap = await tx.tuitionRate.findFirst({
+      where: {
+        validFrom: {
+          lte: to || new Date("9999-12-31T00:00:00.000Z")
+        },
+        OR: [{ validTo: null }, { validTo: { gte: from } }]
+      }
+    });
+
+    if (overlap) {
+      fail("Overlapping tuition rate", HTTP_STATUS.CONFLICT, "TUITION_RATE_CONFLICT");
+    }
+
+    const rate = await tx.tuitionRate.create({
+      data: {
+        name: normalizedName,
+        amount: BigInt(amount),
+        validFrom: from,
+        validTo: to
+      }
+    });
+
+    await auditService.createLog(
+      {
+        actorId,
+        action: "CREATE",
+        entityType: "TuitionRate",
+        entityId: rate.id,
+        after: rate
       },
-      OR: [{ validTo: null }, { validTo: { gte: from } }]
-    }
+      tx
+    );
+
+    return serializeRate(rate);
   });
-
-  if (overlap) {
-    fail("Overlapping tuition rate", 409, "TUITION_RATE_CONFLICT");
-  }
-
-  const rate = await prisma.tuitionRate.create({
-    data: {
-      name: normalizedName,
-      amount: BigInt(amount),
-      validFrom: from,
-      validTo: to
-    }
-  });
-
-  return serializeRate(rate);
 }
 
 async function getApplicableDiscount(childId, from, to) {
   const assignments = await prisma.childDiscount.findMany({
     where: {
       childId,
-      validFrom: { lte: to },
+      validFrom: {
+        lte: to
+      },
       OR: [{ validTo: null }, { validTo: { gte: from } }],
       discount: {
         isActive: true
@@ -170,7 +200,11 @@ async function getApplicableDiscount(childId, from, to) {
   });
 
   if (applicable.length > 1) {
-    fail("More than one applicable discount assigned to child", 409, "MULTIPLE_DISCOUNTS");
+    fail(
+      "More than one applicable discount assigned to child",
+      HTTP_STATUS.CONFLICT,
+      "MULTIPLE_DISCOUNTS"
+    );
   }
 
   return applicable.length ? applicable[0].discount : null;
@@ -178,7 +212,9 @@ async function getApplicableDiscount(childId, from, to) {
 
 async function getActiveChild(childId) {
   const child = await prisma.child.findUnique({
-    where: { id: childId },
+    where: {
+      id: childId
+    },
     select: {
       id: true,
       status: true
@@ -186,7 +222,7 @@ async function getActiveChild(childId) {
   });
 
   if (!child || child.status !== "ACTIVE") {
-    fail("Active child not found", 404, "CHILD_NOT_FOUND");
+    fail("Active child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
   }
 
   return child;
@@ -194,7 +230,7 @@ async function getActiveChild(childId) {
 
 function calculateDiscountedAmount(baseAmount, discountPercentage) {
   if (!ALLOWED_DISCOUNTS.includes(discountPercentage)) {
-    fail("Invalid discount value", 422, "INVALID_DISCOUNT_VALUE");
+    fail("Invalid discount value", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_DISCOUNT_VALUE");
   }
 
   return roundPercentage(baseAmount, discountPercentage);
@@ -213,6 +249,7 @@ function buildCalculation({
   const baseAmount = monthlyAmount * BigInt(months);
 
   const regularDiscountPercentage = discount ? discount.percentage : 0;
+
   const afterRegularDiscount = regularDiscountPercentage
     ? calculateDiscountedAmount(baseAmount, regularDiscountPercentage)
     : baseAmount;
@@ -261,7 +298,11 @@ async function calculateMonthlyTuitionCost({ childId, periodStart, periodEnd }) 
     from.getUTCFullYear() === to.getUTCFullYear();
 
   if (!isFullMonth) {
-    fail("Tuition calculation requires a full calendar month", 422, "INVALID_TUITION_PERIOD");
+    fail(
+      "Tuition calculation requires a full calendar month",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "INVALID_TUITION_PERIOD"
+    );
   }
 
   const rate = await getRateForPeriod(from, to);
@@ -282,7 +323,11 @@ async function calculateAnnualTuitionCost({ childId, periodStart }) {
   const from = parseDay(periodStart);
 
   if (from.getUTCDate() !== 1) {
-    fail("Annual period must start on the first day of a month", 422, "INVALID_TUITION_PERIOD");
+    fail(
+      "Annual period must start on the first day of a month",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "INVALID_TUITION_PERIOD"
+    );
   }
 
   const to = new Date(Date.UTC(from.getUTCFullYear() + 1, from.getUTCMonth(), 0));
