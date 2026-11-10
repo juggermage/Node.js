@@ -23,14 +23,19 @@ const createExpenseSchema = Joi.object({
   category: Joi.string()
     .valid(...CATEGORIES)
     .required(),
+
   description: Joi.string().trim().min(1).max(500).required(),
+
   amount: Joi.number().integer().positive().required().messages({
     "number.base": "amount must be a number (in kopecks)",
     "number.integer": "amount must be an integer number of kopecks",
     "number.positive": "amount must be greater than 0",
     "number.unsafe": "amount is too large"
   }),
-  expenseDate: dateSchema.required()
+
+  expenseDate: dateSchema.required(),
+
+  groupId: Joi.string().hex().length(24).optional().allow(null)
 });
 
 const expenseIdSchema = Joi.object({
@@ -41,6 +46,7 @@ const expenseIdSchema = Joi.object({
 
 const listExpensesSchema = Joi.object({
   category: Joi.string().valid(...CATEGORIES),
+  groupId: Joi.string().hex().length(24),
   from: dateSchema,
   to: dateSchema
 }).custom((value, helpers) => {
