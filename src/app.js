@@ -1,3 +1,7 @@
+const authRoutes = require("./modules/auth/auth.routes");
+const attendanceRoutes = require("./modules/attendance/attendance.routes");
+const optimizationRoutes = require("./modules/optimization/optimization.routes");
+
 const express = require("express");
 const cors = require("cors");
 
@@ -52,6 +56,15 @@ app.get("/api/v1/health", (req, res) => {
     message: "API is running"
   });
 });
+
+// Auth
+app.use("/api/v1/auth", authRoutes);
+
+// Attendance
+app.use("/api/v1/attendance", attendanceRoutes);
+
+// Optimization
+app.use("/api/v1/optimization", optimizationRoutes);
 
 // Children
 app.use("/api/v1/children", childrenRoutes);
