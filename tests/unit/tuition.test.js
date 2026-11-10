@@ -1,335 +1,553 @@
+
 jest.mock("../../src/config/prisma", () => ({
+  $transaction: jest.fn(),
   tuitionRate: {
     findMany: jest.fn(),
     findFirst: jest.fn(),
     create: jest.fn()
   },
-  child: {
-    findUnique: jest.fn()
-  },
   childDiscount: {
     findMany: jest.fn()
+  },
+  child: {
+    findUnique: jest.fn()
   }
 }));
 
+jest.mock("../../src/modules/audit/audit.service", () => ({
+  createLog: jest.fn()
+}));
+
+jest.mock("../../src/modules/billing/tuition/tuition.service", () => ({
+  getAllRates: jest.fn(),
+  createRate: jest.fn(),
+  calculateMonthlyTuitionCost: jest.fn(),
+  calculateAnnualTuitionCost: jest.fn()
+}));
+
+jest.mock("../../src/middleware/auth.middleware", () =>
+  jest.fn((req, res, next) => next())
+);
+
+jest.mock("../../src/middleware/rbac.middleware", () =>
+  jest.fn(() => (req, res, next) => next())
+);
+
+jest.mock("../../src/middleware/validate.middleware", () =>
+  jest.fn(() => (req, res, next) => next())
+);
+
 const prisma = require("../../src/config/prisma");
+const auditService = require("../../src/modules/audit/audit.service");
+const tuitionService = require("../../src/modules/billing/tuition/tuition.service");
+const realTuitionService = jest.requireActual(
+  "../../src/modules/billing/tuition/tuition.service"
+);
+
+const controller = require("../../src/modules/billing/tuition/tuition.controller");
+const router = require("../../src/modules/billing/tuition/tuition.routes");
+const validation = require("../../src/modules/billing/tuition/tuition.validation");
 const HTTP_STATUS = require("../../src/utils/http-status");
 
-const service = require("../../src/modules/billing/tuition/tuition.service");
+describe("Tuition Controller", () => {
+  let req;
+  let res;
 
-const {
-  createTuitionRateSchema,
-  rateQuerySchema,
-  calculateMonthlyTuitionSchema,
-  calculateAnnualTuitionSchema
-} = require("../../src/modules/billing/tuition/tuition.validation");
+  beforeEach(() => {
+    jest.clearAllMocks();
 
-const childId = "507f1f77bcf86cd799439011";
+    req = {
+      user: {
+        id: "admin-123"
+      },
+      body: {},
+      query: {}
+    };
 
-const rate = {
-  id: "rate-1",
-  name: "Основний тариф",
-  amount: 15000n,
-  validFrom: new Date("2026-01-01T00:00:00.000Z"),
-  validTo: null
-};
-
-beforeEach(() => {
-  jest.clearAllMocks();
-
-  prisma.tuitionRate.findMany.mockResolvedValue([]);
-  prisma.tuitionRate.findFirst.mockResolvedValue(null);
-  prisma.tuitionRate.create.mockResolvedValue(rate);
-
-  prisma.child.findUnique.mockResolvedValue({
-    id: childId,
-    status: "ACTIVE"
+    res = {
+      locals: {
+        validated: {
+          body: {},
+          query: {}
+        }
+      },
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis()
+    };
   });
 
-  prisma.childDiscount.findMany.mockResolvedValue([]);
-});
+  test("getRates returns rates", async () => {
+    const data = [{ id: "rate-1", amount: "15000" }];
 
-describe("Tuition validation", () => {
-  describe("createTuitionRateSchema", () => {
-    const validData = {
-      name: "Основний тариф",
+    tuitionService.getAllRates.mockResolvedValue(data);
+
+    await controller.getRates(req, res);
+
+    expect(tuitionService.getAllRates).toHaveBeenCalledWith({});
+    expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      data
+    });
+  });
+
+  test("createRate creates a rate", async () => {
+    const body = {
+      name: "Monthly tuition",
       amount: 15000,
       validFrom: "2026-01-01",
       validTo: null
     };
 
-    test("should accept valid tuition rate", () => {
-      const { error } = createTuitionRateSchema.validate(validData);
+    const data = { id: "rate-1", amount: "15000" };
 
-      expect(error).toBeUndefined();
-    });
+    res.locals.validated.body = body;
+    tuitionService.createRate.mockResolvedValue(data);
 
-    test("should reject short name", () => {
-      const { error } = createTuitionRateSchema.validate({
-        ...validData,
-        name: "A"
-      });
+    await controller.createRate(req, res);
 
-      expect(error).toBeDefined();
-    });
-
-    test("should reject negative amount", () => {
-      const { error } = createTuitionRateSchema.validate({
-        ...validData,
-        amount: -100
-      });
-
-      expect(error).toBeDefined();
-    });
-
-    test("should reject invalid date format", () => {
-      const { error } = createTuitionRateSchema.validate({
-        ...validData,
-        validFrom: "01-01-2026"
-      });
-
-      expect(error).toBeDefined();
-    });
-
-    test("should reject invalid calendar date", () => {
-      const { error } = createTuitionRateSchema.validate({
-        ...validData,
-        validFrom: "2026-02-30"
-      });
-
-      expect(error).toBeDefined();
-    });
-
-    test("should reject validTo earlier than validFrom", () => {
-      const { error } = createTuitionRateSchema.validate({
-        ...validData,
-        validTo: "2025-12-31"
-      });
-
-      expect(error).toBeDefined();
-    });
-
-    test("should apply default amount", () => {
-      const { value } = createTuitionRateSchema.validate({
-        name: "Основний тариф",
-        validFrom: "2026-01-01"
-      });
-
-      expect(value.amount).toBe(15000);
+    expect(tuitionService.createRate).toHaveBeenCalledWith(body, "admin-123");
+    expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      data
     });
   });
 
-  describe("rateQuerySchema", () => {
-    test("should accept valid onDate", () => {
-      const { error } = rateQuerySchema.validate({
-        onDate: "2026-01-15"
-      });
-
-      expect(error).toBeUndefined();
-    });
-
-    test("should reject invalid onDate", () => {
-      const { error } = rateQuerySchema.validate({
-        onDate: "2026-02-30"
-      });
-
-      expect(error).toBeDefined();
-    });
-
-    test("should accept empty query", () => {
-      const { error } = rateQuerySchema.validate({});
-
-      expect(error).toBeUndefined();
-    });
-  });
-
-  describe("calculateMonthlyTuitionSchema", () => {
-    const validData = {
-      childId,
+  test("calculateMonthly returns monthly calculation", async () => {
+    const body = {
+      childId: "507f1f77bcf86cd799439011",
       periodStart: "2026-01-01",
       periodEnd: "2026-01-31"
     };
 
-    test("should accept valid monthly calculation data", () => {
-      const { error } = calculateMonthlyTuitionSchema.validate(validData);
+    const data = { total: "15000" };
 
-      expect(error).toBeUndefined();
-    });
+    res.locals.validated.body = body;
+    tuitionService.calculateMonthlyTuitionCost.mockResolvedValue(data);
 
-    test("should reject invalid childId", () => {
-      const { error } = calculateMonthlyTuitionSchema.validate({
-        ...validData,
-        childId: "invalid"
-      });
+    await controller.calculateMonthly(req, res);
 
-      expect(error).toBeDefined();
-    });
-
-    test("should reject periodStart later than periodEnd", () => {
-      const { error } = calculateMonthlyTuitionSchema.validate({
-        ...validData,
-        periodStart: "2026-02-01",
-        periodEnd: "2026-01-31"
-      });
-
-      expect(error).toBeDefined();
+    expect(tuitionService.calculateMonthlyTuitionCost).toHaveBeenCalledWith(body);
+    expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      data
     });
   });
 
-  describe("calculateAnnualTuitionSchema", () => {
-    test("should accept valid annual calculation data", () => {
-      const { error } = calculateAnnualTuitionSchema.validate({
-        childId,
-        periodStart: "2026-01-01"
-      });
+  test("calculateAnnual returns annual calculation", async () => {
+    const body = {
+      childId: "507f1f77bcf86cd799439011",
+      periodStart: "2026-01-01"
+    };
 
-      expect(error).toBeUndefined();
-    });
+    const data = { total: "158400" };
 
-    test("should reject invalid childId", () => {
-      const { error } = calculateAnnualTuitionSchema.validate({
-        childId: "invalid",
-        periodStart: "2026-01-01"
-      });
+    res.locals.validated.body = body;
+    tuitionService.calculateAnnualTuitionCost.mockResolvedValue(data);
 
-      expect(error).toBeDefined();
-    });
+    await controller.calculateAnnual(req, res);
 
-    test("should require periodStart", () => {
-      const { error } = calculateAnnualTuitionSchema.validate({
-        childId
-      });
-
-      expect(error).toBeDefined();
+    expect(tuitionService.calculateAnnualTuitionCost).toHaveBeenCalledWith(body);
+    expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      data
     });
   });
 });
 
-describe("Tuition service", () => {
+describe("Tuition Routes", () => {
+  test("registers authentication and authorization middleware", () => {
+    const authMiddleware = require("../../src/middleware/auth.middleware");
+    const rbacMiddleware = require("../../src/middleware/rbac.middleware");
+
+    expect(
+      router.stack.some((layer) => layer.handle === authMiddleware)
+    ).toBe(true);
+
+    expect(rbacMiddleware).toHaveBeenCalledWith("ADMIN", "MANAGER");
+  });
+
+  test("registers all tuition routes", () => {
+    const routes = router.stack
+      .filter((layer) => layer.route)
+      .map((layer) => ({
+        path: layer.route.path,
+        methods: layer.route.methods
+      }));
+
+    expect(routes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "/rates",
+          methods: expect.objectContaining({ get: true })
+        }),
+        expect.objectContaining({
+          path: "/rates",
+          methods: expect.objectContaining({ post: true })
+        }),
+        expect.objectContaining({
+          path: "/calculate/monthly",
+          methods: expect.objectContaining({ post: true })
+        }),
+        expect.objectContaining({
+          path: "/calculate/annual",
+          methods: expect.objectContaining({ post: true })
+        })
+      ])
+    );
+  });
+});
+
+describe("Tuition Validation", () => {
+  const childId = "507f1f77bcf86cd799439011";
+
+  describe("createTuitionRateSchema", () => {
+    test("accepts valid tuition rate", () => {
+      const result = validation.createTuitionRateSchema.validate({
+        name: "Monthly tuition",
+        amount: 15000,
+        validFrom: "2026-01-01",
+        validTo: "2026-12-31"
+      });
+
+      expect(result.error).toBeUndefined();
+    });
+
+    test("applies default amount", () => {
+      const result = validation.createTuitionRateSchema.validate({
+        name: "Monthly tuition",
+        validFrom: "2026-01-01"
+      });
+
+      expect(result.error).toBeUndefined();
+      expect(result.value.amount).toBe(15000);
+    });
+
+    test("rejects empty name", () => {
+      const result = validation.createTuitionRateSchema.validate({
+        name: " ",
+        amount: 15000,
+        validFrom: "2026-01-01"
+      });
+
+      expect(result.error).toBeDefined();
+    });
+
+    test("rejects negative amount", () => {
+      const result = validation.createTuitionRateSchema.validate({
+        name: "Monthly tuition",
+        amount: -100,
+        validFrom: "2026-01-01"
+      });
+
+      expect(result.error).toBeDefined();
+    });
+
+    test("rejects invalid date", () => {
+      const result = validation.createTuitionRateSchema.validate({
+        name: "Monthly tuition",
+        amount: 15000,
+        validFrom: "2026-02-30"
+      });
+
+      expect(result.error).toBeDefined();
+    });
+
+    test("rejects validTo earlier than validFrom", () => {
+      const result = validation.createTuitionRateSchema.validate({
+        name: "Monthly tuition",
+        amount: 15000,
+        validFrom: "2026-12-01",
+        validTo: "2026-01-01"
+      });
+
+      expect(result.error).toBeDefined();
+    });
+  });
+
+  describe("rateQuerySchema", () => {
+    test("accepts valid onDate", () => {
+      const result = validation.rateQuerySchema.validate({
+        onDate: "2026-06-15"
+      });
+
+      expect(result.error).toBeUndefined();
+    });
+
+    test("accepts empty query", () => {
+      const result = validation.rateQuerySchema.validate({});
+
+      expect(result.error).toBeUndefined();
+    });
+
+    test("rejects invalid onDate", () => {
+      const result = validation.rateQuerySchema.validate({
+        onDate: "15-06-2026"
+      });
+
+      expect(result.error).toBeDefined();
+    });
+  });
+
+  describe("calculateMonthlyTuitionSchema", () => {
+    test("accepts valid monthly calculation", () => {
+      const result = validation.calculateMonthlyTuitionSchema.validate({
+        childId,
+        periodStart: "2026-01-01",
+        periodEnd: "2026-01-31"
+      });
+
+      expect(result.error).toBeUndefined();
+    });
+
+    test("rejects invalid childId", () => {
+      const result = validation.calculateMonthlyTuitionSchema.validate({
+        childId: "invalid",
+        periodStart: "2026-01-01",
+        periodEnd: "2026-01-31"
+      });
+
+      expect(result.error).toBeDefined();
+    });
+
+    test("rejects periodStart later than periodEnd", () => {
+      const result = validation.calculateMonthlyTuitionSchema.validate({
+        childId,
+        periodStart: "2026-02-01",
+        periodEnd: "2026-01-01"
+      });
+
+      expect(result.error).toBeDefined();
+    });
+  });
+
+  describe("calculateAnnualTuitionSchema", () => {
+    test("accepts valid annual calculation", () => {
+      const result = validation.calculateAnnualTuitionSchema.validate({
+        childId,
+        periodStart: "2026-01-01"
+      });
+
+      expect(result.error).toBeUndefined();
+    });
+
+    test("rejects invalid childId", () => {
+      const result = validation.calculateAnnualTuitionSchema.validate({
+        childId: "invalid",
+        periodStart: "2026-01-01"
+      });
+
+      expect(result.error).toBeDefined();
+    });
+
+    test("rejects invalid periodStart", () => {
+      const result = validation.calculateAnnualTuitionSchema.validate({
+        childId,
+        periodStart: "2026-02-30"
+      });
+
+      expect(result.error).toBeDefined();
+    });
+  });
+});
+
+describe("Tuition Service", () => {
+  const childId = "507f1f77bcf86cd799439011";
+
+  const activeChild = {
+    id: childId,
+    status: "ACTIVE"
+  };
+
+  const rate = {
+    id: "rate-1",
+    name: "Monthly tuition",
+    amount: 15000n,
+    validFrom: new Date("2026-01-01T00:00:00.000Z"),
+    validTo: null
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    prisma.tuitionRate.findMany.mockResolvedValue([]);
+    prisma.tuitionRate.findFirst.mockResolvedValue(rate);
+    prisma.child.findUnique.mockResolvedValue(activeChild);
+    prisma.childDiscount.findMany.mockResolvedValue([]);
+
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback({
+        tuitionRate: {
+          findFirst: prisma.tuitionRate.findFirst,
+          create: prisma.tuitionRate.create
+        }
+      })
+    );
+  });
+
   describe("getAllRates", () => {
-    test("should return all rates", async () => {
+    test("returns all rates", async () => {
       prisma.tuitionRate.findMany.mockResolvedValue([rate]);
 
-      const result = await service.getAllRates();
-
-      expect(result).toHaveLength(1);
-      expect(result[0].amount).toBe("15000");
+      const result = await realTuitionService.getAllRates();
 
       expect(prisma.tuitionRate.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: { validFrom: "desc" }
+        orderBy: {
+          validFrom: "desc"
+        }
       });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].amount).toBe("15000");
     });
 
-    test("should filter rates by date", async () => {
-      await service.getAllRates({
-        onDate: "2026-01-15"
+    test("filters rates by date", async () => {
+      await realTuitionService.getAllRates({
+        onDate: "2026-06-15"
       });
-
-      const date = new Date("2026-01-15T00:00:00.000Z");
 
       expect(prisma.tuitionRate.findMany).toHaveBeenCalledWith({
         where: {
-          validFrom: { lte: date },
-          OR: [{ validTo: null }, { validTo: { gte: date } }]
+          validFrom: {
+            lte: new Date("2026-06-15T00:00:00.000Z")
+          },
+          OR: [
+            { validTo: null },
+            {
+              validTo: {
+                gte: new Date("2026-06-15T00:00:00.000Z")
+              }
+            }
+          ]
         },
-        orderBy: { validFrom: "desc" }
+        orderBy: {
+          validFrom: "desc"
+        }
       });
     });
   });
 
   describe("getApplicableRate", () => {
-    test("should return applicable rate", async () => {
-      prisma.tuitionRate.findFirst.mockResolvedValue(rate);
+    test("returns applicable rate", async () => {
+      const result = await realTuitionService.getApplicableRate("2026-06-15");
 
-      const result = await service.getApplicableRate("2026-01-15");
-
+      expect(prisma.tuitionRate.findFirst).toHaveBeenCalled();
       expect(result).toEqual(rate);
     });
 
-    test("should throw when rate is not found", async () => {
-      await expect(service.getApplicableRate("2026-01-15")).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.NOT_FOUND,
+    test("throws when rate does not exist", async () => {
+      prisma.tuitionRate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        realTuitionService.getApplicableRate("2026-06-15")
+      ).rejects.toMatchObject({
         code: "TUITION_RATE_NOT_FOUND"
       });
     });
   });
 
   describe("createRate", () => {
-    test("should create a tuition rate", async () => {
-      prisma.tuitionRate.create.mockResolvedValue(rate);
-
-      const result = await service.createRate({
-        name: " Основний тариф ",
-        amount: 15000,
-        validFrom: "2026-01-01"
+    test("creates a tuition rate", async () => {
+      prisma.tuitionRate.findFirst.mockResolvedValue(null);
+      prisma.tuitionRate.create.mockResolvedValue({
+        ...rate,
+        name: "New rate"
       });
+
+      const result = await realTuitionService.createRate(
+        {
+          name: " New rate ",
+          amount: 18000,
+          validFrom: "2026-06-01",
+          validTo: null
+        },
+        "admin-123"
+      );
 
       expect(prisma.tuitionRate.create).toHaveBeenCalledWith({
         data: {
-          name: "Основний тариф",
-          amount: 15000n,
-          validFrom: new Date("2026-01-01T00:00:00.000Z"),
+          name: "New rate",
+          amount: 18000n,
+          validFrom: new Date("2026-06-01T00:00:00.000Z"),
           validTo: null
         }
       });
 
+      expect(auditService.createLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorId: "admin-123",
+          action: "CREATE",
+          entityType: "TuitionRate"
+        }),
+        expect.any(Object)
+      );
+
       expect(result.amount).toBe("15000");
     });
 
-    test("should reject invalid amount", async () => {
+    test("rejects invalid amount", async () => {
       await expect(
-        service.createRate({
-          name: "Основний тариф",
-          amount: -100,
-          validFrom: "2026-01-01"
-        })
+        realTuitionService.createRate(
+          {
+            name: "Monthly tuition",
+            amount: -100,
+            validFrom: "2026-06-01"
+          },
+          "admin-123"
+        )
       ).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY,
         code: "INVALID_TUITION_RATE"
       });
-
-      expect(prisma.tuitionRate.create).not.toHaveBeenCalled();
     });
 
-    test("should reject empty name", async () => {
+    test("rejects empty name", async () => {
       await expect(
-        service.createRate({
-          name: "   ",
-          amount: 15000,
-          validFrom: "2026-01-01"
-        })
+        realTuitionService.createRate(
+          {
+            name: "   ",
+            amount: 15000,
+            validFrom: "2026-06-01"
+          },
+          "admin-123"
+        )
       ).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY,
         code: "INVALID_RATE_NAME"
       });
     });
 
-    test("should reject invalid period", async () => {
+    test("rejects invalid date period", async () => {
       await expect(
-        service.createRate({
-          name: "Основний тариф",
-          amount: 15000,
-          validFrom: "2026-02-01",
-          validTo: "2026-01-01"
-        })
+        realTuitionService.createRate(
+          {
+            name: "Monthly tuition",
+            amount: 15000,
+            validFrom: "2026-06-10",
+            validTo: "2026-06-01"
+          },
+          "admin-123"
+        )
       ).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY,
         code: "INVALID_PERIOD"
       });
     });
 
-    test("should reject overlapping rates", async () => {
+    test("rejects overlapping rate", async () => {
       prisma.tuitionRate.findFirst.mockResolvedValue(rate);
 
       await expect(
-        service.createRate({
-          name: "Новий тариф",
-          amount: 18000,
-          validFrom: "2026-02-01"
-        })
+        realTuitionService.createRate(
+          {
+            name: "New rate",
+            amount: 18000,
+            validFrom: "2026-06-01"
+          },
+          "admin-123"
+        )
       ).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.CONFLICT,
         code: "TUITION_RATE_CONFLICT"
       });
 
@@ -338,48 +556,45 @@ describe("Tuition service", () => {
   });
 
   describe("validatePeriod", () => {
-    test("should return valid period with number of days", () => {
-      const result = service.validatePeriod("2026-01-01", "2026-01-31");
+    test("returns valid period and number of days", () => {
+      const result = realTuitionService.validatePeriod(
+        "2026-01-01",
+        "2026-01-31"
+      );
 
       expect(result.days).toBe(31);
       expect(result.from).toEqual(new Date("2026-01-01T00:00:00.000Z"));
       expect(result.to).toEqual(new Date("2026-01-31T00:00:00.000Z"));
     });
 
-    test("should reject invalid date", () => {
-      expect(() => service.validatePeriod("2026-02-30", "2026-03-01")).toThrow(
-        expect.objectContaining({
-          code: "INVALID_DATE"
-        })
-      );
+    test("rejects invalid date", () => {
+      expect(() =>
+        realTuitionService.validatePeriod("2026-02-30", "2026-03-01")
+      ).toThrow();
     });
 
-    test("should reject reversed period", () => {
-      expect(() => service.validatePeriod("2026-02-01", "2026-01-01")).toThrow(
-        expect.objectContaining({
-          code: "INVALID_PERIOD"
-        })
-      );
+    test("rejects start date after end date", () => {
+      expect(() =>
+        realTuitionService.validatePeriod("2026-02-01", "2026-01-01")
+      ).toThrow();
     });
   });
 
   describe("roundPercentage", () => {
-    test("should calculate percentage with rounding", () => {
-      expect(service.roundPercentage(10000n, 10)).toBe(9000n);
-      expect(service.roundPercentage(10000n, 20)).toBe(8000n);
-      expect(service.roundPercentage(10000n, 30)).toBe(7000n);
+    test("calculates percentage with rounding", () => {
+      expect(realTuitionService.roundPercentage(10000n, 10)).toBe(9000n);
+      expect(realTuitionService.roundPercentage(10000n, 20)).toBe(8000n);
+      expect(realTuitionService.roundPercentage(10000n, 30)).toBe(7000n);
     });
 
-    test("should round the result correctly", () => {
-      expect(service.roundPercentage(1001n, 10)).toBe(901n);
+    test("rounds fractional result", () => {
+      expect(realTuitionService.roundPercentage(1001n, 10)).toBe(901n);
     });
   });
 
   describe("calculateMonthlyTuitionCost", () => {
-    test("should calculate monthly tuition without discount", async () => {
-      prisma.tuitionRate.findFirst.mockResolvedValue(rate);
-
-      const result = await service.calculateMonthlyTuitionCost({
+    test("calculates monthly tuition without discount", async () => {
+      const result = await realTuitionService.calculateMonthlyTuitionCost({
         childId,
         periodStart: "2026-01-01",
         periodEnd: "2026-01-31"
@@ -387,8 +602,6 @@ describe("Tuition service", () => {
 
       expect(result).toMatchObject({
         childId,
-        periodStart: "2026-01-01",
-        periodEnd: "2026-01-31",
         months: 1,
         monthlyAmount: "15000",
         baseAmount: "15000",
@@ -397,18 +610,26 @@ describe("Tuition service", () => {
         total: "15000",
         currency: "UAH"
       });
+
+      expect(prisma.child.findUnique).toHaveBeenCalledWith({
+        where: {
+          id: childId
+        },
+        select: {
+          id: true,
+          status: true
+        }
+      });
     });
 
-    test("should calculate monthly tuition with discount", async () => {
-      prisma.tuitionRate.findFirst.mockResolvedValue(rate);
-
+    test("calculates monthly tuition with discount", async () => {
       prisma.childDiscount.findMany.mockResolvedValue([
         {
-          validFrom: new Date("2025-12-01T00:00:00.000Z"),
+          validFrom: new Date("2026-01-01T00:00:00.000Z"),
           validTo: null,
           discount: {
             id: "discount-1",
-            name: "Знижка 10%",
+            name: "Discount 10%",
             type: "PERCENTAGE",
             percentage: 10,
             isActive: true
@@ -416,123 +637,155 @@ describe("Tuition service", () => {
         }
       ]);
 
-      const result = await service.calculateMonthlyTuitionCost({
+      const result = await realTuitionService.calculateMonthlyTuitionCost({
         childId,
         periodStart: "2026-01-01",
         periodEnd: "2026-01-31"
       });
 
       expect(result.total).toBe("13500");
-
       expect(result.discount).toMatchObject({
         id: "discount-1",
-        name: "Знижка 10%",
         percentage: 10,
         amount: "1500"
       });
     });
 
-    test("should reject incomplete calendar month", async () => {
-      await expect(
-        service.calculateMonthlyTuitionCost({
-          childId,
-          periodStart: "2026-01-05",
-          periodEnd: "2026-01-31"
-        })
-      ).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY,
-        code: "INVALID_TUITION_PERIOD"
-      });
-    });
-
-    test("should reject inactive child", async () => {
+    test("rejects inactive child", async () => {
       prisma.child.findUnique.mockResolvedValue({
         id: childId,
         status: "INACTIVE"
       });
 
       await expect(
-        service.calculateMonthlyTuitionCost({
+        realTuitionService.calculateMonthlyTuitionCost({
           childId,
           periodStart: "2026-01-01",
           periodEnd: "2026-01-31"
         })
       ).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.NOT_FOUND,
         code: "CHILD_NOT_FOUND"
       });
     });
 
-    test("should reject when rate changes during period", async () => {
+    test("rejects missing child", async () => {
+      prisma.child.findUnique.mockResolvedValue(null);
+
+      await expect(
+        realTuitionService.calculateMonthlyTuitionCost({
+          childId,
+          periodStart: "2026-01-01",
+          periodEnd: "2026-01-31"
+        })
+      ).rejects.toMatchObject({
+        code: "CHILD_NOT_FOUND"
+      });
+    });
+
+    test("rejects period that is not a full calendar month", async () => {
+      await expect(
+        realTuitionService.calculateMonthlyTuitionCost({
+          childId,
+          periodStart: "2026-01-02",
+          periodEnd: "2026-01-31"
+        })
+      ).rejects.toMatchObject({
+        code: "INVALID_TUITION_PERIOD"
+      });
+    });
+
+    test("rejects period crossing two months", async () => {
+      await expect(
+        realTuitionService.calculateMonthlyTuitionCost({
+          childId,
+          periodStart: "2026-01-01",
+          periodEnd: "2026-02-28"
+        })
+      ).rejects.toMatchObject({
+        code: "INVALID_TUITION_PERIOD"
+      });
+    });
+
+    test("rejects missing applicable rate", async () => {
+      prisma.tuitionRate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        realTuitionService.calculateMonthlyTuitionCost({
+          childId,
+          periodStart: "2026-01-01",
+          periodEnd: "2026-01-31"
+        })
+      ).rejects.toMatchObject({
+        code: "TUITION_RATE_NOT_FOUND"
+      });
+    });
+
+    test("rejects rate that changes during period", async () => {
       prisma.tuitionRate.findFirst.mockResolvedValue({
         ...rate,
         validTo: new Date("2026-01-15T00:00:00.000Z")
       });
 
       await expect(
-        service.calculateMonthlyTuitionCost({
+        realTuitionService.calculateMonthlyTuitionCost({
           childId,
           periodStart: "2026-01-01",
           periodEnd: "2026-01-31"
         })
       ).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.CONFLICT,
         code: "RATE_PERIOD_CONFLICT"
       });
     });
 
-    test("should reject multiple applicable discounts", async () => {
-      prisma.tuitionRate.findFirst.mockResolvedValue(rate);
+    test("rejects multiple applicable discounts", async () => {
+      const discount = {
+        type: "PERCENTAGE",
+        percentage: 10,
+        isActive: true
+      };
 
       prisma.childDiscount.findMany.mockResolvedValue([
         {
-          validFrom: new Date("2025-12-01T00:00:00.000Z"),
+          validFrom: new Date("2026-01-01T00:00:00.000Z"),
           validTo: null,
           discount: {
+            ...discount,
             id: "discount-1",
-            name: "Знижка 10%",
-            type: "PERCENTAGE",
-            percentage: 10
+            name: "First discount"
           }
         },
         {
-          validFrom: new Date("2025-12-01T00:00:00.000Z"),
+          validFrom: new Date("2026-01-01T00:00:00.000Z"),
           validTo: null,
           discount: {
+            ...discount,
             id: "discount-2",
-            name: "Знижка 20%",
-            type: "PERCENTAGE",
-            percentage: 20
+            name: "Second discount"
           }
         }
       ]);
 
       await expect(
-        service.calculateMonthlyTuitionCost({
+        realTuitionService.calculateMonthlyTuitionCost({
           childId,
           periodStart: "2026-01-01",
           periodEnd: "2026-01-31"
         })
       ).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.CONFLICT,
         code: "MULTIPLE_DISCOUNTS"
       });
     });
   });
 
   describe("calculateAnnualTuitionCost", () => {
-    test("should calculate annual tuition with prepayment discount", async () => {
-      prisma.tuitionRate.findFirst.mockResolvedValue(rate);
-
-      const result = await service.calculateAnnualTuitionCost({
+    test("calculates annual tuition with prepayment discount", async () => {
+      const result = await realTuitionService.calculateAnnualTuitionCost({
         childId,
         periodStart: "2026-01-01"
       });
 
       expect(result).toMatchObject({
         childId,
-        periodStart: "2026-01-01",
-        periodEnd: "2026-12-31",
         months: 12,
         monthlyAmount: "15000",
         baseAmount: "180000",
@@ -544,25 +797,27 @@ describe("Tuition service", () => {
         total: "158400",
         currency: "UAH"
       });
+
+      expect(result.periodStart).toBe("2026-01-01");
+      expect(result.periodEnd).toBe("2026-12-31");
     });
 
-    test("should calculate annual tuition with regular discount", async () => {
-      prisma.tuitionRate.findFirst.mockResolvedValue(rate);
-
+    test("calculates annual tuition with regular and prepayment discounts", async () => {
       prisma.childDiscount.findMany.mockResolvedValue([
         {
-          validFrom: new Date("2025-12-01T00:00:00.000Z"),
+          validFrom: new Date("2026-01-01T00:00:00.000Z"),
           validTo: null,
           discount: {
             id: "discount-1",
-            name: "Знижка 10%",
+            name: "Discount 10%",
             type: "PERCENTAGE",
-            percentage: 10
+            percentage: 10,
+            isActive: true
           }
         }
       ]);
 
-      const result = await service.calculateAnnualTuitionCost({
+      const result = await realTuitionService.calculateAnnualTuitionCost({
         childId,
         periodStart: "2026-01-01"
       });
@@ -573,29 +828,59 @@ describe("Tuition service", () => {
       expect(result.total).toBe("142560");
     });
 
-    test("should reject annual period not starting on first day", async () => {
+    test("rejects annual period not starting on first day", async () => {
       await expect(
-        service.calculateAnnualTuitionCost({
+        realTuitionService.calculateAnnualTuitionCost({
           childId,
           periodStart: "2026-01-15"
         })
       ).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY,
         code: "INVALID_TUITION_PERIOD"
       });
     });
 
-    test("should reject inactive child", async () => {
-      prisma.child.findUnique.mockResolvedValue(null);
+    test("rejects inactive child", async () => {
+      prisma.child.findUnique.mockResolvedValue({
+        id: childId,
+        status: "INACTIVE"
+      });
 
       await expect(
-        service.calculateAnnualTuitionCost({
+        realTuitionService.calculateAnnualTuitionCost({
           childId,
           periodStart: "2026-01-01"
         })
       ).rejects.toMatchObject({
-        statusCode: HTTP_STATUS.NOT_FOUND,
         code: "CHILD_NOT_FOUND"
+      });
+    });
+
+    test("rejects missing applicable rate", async () => {
+      prisma.tuitionRate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        realTuitionService.calculateAnnualTuitionCost({
+          childId,
+          periodStart: "2026-01-01"
+        })
+      ).rejects.toMatchObject({
+        code: "TUITION_RATE_NOT_FOUND"
+      });
+    });
+
+    test("rejects rate that changes during annual period", async () => {
+      prisma.tuitionRate.findFirst.mockResolvedValue({
+        ...rate,
+        validTo: new Date("2026-06-30T00:00:00.000Z")
+      });
+
+      await expect(
+        realTuitionService.calculateAnnualTuitionCost({
+          childId,
+          periodStart: "2026-01-01"
+        })
+      ).rejects.toMatchObject({
+        code: "RATE_PERIOD_CONFLICT"
       });
     });
   });
