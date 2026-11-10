@@ -83,7 +83,6 @@ const updateScheduleSchema = Joi.object({
   .min(1)
   .custom(ensurePeriodOrder);
 
-// Для LESSON обов'язкові предмет, викладач і кімната, для інших типів предмет і викладач заборонені.
 const lessonOnlyRequired = (schema) =>
   Joi.any().when("type", {
     is: "LESSON",
@@ -122,6 +121,13 @@ const cancelItemSchema = Joi.object({
   reason: Joi.string().trim().min(1).max(500).required()
 });
 
+const generateScheduleSchema = Joi.object({
+  groupId: objectIdSchema.required(),
+  name: Joi.string().trim().min(1).max(100),
+  validFrom: dateSchema.required(),
+  validTo: dateSchema.allow(null)
+}).custom(ensurePeriodOrder);
+
 module.exports = {
   scheduleIdSchema,
   itemParamsSchema,
@@ -130,5 +136,6 @@ module.exports = {
   updateScheduleSchema,
   createItemSchema,
   updateItemSchema,
-  cancelItemSchema
+  cancelItemSchema,
+  generateScheduleSchema
 };

@@ -26,22 +26,7 @@ const periodFields = {
   dueDate: isoDate
 };
 
-const createMonthlyInvoiceSchema = Joi.object({
-  ...periodFields,
-  attendedDays: Joi.number().integer().min(0).max(31).required()
-})
-  .custom((value, helpers) => {
-    const daysInMonth = new Date(Date.UTC(value.periodYear, value.periodMonth, 0)).getUTCDate();
-
-    if (value.attendedDays > daysInMonth) {
-      return helpers.error("any.custom");
-    }
-
-    return value;
-  })
-  .messages({
-    "any.custom": "Attended days exceed the number of days in the month"
-  });
+const createMonthlyInvoiceSchema = Joi.object(periodFields);
 
 const createAnnualInvoiceSchema = Joi.object(periodFields);
 
@@ -58,9 +43,20 @@ const invoiceIdSchema = Joi.object({
   id: objectId.required()
 });
 
+const adjustmentIdSchema = Joi.object({
+  adjustmentId: objectId.required()
+});
+
+const createInvoiceAdjustmentSchema = Joi.object({
+  reason: Joi.string().trim().min(5).max(1000).required(),
+  adjustedAmount: Joi.number().integer().min(0).max(Number.MAX_SAFE_INTEGER).required()
+});
+
 module.exports = {
   createMonthlyInvoiceSchema,
   createAnnualInvoiceSchema,
   invoiceQuerySchema,
-  invoiceIdSchema
+  invoiceIdSchema,
+  adjustmentIdSchema,
+  createInvoiceAdjustmentSchema
 };

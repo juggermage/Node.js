@@ -22,4 +22,10 @@ router.get(
   controller.getAttendanceReport
 );
 
+router.get(
+  "/attendance",
+  validate(attendanceReportSchema, "query"),
+  controller.getAttendanceReport
+);
+
 module.exports = router;

@@ -1,6 +1,7 @@
 const prisma = require("../../../config/prisma");
 const AppError = require("../../../utils/app-error");
 const HTTP_STATUS = require("../../../utils/http-status");
+const auditService = require("../../audit/audit.service");
 
 function fail(message, status, code) {
   throw new AppError(message, status, code);
@@ -18,7 +19,7 @@ function handlePrismaError(error) {
   throw error;
 }
 
-async function create({ name, value }) {
+async function create({ name, value }, actorId) {
   const normalizedName = name.trim();
 
   if (![10, 20, 30].includes(value)) {
@@ -43,13 +44,28 @@ async function create({ name, value }) {
   }
 
   try {
-    return await prisma.discount.create({
-      data: {
-        name: normalizedName,
-        type: "PERCENTAGE",
-        percentage: value,
-        isActive: true
-      }
+    return await prisma.$transaction(async (tx) => {
+      const discount = await tx.discount.create({
+        data: {
+          name: normalizedName,
+          type: "PERCENTAGE",
+          percentage: value,
+          isActive: true
+        }
+      });
+
+      await auditService.createLog(
+        {
+          actorId,
+          action: "CREATE",
+          entityType: "Discount",
+          entityId: discount.id,
+          after: discount
+        },
+        tx
+      );
+
+      return discount;
     });
   } catch (error) {
     handlePrismaError(error);
@@ -59,7 +75,9 @@ async function create({ name, value }) {
 async function getAll(includeInactive = false) {
   return prisma.discount.findMany({
     where: includeInactive ? {} : { isActive: true },
-    orderBy: { percentage: "asc" }
+    orderBy: {
+      percentage: "asc"
+    }
   });
 }
 
@@ -75,13 +93,41 @@ async function getById(id) {
   return discount;
 }
 
-async function deactivate(id) {
-  await getById(id);
-
+async function deactivate(id, actorId) {
   try {
-    return await prisma.discount.update({
-      where: { id },
-      data: { isActive: false }
+    return await prisma.$transaction(async (tx) => {
+      const discount = await tx.discount.findUnique({
+        where: { id }
+      });
+
+      if (!discount) {
+        fail("Discount not found", HTTP_STATUS.NOT_FOUND, "DISCOUNT_NOT_FOUND");
+      }
+
+      if (!discount.isActive) {
+        return discount;
+      }
+
+      const updatedDiscount = await tx.discount.update({
+        where: { id },
+        data: {
+          isActive: false
+        }
+      });
+
+      await auditService.createLog(
+        {
+          actorId,
+          action: "ARCHIVE",
+          entityType: "Discount",
+          entityId: discount.id,
+          before: discount,
+          after: updatedDiscount
+        },
+        tx
+      );
+
+      return updatedDiscount;
     });
   } catch (error) {
     handlePrismaError(error);
