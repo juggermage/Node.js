@@ -45,9 +45,21 @@ async function cancel(req, res) {
   });
 }
 
+async function applyCredit(req, res) {
+  const data = await paymentsService.applyCredit(res.locals.validated.body, req.user);
+  return res.status(HTTP_STATUS.CREATED).json({ success: true, data });
+}
+
+async function getCreditBalance(req, res) {
+  const data = await paymentsService.getCreditBalance(req.user, res.locals.validated.query.payerId);
+  return res.status(HTTP_STATUS.OK).json({ success: true, data });
+}
+
 module.exports = {
   getAll,
   getById,
   create,
-  cancel
+  cancel,
+  applyCredit,
+  getCreditBalance
 };

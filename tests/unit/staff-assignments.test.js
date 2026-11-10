@@ -285,24 +285,17 @@ describe("Staff assignments service", () => {
       });
     });
 
-    test.each(["EDUCATOR", "ASSISTANT"])(
-      "allows %s to read assignments",
-      async (role) => {
-        await expect(
-          service.getAll({
-            id: USER_ID,
-            role
-          })
-        ).resolves.toEqual([assignment]);
-      }
-    );
+    test.each(["EDUCATOR", "ASSISTANT"])("allows %s to read assignments", async (role) => {
+      await expect(
+        service.getAll({
+          id: USER_ID,
+          role
+        })
+      ).resolves.toEqual([assignment]);
+    });
 
     test("rejects missing user", async () => {
-      await expectAppError(
-        service.getAll(null),
-        HTTP_STATUS.UNAUTHORIZED,
-        "UNAUTHORIZED"
-      );
+      await expectAppError(service.getAll(null), HTTP_STATUS.UNAUTHORIZED, "UNAUTHORIZED");
     });
 
     test("rejects unsupported role", async () => {
@@ -361,9 +354,7 @@ describe("Staff assignments service", () => {
     });
 
     test("allows manager to create assignment", async () => {
-      await expect(
-        service.create(createData, manager)
-      ).resolves.toEqual(assignment);
+      await expect(service.create(createData, manager)).resolves.toEqual(assignment);
     });
 
     test.each(["TEACHER", "EDUCATOR", "ASSISTANT"])(
@@ -394,11 +385,7 @@ describe("Staff assignments service", () => {
     );
 
     test("rejects creation for non-management role", async () => {
-      await expectAppError(
-        service.create(createData, teacher),
-        HTTP_STATUS.FORBIDDEN,
-        "FORBIDDEN"
-      );
+      await expectAppError(service.create(createData, teacher), HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -542,20 +529,17 @@ describe("Staff assignments service", () => {
       );
     });
 
-    test.each(["P2025", "P2003"])(
-      "maps Prisma related record error %s",
-      async (code) => {
-        prisma.staffAssignment.create.mockRejectedValue({
-          code
-        });
+    test.each(["P2025", "P2003"])("maps Prisma related record error %s", async (code) => {
+      prisma.staffAssignment.create.mockRejectedValue({
+        code
+      });
 
-        await expectAppError(
-          service.create(createData, admin),
-          HTTP_STATUS.NOT_FOUND,
-          "RELATED_RECORD_NOT_FOUND"
-        );
-      }
-    );
+      await expectAppError(
+        service.create(createData, admin),
+        HTTP_STATUS.NOT_FOUND,
+        "RELATED_RECORD_NOT_FOUND"
+      );
+    });
 
     test("rethrows unknown Prisma errors", async () => {
       const error = new Error("Database unavailable");
@@ -565,7 +549,7 @@ describe("Staff assignments service", () => {
       await expect(service.create(createData, admin)).rejects.toBe(error);
     });
   });
-    describe("complete", () => {
+  describe("complete", () => {
     test("completes active assignment and writes audit log", async () => {
       const updated = {
         ...assignment,
@@ -615,9 +599,7 @@ describe("Staff assignments service", () => {
     });
 
     test("allows manager to complete assignment", async () => {
-      await expect(
-        service.complete(ASSIGNMENT_ID, manager)
-      ).resolves.toMatchObject({
+      await expect(service.complete(ASSIGNMENT_ID, manager)).resolves.toMatchObject({
         id: ASSIGNMENT_ID
       });
     });
@@ -776,9 +758,9 @@ describe("Staff assignments service", () => {
     });
 
     test("allows employee to access own assignments", async () => {
-      await expect(
-        service.getEmployeeAssignments(EMPLOYEE_ID, teacher)
-      ).resolves.toEqual([assignment]);
+      await expect(service.getEmployeeAssignments(EMPLOYEE_ID, teacher)).resolves.toEqual([
+        assignment
+      ]);
     });
 
     test("rejects missing employee", async () => {
@@ -912,10 +894,7 @@ describe("Staff assignments controller", () => {
 
     await controller.getEmployeeAssignments(req, res);
 
-    expect(service.getEmployeeAssignments).toHaveBeenCalledWith(
-      EMPLOYEE_ID,
-      admin
-    );
+    expect(service.getEmployeeAssignments).toHaveBeenCalledWith(EMPLOYEE_ID, admin);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -928,10 +907,7 @@ describe("Staff assignments controller", () => {
 describe("Staff assignments routes", () => {
   function findRoute(method, path) {
     return routes.stack.find(
-      (layer) =>
-        layer.route &&
-        layer.route.path === path &&
-        layer.route.methods[method]
+      (layer) => layer.route && layer.route.path === path && layer.route.methods[method]
     );
   }
 

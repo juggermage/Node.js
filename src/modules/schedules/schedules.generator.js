@@ -53,14 +53,10 @@ function getAgeInMonths(birthDate) {
 
 async function generate({ groupId, name, validFrom, validTo }, user) {
   const group = await prisma.group.findFirst({
-    where: {
-      id: groupId,
-      status: "ACTIVE"
-    },
+    where: { id: groupId, status: "ACTIVE" },
     include: {
       mainRoom: true,
       enrollments: {
-        where: { endDate: null },
         include: { child: true }
       }
     }
@@ -70,7 +66,9 @@ async function generate({ groupId, name, validFrom, validTo }, user) {
     fail("Active group not found", HTTP_STATUS.NOT_FOUND, "GROUP_NOT_FOUND");
   }
 
-  const children = group.enrollments.map((item) => item.child);
+  const children = group.enrollments
+    .filter((item) => item.endDate === null)
+    .map((item) => item.child);
 
   if (children.length === 0) {
     fail("Group has no enrolled children", HTTP_STATUS.UNPROCESSABLE_ENTITY, "GROUP_EMPTY");
@@ -174,7 +172,6 @@ async function generate({ groupId, name, validFrom, validTo }, user) {
           user
         );
       }
-
       for (const slot of LESSON_SLOTS) {
         const candidates = [...availableTeachers].sort(
           (a, b) => teacherLoads.get(a.id) - teacherLoads.get(b.id)

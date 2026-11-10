@@ -41,6 +41,7 @@ const createGroupSchema = ageRangeSchema(
     ageFromMonths: Joi.number().integer().min(24).max(71).required(),
     ageToMonths: Joi.number().integer().min(24).max(71).required(),
     capacity: Joi.number().integer().min(1).max(20).default(20),
+    mealCategory: Joi.string().valid("A2", "A3", "A4", "A5").allow(null),
     mainRoomId: objectIdSchema.allow(null),
     status: Joi.string().valid("ACTIVE", "INACTIVE").default("ACTIVE")
   })
@@ -52,6 +53,7 @@ const updateGroupSchema = ageRangeSchema(
     ageFromMonths: Joi.number().integer().min(24).max(71),
     ageToMonths: Joi.number().integer().min(24).max(71),
     capacity: Joi.number().integer().min(1).max(20),
+    mealCategory: Joi.string().valid("A2", "A3", "A4", "A5").allow(null),
     mainRoomId: objectIdSchema.allow(null),
     status: Joi.string().valid("ACTIVE", "INACTIVE")
   }).min(1)

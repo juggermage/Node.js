@@ -69,15 +69,14 @@ async function postTransaction(tx, data) {
   return transaction;
 }
 
-
 async function getInvoiceCreditPaidAmount(tx, invoiceId, endExclusive) {
   const entries = await tx.creditBalanceTransaction.findMany({
     where: {
       invoiceId,
       type: { in: ["APPLY_TO_INVOICE", "CREDIT_APPLICATION_REVERSAL"] },
-      ...(endExclusive ? { createdAt: { lt: endExclusive } } : {}),
+      ...(endExclusive ? { createdAt: { lt: endExclusive } } : {})
     },
-    select: { amountDelta: true },
+    select: { amountDelta: true }
   });
 
   const signed = entries.reduce((sum, entry) => sum + entry.amountDelta, 0n);
@@ -91,26 +90,23 @@ async function getInvoicePaidAmount(tx, invoiceId, endExclusive) {
         invoiceId,
         payment: {
           status: "COMPLETED",
-          ...(endExclusive ? { paidAt: { lt: endExclusive } } : {}),
-        },
+          ...(endExclusive ? { paidAt: { lt: endExclusive } } : {})
+        }
       },
-      select: { amount: true },
+      select: { amount: true }
     }),
     tx.creditBalanceTransaction.findMany({
       where: {
         invoiceId,
         type: { in: ["ADJUSTMENT_CREDIT", "REVERSAL"] },
-        ...(endExclusive ? { createdAt: { lt: endExclusive } } : {}),
+        ...(endExclusive ? { createdAt: { lt: endExclusive } } : {})
       },
-      select: { amountDelta: true, type: true, sourceTransactionId: true },
-    }),
+      select: { amountDelta: true, type: true, sourceTransactionId: true }
+    })
   ]);
 
   const cashPaid = allocations.reduce((sum, item) => sum + item.amount, 0n);
-  const adjustmentCredit = adjustmentCredits.reduce(
-    (sum, item) => sum + item.amountDelta,
-    0n,
-  );
+  const adjustmentCredit = adjustmentCredits.reduce((sum, item) => sum + item.amountDelta, 0n);
   const creditPaid = await getInvoiceCreditPaidAmount(tx, invoiceId, endExclusive);
   const adjustedCashPaid = cashPaid - adjustmentCredit;
 

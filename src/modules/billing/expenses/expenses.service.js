@@ -14,11 +14,15 @@ function serialize(expense) {
   };
 }
 
-async function getAll({ category, from, to } = {}) {
+async function getAll({ category, groupId, from, to } = {}) {
   const where = {};
 
   if (category) {
     where.category = category;
+  }
+
+  if (groupId) {
+    where.groupId = groupId;
   }
 
   if (from || to) {
@@ -55,10 +59,18 @@ async function getById(id) {
   return serialize(expense);
 }
 
-async function create({ category, description, amount, expenseDate }, actorId) {
+async function create({ category, description, amount, expenseDate, groupId }, actorId) {
   return prisma.$transaction(async (tx) => {
+    if (groupId) {
+      const group = await tx.group.findUnique({ where: { id: groupId } });
+      if (!group) {
+        throw new AppError("Group not found", HTTP_STATUS.NOT_FOUND, "GROUP_NOT_FOUND");
+      }
+    }
+
     const expense = await tx.expense.create({
       data: {
+        ...(groupId ? { group: { connect: { id: groupId } } } : {}),
         category,
         description,
         amount: BigInt(amount),

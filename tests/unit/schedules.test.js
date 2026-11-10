@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   schedule: {
     findMany: jest.fn(),
@@ -155,12 +154,7 @@ function setupActiveReferences() {
   prisma.group.findFirst.mockImplementation(async (args = {}) => {
     const where = args.where || {};
 
-    if (
-      where.mainRoomId ||
-      where.mainRoom?.is ||
-      where.id?.not ||
-      where.NOT
-    ) {
+    if (where.mainRoomId || where.mainRoom?.is || where.id?.not || where.NOT) {
       return null;
     }
 
@@ -219,27 +213,19 @@ describe("Schedules rules", () => {
 
   describe("timeRangesOverlap", () => {
     test("returns true when intervals overlap", () => {
-      expect(
-        rules.timeRangesOverlap("09:00", "10:00", "09:30", "10:30")
-      ).toBe(true);
+      expect(rules.timeRangesOverlap("09:00", "10:00", "09:30", "10:30")).toBe(true);
     });
 
     test("returns false when intervals do not overlap", () => {
-      expect(
-        rules.timeRangesOverlap("09:00", "10:00", "10:00", "11:00")
-      ).toBe(false);
+      expect(rules.timeRangesOverlap("09:00", "10:00", "10:00", "11:00")).toBe(false);
     });
 
     test("returns false when intervals are separate", () => {
-      expect(
-        rules.timeRangesOverlap("09:00", "10:00", "11:00", "12:00")
-      ).toBe(false);
+      expect(rules.timeRangesOverlap("09:00", "10:00", "11:00", "12:00")).toBe(false);
     });
 
     test("returns true when one interval contains another", () => {
-      expect(
-        rules.timeRangesOverlap("09:00", "12:00", "10:00", "11:00")
-      ).toBe(true);
+      expect(rules.timeRangesOverlap("09:00", "12:00", "10:00", "11:00")).toBe(true);
     });
   });
 
@@ -549,9 +535,7 @@ describe("Schedules validation", () => {
 
   describe("createScheduleSchema", () => {
     test("accepts valid schedule data", () => {
-      const result = schedulesValidation.createScheduleSchema.validate(
-        createScheduleData
-      );
+      const result = schedulesValidation.createScheduleSchema.validate(createScheduleData);
 
       expect(result.error).toBeUndefined();
     });
@@ -639,17 +623,13 @@ describe("Schedules validation", () => {
 
   describe("createItemSchema", () => {
     test("accepts valid lesson", () => {
-      const result = schedulesValidation.createItemSchema.validate(
-        createLessonData
-      );
+      const result = schedulesValidation.createItemSchema.validate(createLessonData);
 
       expect(result.error).toBeUndefined();
     });
 
     test("accepts valid non-lesson item", () => {
-      const type = Object.values(ScheduleItemType).find(
-        (itemType) => itemType !== "LESSON"
-      );
+      const type = Object.values(ScheduleItemType).find((itemType) => itemType !== "LESSON");
 
       if (!type) return;
 
@@ -691,9 +671,7 @@ describe("Schedules validation", () => {
     });
 
     test("rejects subject for non-lesson item", () => {
-      const type = Object.values(ScheduleItemType).find(
-        (itemType) => itemType !== "LESSON"
-      );
+      const type = Object.values(ScheduleItemType).find((itemType) => itemType !== "LESSON");
 
       if (!type) return;
 
@@ -787,9 +765,7 @@ describe("Schedules validation", () => {
 
   describe("generateScheduleSchema", () => {
     test("accepts valid generation data", () => {
-      const result = schedulesValidation.generateScheduleSchema.validate(
-        createScheduleData
-      );
+      const result = schedulesValidation.generateScheduleSchema.validate(createScheduleData);
 
       expect(result.error).toBeUndefined();
     });
@@ -888,10 +864,7 @@ describe("Schedules service", () => {
     test("throws when schedule does not exist", async () => {
       prisma.schedule.findUnique.mockResolvedValue(null);
 
-      await expectErrorCode(
-        schedulesService.getById(SCHEDULE_ID),
-        "SCHEDULE_NOT_FOUND"
-      );
+      await expectErrorCode(schedulesService.getById(SCHEDULE_ID), "SCHEDULE_NOT_FOUND");
     });
   });
 
@@ -904,10 +877,7 @@ describe("Schedules service", () => {
 
       prisma.schedule.create.mockResolvedValue(schedule);
 
-      const result = await schedulesService.create(
-        createScheduleData,
-        user
-      );
+      const result = await schedulesService.create(createScheduleData, user);
 
       expect(result).toEqual(schedule);
 
@@ -956,10 +926,7 @@ describe("Schedules service", () => {
     test("rejects inactive or missing group", async () => {
       prisma.group.findFirst.mockResolvedValue(null);
 
-      await expectErrorCode(
-        schedulesService.create(createScheduleData, user),
-        "GROUP_NOT_FOUND"
-      );
+      await expectErrorCode(schedulesService.create(createScheduleData, user), "GROUP_NOT_FOUND");
 
       expect(prisma.schedule.create).not.toHaveBeenCalled();
     });
@@ -976,11 +943,7 @@ describe("Schedules service", () => {
 
       prisma.schedule.update.mockResolvedValue(updated);
 
-      const result = await schedulesService.update(
-        SCHEDULE_ID,
-        { name: "Updated schedule" },
-        user
-      );
+      const result = await schedulesService.update(SCHEDULE_ID, { name: "Updated schedule" }, user);
 
       expect(result).toEqual(updated);
 
@@ -1011,11 +974,7 @@ describe("Schedules service", () => {
       prisma.schedule.findUnique.mockResolvedValue(null);
 
       await expectErrorCode(
-        schedulesService.update(
-          SCHEDULE_ID,
-          { name: "Updated" },
-          user
-        ),
+        schedulesService.update(SCHEDULE_ID, { name: "Updated" }, user),
         "SCHEDULE_NOT_FOUND"
       );
     });
@@ -1027,11 +986,7 @@ describe("Schedules service", () => {
       });
 
       await expectErrorCode(
-        schedulesService.update(
-          SCHEDULE_ID,
-          { name: "Updated" },
-          user
-        ),
+        schedulesService.update(SCHEDULE_ID, { name: "Updated" }, user),
         "SCHEDULE_PUBLISHED"
       );
     });
@@ -1097,10 +1052,7 @@ describe("Schedules service", () => {
     test("rejects deletion of missing schedule", async () => {
       prisma.schedule.findUnique.mockResolvedValue(null);
 
-      await expectErrorCode(
-        schedulesService.remove(SCHEDULE_ID, user),
-        "SCHEDULE_NOT_FOUND"
-      );
+      await expectErrorCode(schedulesService.remove(SCHEDULE_ID, user), "SCHEDULE_NOT_FOUND");
     });
 
     test("rejects deletion of published schedule", async () => {
@@ -1110,10 +1062,7 @@ describe("Schedules service", () => {
         items: []
       });
 
-      await expectErrorCode(
-        schedulesService.remove(SCHEDULE_ID, user),
-        "SCHEDULE_PUBLISHED"
-      );
+      await expectErrorCode(schedulesService.remove(SCHEDULE_ID, user), "SCHEDULE_PUBLISHED");
 
       expect(prisma.schedule.delete).not.toHaveBeenCalled();
     });
@@ -1127,11 +1076,7 @@ describe("Schedules service", () => {
     });
 
     test("creates lesson and writes audit log", async () => {
-      const result = await schedulesService.createItem(
-        SCHEDULE_ID,
-        createLessonData,
-        user
-      );
+      const result = await schedulesService.createItem(SCHEDULE_ID, createLessonData, user);
 
       expect(result).toEqual(lesson);
 
@@ -1194,11 +1139,7 @@ describe("Schedules service", () => {
       prisma.schedule.findUnique.mockResolvedValue(null);
 
       await expectErrorCode(
-        schedulesService.createItem(
-          SCHEDULE_ID,
-          createLessonData,
-          user
-        ),
+        schedulesService.createItem(SCHEDULE_ID, createLessonData, user),
         "SCHEDULE_NOT_FOUND"
       );
     });
@@ -1210,11 +1151,7 @@ describe("Schedules service", () => {
       });
 
       await expectErrorCode(
-        schedulesService.createItem(
-          SCHEDULE_ID,
-          createLessonData,
-          user
-        ),
+        schedulesService.createItem(SCHEDULE_ID, createLessonData, user),
         "SCHEDULE_PUBLISHED"
       );
     });
@@ -1223,11 +1160,7 @@ describe("Schedules service", () => {
       prisma.subject.findFirst.mockResolvedValue(null);
 
       await expectErrorCode(
-        schedulesService.createItem(
-          SCHEDULE_ID,
-          createLessonData,
-          user
-        ),
+        schedulesService.createItem(SCHEDULE_ID, createLessonData, user),
         "SUBJECT_NOT_FOUND"
       );
     });
@@ -1236,11 +1169,7 @@ describe("Schedules service", () => {
       prisma.employee.findFirst.mockResolvedValue(null);
 
       await expectErrorCode(
-        schedulesService.createItem(
-          SCHEDULE_ID,
-          createLessonData,
-          user
-        ),
+        schedulesService.createItem(SCHEDULE_ID, createLessonData, user),
         "EMPLOYEE_NOT_FOUND"
       );
     });
@@ -1249,11 +1178,7 @@ describe("Schedules service", () => {
       prisma.room.findFirst.mockResolvedValue(null);
 
       await expectErrorCode(
-        schedulesService.createItem(
-          SCHEDULE_ID,
-          createLessonData,
-          user
-        ),
+        schedulesService.createItem(SCHEDULE_ID, createLessonData, user),
         "ROOM_NOT_FOUND"
       );
     });
@@ -1264,11 +1189,7 @@ describe("Schedules service", () => {
       });
 
       await expectErrorCode(
-        schedulesService.createItem(
-          SCHEDULE_ID,
-          createLessonData,
-          user
-        ),
+        schedulesService.createItem(SCHEDULE_ID, createLessonData, user),
         "ROOM_RESERVED_FOR_OTHER_GROUP"
       );
     });
@@ -1284,35 +1205,25 @@ describe("Schedules service", () => {
       ]);
 
       await expectErrorCode(
-        schedulesService.createItem(
-          SCHEDULE_ID,
-          createLessonData,
-          user
-        ),
+        schedulesService.createItem(SCHEDULE_ID, createLessonData, user),
         "SCHEDULE_CONFLICT"
       );
     });
 
     test("rejects item when teacher is busy in another published schedule", async () => {
-      prisma.scheduleItem.findMany
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([
-          {
-            ...lesson,
-            scheduleId: "507f1f77bcf86cd799439099",
-            schedule: {
-              validFrom: new Date("2026-01-01"),
-              validTo: new Date("2026-12-31")
-            }
+      prisma.scheduleItem.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([
+        {
+          ...lesson,
+          scheduleId: "507f1f77bcf86cd799439099",
+          schedule: {
+            validFrom: new Date("2026-01-01"),
+            validTo: new Date("2026-12-31")
           }
-        ]);
+        }
+      ]);
 
       await expectErrorCode(
-        schedulesService.createItem(
-          SCHEDULE_ID,
-          createLessonData,
-          user
-        ),
+        schedulesService.createItem(SCHEDULE_ID, createLessonData, user),
         "SCHEDULE_CONFLICT"
       );
     });
@@ -1375,12 +1286,7 @@ describe("Schedules service", () => {
       prisma.scheduleItem.findFirst.mockResolvedValue(null);
 
       await expectErrorCode(
-        schedulesService.updateItem(
-          SCHEDULE_ID,
-          ITEM_ID,
-          { startTime: "10:00" },
-          user
-        ),
+        schedulesService.updateItem(SCHEDULE_ID, ITEM_ID, { startTime: "10:00" }, user),
         "SCHEDULE_ITEM_NOT_FOUND"
       );
     });
@@ -1394,12 +1300,7 @@ describe("Schedules service", () => {
       });
 
       await expectErrorCode(
-        schedulesService.updateItem(
-          SCHEDULE_ID,
-          ITEM_ID,
-          { subjectId: SUBJECT_ID },
-          user
-        ),
+        schedulesService.updateItem(SCHEDULE_ID, ITEM_ID, { subjectId: SUBJECT_ID }, user),
         "INVALID_ITEM_FIELDS"
       );
     });
@@ -1426,12 +1327,7 @@ describe("Schedules service", () => {
       });
 
       await expectErrorCode(
-        schedulesService.updateItem(
-          SCHEDULE_ID,
-          ITEM_ID,
-          { startTime: "10:00" },
-          user
-        ),
+        schedulesService.updateItem(SCHEDULE_ID, ITEM_ID, { startTime: "10:00" }, user),
         "SCHEDULE_PUBLISHED"
       );
     });
@@ -1442,11 +1338,7 @@ describe("Schedules service", () => {
       prisma.schedule.findUnique.mockResolvedValue(schedule);
       prisma.scheduleItem.findFirst.mockResolvedValue(lesson);
 
-      await schedulesService.removeItem(
-        SCHEDULE_ID,
-        ITEM_ID,
-        user
-      );
+      await schedulesService.removeItem(SCHEDULE_ID, ITEM_ID, user);
 
       expect(prisma.scheduleItem.delete).toHaveBeenCalledWith({
         where: {
@@ -1470,11 +1362,7 @@ describe("Schedules service", () => {
       prisma.scheduleItem.findFirst.mockResolvedValue(null);
 
       await expectErrorCode(
-        schedulesService.removeItem(
-          SCHEDULE_ID,
-          ITEM_ID,
-          user
-        ),
+        schedulesService.removeItem(SCHEDULE_ID, ITEM_ID, user),
         "SCHEDULE_ITEM_NOT_FOUND"
       );
     });
@@ -1538,12 +1426,7 @@ describe("Schedules service", () => {
       prisma.schedule.findUnique.mockResolvedValue(schedule);
 
       await expectErrorCode(
-        schedulesService.cancelItem(
-          SCHEDULE_ID,
-          ITEM_ID,
-          { reason: "Reason" },
-          user
-        ),
+        schedulesService.cancelItem(SCHEDULE_ID, ITEM_ID, { reason: "Reason" }, user),
         "SCHEDULE_NOT_PUBLISHED"
       );
     });
@@ -1553,12 +1436,7 @@ describe("Schedules service", () => {
       prisma.scheduleItem.findFirst.mockResolvedValue(null);
 
       await expectErrorCode(
-        schedulesService.cancelItem(
-          SCHEDULE_ID,
-          ITEM_ID,
-          { reason: "Reason" },
-          user
-        ),
+        schedulesService.cancelItem(SCHEDULE_ID, ITEM_ID, { reason: "Reason" }, user),
         "SCHEDULE_ITEM_NOT_FOUND"
       );
     });
@@ -1572,12 +1450,7 @@ describe("Schedules service", () => {
       });
 
       await expectErrorCode(
-        schedulesService.cancelItem(
-          SCHEDULE_ID,
-          ITEM_ID,
-          { reason: "Reason" },
-          user
-        ),
+        schedulesService.cancelItem(SCHEDULE_ID, ITEM_ID, { reason: "Reason" }, user),
         "SCHEDULE_ITEM_ALREADY_CANCELLED"
       );
     });
@@ -1605,10 +1478,7 @@ describe("Schedules service", () => {
 
       prisma.schedule.update.mockResolvedValue(published);
 
-      const result = await schedulesService.publish(
-        SCHEDULE_ID,
-        user
-      );
+      const result = await schedulesService.publish(SCHEDULE_ID, user);
 
       expect(result).toEqual(published);
 
@@ -1638,10 +1508,7 @@ describe("Schedules service", () => {
     test("rejects missing schedule", async () => {
       prisma.schedule.findUnique.mockResolvedValue(null);
 
-      await expectErrorCode(
-        schedulesService.publish(SCHEDULE_ID, user),
-        "SCHEDULE_NOT_FOUND"
-      );
+      await expectErrorCode(schedulesService.publish(SCHEDULE_ID, user), "SCHEDULE_NOT_FOUND");
     });
 
     test("rejects already published schedule", async () => {
@@ -1665,10 +1532,7 @@ describe("Schedules service", () => {
 
       prisma.group.findFirst.mockResolvedValue(null);
 
-      await expectErrorCode(
-        schedulesService.publish(SCHEDULE_ID, user),
-        "GROUP_NOT_FOUND"
-      );
+      await expectErrorCode(schedulesService.publish(SCHEDULE_ID, user), "GROUP_NOT_FOUND");
     });
 
     test("rejects empty schedule", async () => {
@@ -1677,10 +1541,7 @@ describe("Schedules service", () => {
         items: []
       });
 
-      await expectErrorCode(
-        schedulesService.publish(SCHEDULE_ID, user),
-        "SCHEDULE_EMPTY"
-      );
+      await expectErrorCode(schedulesService.publish(SCHEDULE_ID, user), "SCHEDULE_EMPTY");
     });
 
     test("rejects overlapping published period for same group", async () => {
@@ -1699,10 +1560,7 @@ describe("Schedules service", () => {
         }
       ]);
 
-      await expectErrorCode(
-        schedulesService.publish(SCHEDULE_ID, user),
-        "SCHEDULE_PERIOD_OVERLAP"
-      );
+      await expectErrorCode(schedulesService.publish(SCHEDULE_ID, user), "SCHEDULE_PERIOD_OVERLAP");
     });
   });
 });
@@ -1771,10 +1629,7 @@ describe("Schedules controller", () => {
 
     await schedulesController.create(req, res);
 
-    expect(schedulesService.create).toHaveBeenCalledWith(
-      createScheduleData,
-      user
-    );
+    expect(schedulesService.create).toHaveBeenCalledWith(createScheduleData, user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
     expect(res.json).toHaveBeenCalledWith({
@@ -1808,10 +1663,7 @@ describe("Schedules controller", () => {
 
     await schedulesController.remove(req, res);
 
-    expect(schedulesService.remove).toHaveBeenCalledWith(
-      SCHEDULE_ID,
-      user
-    );
+    expect(schedulesService.remove).toHaveBeenCalledWith(SCHEDULE_ID, user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.NO_CONTENT);
     expect(res.send).toHaveBeenCalled();
@@ -1823,10 +1675,7 @@ describe("Schedules controller", () => {
 
     await schedulesController.publish(req, res);
 
-    expect(schedulesService.publish).toHaveBeenCalledWith(
-      SCHEDULE_ID,
-      user
-    );
+    expect(schedulesService.publish).toHaveBeenCalledWith(SCHEDULE_ID, user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
   });
@@ -1839,11 +1688,7 @@ describe("Schedules controller", () => {
 
     await schedulesController.createItem(req, res);
 
-    expect(schedulesService.createItem).toHaveBeenCalledWith(
-      SCHEDULE_ID,
-      createLessonData,
-      user
-    );
+    expect(schedulesService.createItem).toHaveBeenCalledWith(SCHEDULE_ID, createLessonData, user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
   });
@@ -1874,11 +1719,7 @@ describe("Schedules controller", () => {
 
     await schedulesController.removeItem(req, res);
 
-    expect(schedulesService.removeItem).toHaveBeenCalledWith(
-      SCHEDULE_ID,
-      ITEM_ID,
-      user
-    );
+    expect(schedulesService.removeItem).toHaveBeenCalledWith(SCHEDULE_ID, ITEM_ID, user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.NO_CONTENT);
   });
@@ -1909,10 +1750,7 @@ describe("Schedules controller", () => {
 
     await schedulesController.generate(req, res);
 
-    expect(schedulesGenerator.generate).toHaveBeenCalledWith(
-      createScheduleData,
-      user
-    );
+    expect(schedulesGenerator.generate).toHaveBeenCalledWith(createScheduleData, user);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
     expect(res.json).toHaveBeenCalledWith({
@@ -1934,9 +1772,7 @@ describe("Schedules routes", () => {
   }
 
   test("uses authentication middleware", () => {
-    const authLayer = schedulesRoutes.stack.find(
-      (layer) => layer.handle === requireAuth
-    );
+    const authLayer = schedulesRoutes.stack.find((layer) => layer.handle === requireAuth);
 
     expect(authLayer).toBeDefined();
   });
@@ -1944,9 +1780,7 @@ describe("Schedules routes", () => {
   test("defines all required routes", () => {
     const routes = getRoutes();
 
-    expect(
-      routes.map(({ method, path }) => `${method} ${path}`)
-    ).toEqual([
+    expect(routes.map(({ method, path }) => `${method} ${path}`)).toEqual([
       "get /",
       "post /",
       "post /generate",
@@ -1962,15 +1796,10 @@ describe("Schedules routes", () => {
   });
 
   test("uses ADMIN and MANAGER role authorization", () => {
-    const roleLayer = schedulesRoutes.stack.find(
-      (layer) => layer.handle.allowedRoles
-    );
+    const roleLayer = schedulesRoutes.stack.find((layer) => layer.handle.allowedRoles);
 
     expect(roleLayer).toBeDefined();
-    expect(roleLayer.handle.allowedRoles).toEqual([
-      "ADMIN",
-      "MANAGER"
-    ]);
+    expect(roleLayer.handle.allowedRoles).toEqual(["ADMIN", "MANAGER"]);
   });
 
   test.each([
@@ -1988,62 +1817,44 @@ describe("Schedules routes", () => {
   ])(
     "%s %s has the expected first validation middleware",
     (method, path, handlerIndex, property, schemaName) => {
-      const route = getRoutes().find(
-        (item) => item.method === method && item.path === path
-      );
+      const route = getRoutes().find((item) => item.method === method && item.path === path);
 
       expect(route).toBeDefined();
       expect(route.handlers[handlerIndex].validationProperty).toBe(property);
-      expect(route.handlers[handlerIndex].schema).toBe(
-        schedulesValidation[schemaName]
-      );
+      expect(route.handlers[handlerIndex].schema).toBe(schedulesValidation[schemaName]);
     }
   );
 
   test("PATCH /:id validates request body", () => {
-    const route = getRoutes().find(
-      (item) => item.method === "patch" && item.path === "/:id"
-    );
+    const route = getRoutes().find((item) => item.method === "patch" && item.path === "/:id");
 
     expect(route.handlers[1].validationProperty).toBe("body");
-    expect(route.handlers[1].schema).toBe(
-      schedulesValidation.updateScheduleSchema
-    );
+    expect(route.handlers[1].schema).toBe(schedulesValidation.updateScheduleSchema);
   });
 
   test("POST /:id/items validates request body", () => {
-    const route = getRoutes().find(
-      (item) => item.method === "post" && item.path === "/:id/items"
-    );
+    const route = getRoutes().find((item) => item.method === "post" && item.path === "/:id/items");
 
     expect(route.handlers[1].validationProperty).toBe("body");
-    expect(route.handlers[1].schema).toBe(
-      schedulesValidation.createItemSchema
-    );
+    expect(route.handlers[1].schema).toBe(schedulesValidation.createItemSchema);
   });
 
   test("PATCH /:id/items/:itemId validates request body", () => {
     const route = getRoutes().find(
-      (item) => item.method === "patch" &&
-        item.path === "/:id/items/:itemId"
+      (item) => item.method === "patch" && item.path === "/:id/items/:itemId"
     );
 
     expect(route.handlers[1].validationProperty).toBe("body");
-    expect(route.handlers[1].schema).toBe(
-      schedulesValidation.updateItemSchema
-    );
+    expect(route.handlers[1].schema).toBe(schedulesValidation.updateItemSchema);
   });
 
   test("POST /:id/items/:itemId/cancel validates request body", () => {
     const route = getRoutes().find(
-      (item) => item.method === "post" &&
-        item.path === "/:id/items/:itemId/cancel"
+      (item) => item.method === "post" && item.path === "/:id/items/:itemId/cancel"
     );
 
     expect(route.handlers[1].validationProperty).toBe("body");
-    expect(route.handlers[1].schema).toBe(
-      schedulesValidation.cancelItemSchema
-    );
+    expect(route.handlers[1].schema).toBe(schedulesValidation.cancelItemSchema);
   });
 });
 
@@ -2065,11 +1876,7 @@ describe("Schedules generator", () => {
   function createChild() {
     return {
       id: "507f1f77bcf86cd799439099",
-      birthDate: new Date(
-        new Date().getFullYear() - 3,
-        new Date().getMonth(),
-        new Date().getDate()
-      )
+      birthDate: new Date(new Date().getFullYear() - 3, new Date().getMonth(), new Date().getDate())
     };
   }
 
@@ -2117,10 +1924,7 @@ describe("Schedules generator", () => {
   test("generates schedule with routine and lessons", async () => {
     setupGeneratorData();
 
-    const result = await schedulesGenerator.generate(
-      createScheduleData,
-      user
-    );
+    const result = await schedulesGenerator.generate(createScheduleData, user);
 
     expect(result).toEqual(schedule);
 
@@ -2137,9 +1941,7 @@ describe("Schedules generator", () => {
     expect(schedulesService.createItem).toHaveBeenCalled();
     expect(schedulesService.getById).toHaveBeenCalledWith(SCHEDULE_ID);
 
-    expect(schedulesService.createItem).toHaveBeenCalledTimes(
-      config.WORKING_DAYS.length * 8
-    );
+    expect(schedulesService.createItem).toHaveBeenCalledTimes(config.WORKING_DAYS.length * 8);
   });
 
   test("uses default schedule name when name is not provided", async () => {
@@ -2164,10 +1966,7 @@ describe("Schedules generator", () => {
   test("rejects when group does not exist", async () => {
     prisma.group.findFirst.mockResolvedValue(null);
 
-    await expectErrorCode(
-      schedulesGenerator.generate(createScheduleData, user),
-      "GROUP_NOT_FOUND"
-    );
+    await expectErrorCode(schedulesGenerator.generate(createScheduleData, user), "GROUP_NOT_FOUND");
 
     expect(schedulesService.create).not.toHaveBeenCalled();
   });
@@ -2179,19 +1978,13 @@ describe("Schedules generator", () => {
       capacity: 20
     });
 
-    await expectErrorCode(
-      schedulesGenerator.generate(createScheduleData, user),
-      "GROUP_EMPTY"
-    );
+    await expectErrorCode(schedulesGenerator.generate(createScheduleData, user), "GROUP_EMPTY");
   });
 
   test("rejects group enrollment exceeding capacity", async () => {
     prisma.group.findFirst.mockResolvedValue({
       id: GROUP_ID,
-      enrollments: Array.from(
-        { length: 3 },
-        () => ({ child: createChild() })
-      ),
+      enrollments: Array.from({ length: 3 }, () => ({ child: createChild() })),
       capacity: 2
     });
 
@@ -2260,15 +2053,10 @@ describe("Schedules generator", () => {
       })
     );
 
-    await expect(
-      schedulesGenerator.generate(createScheduleData, user)
-    ).rejects.toMatchObject({
+    await expect(schedulesGenerator.generate(createScheduleData, user)).rejects.toMatchObject({
       code: "UNEXPECTED_ERROR"
     });
 
-    expect(schedulesService.remove).toHaveBeenCalledWith(
-      SCHEDULE_ID,
-      user
-    );
+    expect(schedulesService.remove).toHaveBeenCalledWith(SCHEDULE_ID, user);
   });
 });

@@ -306,6 +306,7 @@ async function createGroup(data, user) {
           ageFromMonths: data.ageFromMonths,
           ageToMonths: data.ageToMonths,
           capacity: data.capacity ?? MAX_CAPACITY,
+          mealCategory: data.mealCategory ?? null,
           mainRoomId: data.mainRoomId ?? null,
           status: data.status ?? "ACTIVE"
         },
@@ -403,6 +404,9 @@ async function updateGroup(id, data, user) {
           }),
           ...(data.capacity !== undefined && {
             capacity: data.capacity
+          }),
+          ...(data.mealCategory !== undefined && {
+            mealCategory: data.mealCategory
           }),
           ...(data.mainRoomId !== undefined && {
             mainRoomId: data.mainRoomId

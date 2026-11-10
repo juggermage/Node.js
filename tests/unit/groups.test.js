@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   $transaction: jest.fn(),
   group: {
@@ -41,9 +40,7 @@ jest.mock("../../src/modules/groups/groups.service", () => ({
   getChildHistory: jest.fn()
 }));
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next())
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
 jest.mock("../../src/middleware/rbac.middleware", () =>
   jest.fn((...allowedRoles) => {
@@ -82,15 +79,12 @@ const {
 
 const groupRouter = require("../../src/modules/groups/groups.routes");
 
-const realService = jest.requireActual(
-  "../../src/modules/groups/groups.service"
-);
+const realService = jest.requireActual("../../src/modules/groups/groups.service");
 
 const ADMIN = {
   id: "111111111111111111111111",
   role: "ADMIN"
 };
-
 
 const PARENT = {
   id: "333333333333333333333333",
@@ -179,10 +173,7 @@ describe("Groups Controller", () => {
 
     await controller.getAll(req, res);
 
-    expect(service.getAllGroups).toHaveBeenCalledWith(
-      { search: "Group" },
-      ADMIN
-    );
+    expect(service.getAllGroups).toHaveBeenCalledWith({ search: "Group" }, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -200,10 +191,7 @@ describe("Groups Controller", () => {
 
     await controller.getById(req, res);
 
-    expect(service.getGroupById).toHaveBeenCalledWith(
-      GROUP_ID,
-      ADMIN
-    );
+    expect(service.getGroupById).toHaveBeenCalledWith(GROUP_ID, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -221,10 +209,7 @@ describe("Groups Controller", () => {
 
     await controller.create(req, res);
 
-    expect(service.createGroup).toHaveBeenCalledWith(
-      validGroup,
-      ADMIN
-    );
+    expect(service.createGroup).toHaveBeenCalledWith(validGroup, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
     expect(res.json).toHaveBeenCalledWith({
@@ -248,11 +233,7 @@ describe("Groups Controller", () => {
 
     await controller.update(req, res);
 
-    expect(service.updateGroup).toHaveBeenCalledWith(
-      GROUP_ID,
-      updateData,
-      ADMIN
-    );
+    expect(service.updateGroup).toHaveBeenCalledWith(GROUP_ID, updateData, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
   });
@@ -266,14 +247,9 @@ describe("Groups Controller", () => {
 
     await controller.remove(req, res);
 
-    expect(service.softDeleteGroup).toHaveBeenCalledWith(
-      GROUP_ID,
-      ADMIN
-    );
+    expect(service.softDeleteGroup).toHaveBeenCalledWith(GROUP_ID, ADMIN);
 
-    expect(res.status).toHaveBeenCalledWith(
-      HTTP_STATUS.NO_CONTENT
-    );
+    expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.NO_CONTENT);
 
     expect(res.send).toHaveBeenCalled();
   });
@@ -290,15 +266,9 @@ describe("Groups Controller", () => {
 
     await controller.enrollChild(req, res);
 
-    expect(service.enrollChild).toHaveBeenCalledWith(
-      GROUP_ID,
-      body,
-      ADMIN
-    );
+    expect(service.enrollChild).toHaveBeenCalledWith(GROUP_ID, body, ADMIN);
 
-    expect(res.status).toHaveBeenCalledWith(
-      HTTP_STATUS.CREATED
-    );
+    expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
 
     expect(res.json).toHaveBeenCalledWith({
       success: true,
@@ -318,10 +288,7 @@ describe("Groups Controller", () => {
 
     await controller.completeEnrollment(req, res);
 
-    expect(service.completeEnrollment).toHaveBeenCalledWith(
-      ENROLLMENT_ID,
-      ADMIN
-    );
+    expect(service.completeEnrollment).toHaveBeenCalledWith(ENROLLMENT_ID, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
   });
@@ -335,10 +302,7 @@ describe("Groups Controller", () => {
 
     await controller.getGroupHistory(req, res);
 
-    expect(service.getGroupHistory).toHaveBeenCalledWith(
-      GROUP_ID,
-      ADMIN
-    );
+    expect(service.getGroupHistory).toHaveBeenCalledWith(GROUP_ID, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -356,10 +320,7 @@ describe("Groups Controller", () => {
 
     await controller.getChildHistory(req, res);
 
-    expect(service.getChildHistory).toHaveBeenCalledWith(
-      CHILD_ID,
-      ADMIN
-    );
+    expect(service.getChildHistory).toHaveBeenCalledWith(CHILD_ID, ADMIN);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
@@ -371,9 +332,7 @@ describe("Groups Controller", () => {
 
 describe("Groups Routes", () => {
   test("should register authentication middleware", () => {
-    const registered = groupRouter.stack.some(
-      (layer) => layer.handle === authMiddleware
-    );
+    const registered = groupRouter.stack.some((layer) => layer.handle === authMiddleware);
 
     expect(registered).toBe(true);
   });
@@ -793,10 +752,7 @@ describe("Groups Service", () => {
   });
 
   test("getAllGroups should filter by status", async () => {
-    await realService.getAllGroups(
-      { status: "INACTIVE" },
-      ADMIN
-    );
+    await realService.getAllGroups({ status: "INACTIVE" }, ADMIN);
 
     expect(prisma.group.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -808,10 +764,7 @@ describe("Groups Service", () => {
   });
 
   test("getAllGroups should filter by search", async () => {
-    await realService.getAllGroups(
-      { search: " Group " },
-      ADMIN
-    );
+    await realService.getAllGroups({ search: " Group " }, ADMIN);
 
     expect(prisma.group.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -877,29 +830,27 @@ describe("Groups Service", () => {
   });
 
   test("getAllGroups should reject unauthenticated user", async () => {
-    await expect(
-      realService.getAllGroups({}, null)
-    ).rejects.toMatchObject({
+    await expect(realService.getAllGroups({}, null)).rejects.toMatchObject({
       code: "UNAUTHORIZED"
     });
   });
 
   test("getAllGroups should reject unsupported role", async () => {
     await expect(
-      realService.getAllGroups({}, {
-        id: CHILD_ID,
-        role: "UNKNOWN"
-      })
+      realService.getAllGroups(
+        {},
+        {
+          id: CHILD_ID,
+          role: "UNKNOWN"
+        }
+      )
     ).rejects.toMatchObject({
       code: "FORBIDDEN"
     });
   });
 
   test("getGroupById should return group", async () => {
-    const result = await realService.getGroupById(
-      GROUP_ID,
-      ADMIN
-    );
+    const result = await realService.getGroupById(GROUP_ID, ADMIN);
 
     expect(result).toEqual(group);
 
@@ -916,18 +867,13 @@ describe("Groups Service", () => {
   test("getGroupById should reject when group does not exist", async () => {
     prisma.group.findFirst.mockResolvedValue(null);
 
-    await expect(
-      realService.getGroupById(GROUP_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.getGroupById(GROUP_ID, ADMIN)).rejects.toMatchObject({
       code: "GROUP_NOT_FOUND"
     });
   });
 
   test("createGroup should create group", async () => {
-    const result = await realService.createGroup(
-      validGroup,
-      ADMIN
-    );
+    const result = await realService.createGroup(validGroup, ADMIN);
 
     expect(result).toEqual(group);
 
@@ -1017,9 +963,7 @@ describe("Groups Service", () => {
   test("createGroup should reject duplicate group name", async () => {
     tx.group.findFirst.mockResolvedValue(group);
 
-    await expect(
-      realService.createGroup(validGroup, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.createGroup(validGroup, ADMIN)).rejects.toMatchObject({
       code: "GROUP_NAME_EXISTS"
     });
   });
@@ -1077,9 +1021,7 @@ describe("Groups Service", () => {
   });
 
   test("createGroup should reject user without management access", async () => {
-    await expect(
-      realService.createGroup(validGroup, PARENT)
-    ).rejects.toMatchObject({
+    await expect(realService.createGroup(validGroup, PARENT)).rejects.toMatchObject({
       code: "FORBIDDEN"
     });
   });
@@ -1092,11 +1034,7 @@ describe("Groups Service", () => {
 
     tx.group.update.mockResolvedValue(updatedGroup);
 
-    const result = await realService.updateGroup(
-      GROUP_ID,
-      { name: "Group B" },
-      ADMIN
-    );
+    const result = await realService.updateGroup(GROUP_ID, { name: "Group B" }, ADMIN);
 
     expect(result).toEqual(updatedGroup);
 
@@ -1124,11 +1062,7 @@ describe("Groups Service", () => {
     tx.group.findUnique.mockResolvedValue(null);
 
     await expect(
-      realService.updateGroup(
-        GROUP_ID,
-        { name: "Group B" },
-        ADMIN
-      )
+      realService.updateGroup(GROUP_ID, { name: "Group B" }, ADMIN)
     ).rejects.toMatchObject({
       code: "GROUP_NOT_FOUND"
     });
@@ -1141,11 +1075,7 @@ describe("Groups Service", () => {
     });
 
     await expect(
-      realService.updateGroup(
-        GROUP_ID,
-        { name: "Group B" },
-        ADMIN
-      )
+      realService.updateGroup(GROUP_ID, { name: "Group B" }, ADMIN)
     ).rejects.toMatchObject({
       code: "GROUP_NOT_FOUND"
     });
@@ -1170,11 +1100,7 @@ describe("Groups Service", () => {
     tx.group.findFirst.mockResolvedValue(group);
 
     await expect(
-      realService.updateGroup(
-        GROUP_ID,
-        { name: "Another group" },
-        ADMIN
-      )
+      realService.updateGroup(GROUP_ID, { name: "Another group" }, ADMIN)
     ).rejects.toMatchObject({
       code: "GROUP_NAME_EXISTS"
     });
@@ -1186,13 +1112,7 @@ describe("Groups Service", () => {
       { ...enrollment, id: "eeeeeeeeeeeeeeeeeeeeeeee" }
     ]);
 
-    await expect(
-      realService.updateGroup(
-        GROUP_ID,
-        { capacity: 1 },
-        ADMIN
-      )
-    ).rejects.toMatchObject({
+    await expect(realService.updateGroup(GROUP_ID, { capacity: 1 }, ADMIN)).rejects.toMatchObject({
       code: "CAPACITY_BELOW_ENROLLED"
     });
   });
@@ -1226,11 +1146,7 @@ describe("Groups Service", () => {
     tx.groupEnrollment.findMany.mockResolvedValue([enrollment]);
 
     await expect(
-      realService.updateGroup(
-        GROUP_ID,
-        { status: "INACTIVE" },
-        ADMIN
-      )
+      realService.updateGroup(GROUP_ID, { status: "INACTIVE" }, ADMIN)
     ).rejects.toMatchObject({
       code: "GROUP_HAS_ACTIVE_CHILDREN"
     });
@@ -1238,11 +1154,7 @@ describe("Groups Service", () => {
 
   test("updateGroup should reject user without management access", async () => {
     await expect(
-      realService.updateGroup(
-        GROUP_ID,
-        { name: "Group B" },
-        PARENT
-      )
+      realService.updateGroup(GROUP_ID, { name: "Group B" }, PARENT)
     ).rejects.toMatchObject({
       code: "FORBIDDEN"
     });
@@ -1258,10 +1170,7 @@ describe("Groups Service", () => {
 
     tx.group.update.mockResolvedValue(archivedGroup);
 
-    const result = await realService.softDeleteGroup(
-      GROUP_ID,
-      ADMIN
-    );
+    const result = await realService.softDeleteGroup(GROUP_ID, ADMIN);
 
     expect(result).toEqual(archivedGroup);
 
@@ -1290,9 +1199,7 @@ describe("Groups Service", () => {
   test("softDeleteGroup should reject group with active children", async () => {
     tx.groupEnrollment.count.mockResolvedValue(1);
 
-    await expect(
-      realService.softDeleteGroup(GROUP_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.softDeleteGroup(GROUP_ID, ADMIN)).rejects.toMatchObject({
       code: "GROUP_HAS_ACTIVE_CHILDREN"
     });
   });
@@ -1300,27 +1207,19 @@ describe("Groups Service", () => {
   test("softDeleteGroup should reject when group does not exist", async () => {
     tx.group.findUnique.mockResolvedValue(null);
 
-    await expect(
-      realService.softDeleteGroup(GROUP_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.softDeleteGroup(GROUP_ID, ADMIN)).rejects.toMatchObject({
       code: "GROUP_NOT_FOUND"
     });
   });
 
   test("softDeleteGroup should reject user without management access", async () => {
-    await expect(
-      realService.softDeleteGroup(GROUP_ID, PARENT)
-    ).rejects.toMatchObject({
+    await expect(realService.softDeleteGroup(GROUP_ID, PARENT)).rejects.toMatchObject({
       code: "FORBIDDEN"
     });
   });
 
   test("enrollChild should enroll child", async () => {
-    const result = await realService.enrollChild(
-      GROUP_ID,
-      { childId: CHILD_ID },
-      ADMIN
-    );
+    const result = await realService.enrollChild(GROUP_ID, { childId: CHILD_ID }, ADMIN);
 
     expect(result).toEqual(enrollment);
 
@@ -1353,11 +1252,7 @@ describe("Groups Service", () => {
     tx.group.findUnique.mockResolvedValue(null);
 
     await expect(
-      realService.enrollChild(
-        GROUP_ID,
-        { childId: CHILD_ID },
-        ADMIN
-      )
+      realService.enrollChild(GROUP_ID, { childId: CHILD_ID }, ADMIN)
     ).rejects.toMatchObject({
       code: "GROUP_NOT_FOUND"
     });
@@ -1370,11 +1265,7 @@ describe("Groups Service", () => {
     });
 
     await expect(
-      realService.enrollChild(
-        GROUP_ID,
-        { childId: CHILD_ID },
-        ADMIN
-      )
+      realService.enrollChild(GROUP_ID, { childId: CHILD_ID }, ADMIN)
     ).rejects.toMatchObject({
       code: "GROUP_NOT_ACTIVE"
     });
@@ -1384,11 +1275,7 @@ describe("Groups Service", () => {
     tx.child.findUnique.mockResolvedValue(null);
 
     await expect(
-      realService.enrollChild(
-        GROUP_ID,
-        { childId: CHILD_ID },
-        ADMIN
-      )
+      realService.enrollChild(GROUP_ID, { childId: CHILD_ID }, ADMIN)
     ).rejects.toMatchObject({
       code: "CHILD_NOT_FOUND"
     });
@@ -1401,11 +1288,7 @@ describe("Groups Service", () => {
     });
 
     await expect(
-      realService.enrollChild(
-        GROUP_ID,
-        { childId: CHILD_ID },
-        ADMIN
-      )
+      realService.enrollChild(GROUP_ID, { childId: CHILD_ID }, ADMIN)
     ).rejects.toMatchObject({
       code: "CHILD_NOT_ACTIVE"
     });
@@ -1418,11 +1301,7 @@ describe("Groups Service", () => {
     });
 
     await expect(
-      realService.enrollChild(
-        GROUP_ID,
-        { childId: CHILD_ID },
-        ADMIN
-      )
+      realService.enrollChild(GROUP_ID, { childId: CHILD_ID }, ADMIN)
     ).rejects.toMatchObject({
       code: "AGE_MISMATCH"
     });
@@ -1432,11 +1311,7 @@ describe("Groups Service", () => {
     tx.groupEnrollment.findFirst.mockResolvedValue(enrollment);
 
     await expect(
-      realService.enrollChild(
-        GROUP_ID,
-        { childId: CHILD_ID },
-        ADMIN
-      )
+      realService.enrollChild(GROUP_ID, { childId: CHILD_ID }, ADMIN)
     ).rejects.toMatchObject({
       code: "CHILD_ALREADY_ENROLLED"
     });
@@ -1446,11 +1321,7 @@ describe("Groups Service", () => {
     tx.groupEnrollment.count.mockResolvedValue(group.capacity);
 
     await expect(
-      realService.enrollChild(
-        GROUP_ID,
-        { childId: CHILD_ID },
-        ADMIN
-      )
+      realService.enrollChild(GROUP_ID, { childId: CHILD_ID }, ADMIN)
     ).rejects.toMatchObject({
       code: "GROUP_CAPACITY_EXCEEDED"
     });
@@ -1458,11 +1329,7 @@ describe("Groups Service", () => {
 
   test("enrollChild should reject user without management access", async () => {
     await expect(
-      realService.enrollChild(
-        GROUP_ID,
-        { childId: CHILD_ID },
-        PARENT
-      )
+      realService.enrollChild(GROUP_ID, { childId: CHILD_ID }, PARENT)
     ).rejects.toMatchObject({
       code: "FORBIDDEN"
     });
@@ -1474,14 +1341,9 @@ describe("Groups Service", () => {
       endDate: new Date()
     };
 
-    tx.groupEnrollment.update.mockResolvedValue(
-      completedEnrollment
-    );
+    tx.groupEnrollment.update.mockResolvedValue(completedEnrollment);
 
-    const result = await realService.completeEnrollment(
-      ENROLLMENT_ID,
-      ADMIN
-    );
+    const result = await realService.completeEnrollment(ENROLLMENT_ID, ADMIN);
 
     expect(result).toEqual(completedEnrollment);
 
@@ -1508,9 +1370,7 @@ describe("Groups Service", () => {
   test("completeEnrollment should reject when enrollment does not exist", async () => {
     tx.groupEnrollment.findUnique.mockResolvedValue(null);
 
-    await expect(
-      realService.completeEnrollment(ENROLLMENT_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.completeEnrollment(ENROLLMENT_ID, ADMIN)).rejects.toMatchObject({
       code: "ENROLLMENT_NOT_FOUND"
     });
   });
@@ -1521,29 +1381,19 @@ describe("Groups Service", () => {
       endDate: new Date()
     });
 
-    await expect(
-      realService.completeEnrollment(ENROLLMENT_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.completeEnrollment(ENROLLMENT_ID, ADMIN)).rejects.toMatchObject({
       code: "ENROLLMENT_ALREADY_CLOSED"
     });
   });
 
   test("completeEnrollment should reject user without management access", async () => {
-    await expect(
-      realService.completeEnrollment(
-        ENROLLMENT_ID,
-        PARENT
-      )
-    ).rejects.toMatchObject({
+    await expect(realService.completeEnrollment(ENROLLMENT_ID, PARENT)).rejects.toMatchObject({
       code: "FORBIDDEN"
     });
   });
 
   test("getGroupHistory should return group enrollments", async () => {
-    const result = await realService.getGroupHistory(
-      GROUP_ID,
-      ADMIN
-    );
+    const result = await realService.getGroupHistory(GROUP_ID, ADMIN);
 
     expect(result).toEqual([enrollment]);
 
@@ -1561,26 +1411,19 @@ describe("Groups Service", () => {
   test("getGroupHistory should reject when group does not exist", async () => {
     prisma.group.findFirst.mockResolvedValue(null);
 
-    await expect(
-      realService.getGroupHistory(GROUP_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.getGroupHistory(GROUP_ID, ADMIN)).rejects.toMatchObject({
       code: "GROUP_NOT_FOUND"
     });
   });
 
   test("getGroupHistory should reject unauthenticated user", async () => {
-    await expect(
-      realService.getGroupHistory(GROUP_ID, null)
-    ).rejects.toMatchObject({
+    await expect(realService.getGroupHistory(GROUP_ID, null)).rejects.toMatchObject({
       code: "UNAUTHORIZED"
     });
   });
 
   test("getChildHistory should return child enrollments", async () => {
-    const result = await realService.getChildHistory(
-      CHILD_ID,
-      ADMIN
-    );
+    const result = await realService.getChildHistory(CHILD_ID, ADMIN);
 
     expect(result).toEqual([enrollment]);
 
@@ -1597,17 +1440,13 @@ describe("Groups Service", () => {
   test("getChildHistory should reject when child does not exist", async () => {
     prisma.child.findFirst.mockResolvedValue(null);
 
-    await expect(
-      realService.getChildHistory(CHILD_ID, ADMIN)
-    ).rejects.toMatchObject({
+    await expect(realService.getChildHistory(CHILD_ID, ADMIN)).rejects.toMatchObject({
       code: "CHILD_NOT_FOUND"
     });
   });
 
   test("getChildHistory should reject unauthenticated user", async () => {
-    await expect(
-      realService.getChildHistory(CHILD_ID, null)
-    ).rejects.toMatchObject({
+    await expect(realService.getChildHistory(CHILD_ID, null)).rejects.toMatchObject({
       code: "UNAUTHORIZED"
     });
   });

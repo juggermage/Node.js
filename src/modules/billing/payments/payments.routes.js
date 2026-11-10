@@ -9,7 +9,9 @@ const authorizeRoles = require("../../../middleware/rbac.middleware");
 const {
   createPaymentSchema,
   paymentIdSchema,
-  listPaymentsSchema
+  listPaymentsSchema,
+  applyCreditSchema,
+  creditBalanceQuerySchema
 } = require("./payments.validation");
 
 const router = express.Router();
@@ -21,6 +23,20 @@ router.get(
   authorizeRoles("ADMIN", "MANAGER", "PARENT"),
   validate(listPaymentsSchema, "query"),
   paymentsController.getAll
+);
+
+router.get(
+  "/credit-balance",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(creditBalanceQuerySchema, "query"),
+  paymentsController.getCreditBalance
+);
+
+router.post(
+  "/credit/apply",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(applyCreditSchema, "body"),
+  paymentsController.applyCredit
 );
 
 router.get(

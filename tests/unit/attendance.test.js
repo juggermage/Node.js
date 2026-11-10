@@ -1,4 +1,3 @@
-
 jest.mock("../../src/config/prisma", () => ({
   employee: { findFirst: jest.fn() },
   staffAssignment: { findMany: jest.fn() },
@@ -11,26 +10,22 @@ jest.mock("../../src/config/prisma", () => ({
     findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
-    delete: jest.fn(),
+    delete: jest.fn()
   },
-  $transaction: jest.fn(),
+  $transaction: jest.fn()
 }));
 
 jest.mock("../../src/modules/audit/audit.service", () => ({
-  createLog: jest.fn(),
+  createLog: jest.fn()
 }));
 
 jest.mock("../../src/middleware/validate.middleware", () =>
-  jest.fn(() => (req, res, next) => next()),
+  jest.fn(() => (req, res, next) => next())
 );
 
-jest.mock("../../src/middleware/auth.middleware", () =>
-  jest.fn((req, res, next) => next()),
-);
+jest.mock("../../src/middleware/auth.middleware", () => jest.fn((req, res, next) => next()));
 
-jest.mock("../../src/middleware/rbac.middleware", () =>
-  jest.fn(() => (req, res, next) => next()),
-);
+jest.mock("../../src/middleware/rbac.middleware", () => jest.fn(() => (req, res, next) => next()));
 
 const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
@@ -41,7 +36,7 @@ const {
   attendanceIdSchema,
   listAttendanceSchema,
   createAttendanceSchema,
-  updateAttendanceSchema,
+  updateAttendanceSchema
 } = require("../../src/modules/attendance/attendance.validation");
 
 const HTTP_STATUS = require("../../src/utils/http-status");
@@ -55,17 +50,17 @@ const userId = "507f1f77bcf86cd799439016";
 
 const manager = {
   id: userId,
-  role: "ADMIN",
+  role: "ADMIN"
 };
 
 const teacher = {
   id: userId,
-  role: "TEACHER",
+  role: "TEACHER"
 };
 
 const parentUser = {
   id: userId,
-  role: "PARENT",
+  role: "PARENT"
 };
 
 const validDate = "2026-10-10";
@@ -85,14 +80,14 @@ function createAttendanceRecord(overrides = {}) {
       id: childId,
       firstName: "Іван",
       lastName: "Іваненко",
-      childCode: "CH001",
+      childCode: "CH001"
     },
     recordedBy: {
       id: employeeId,
       firstName: "Петро",
-      lastName: "Петренко",
+      lastName: "Петренко"
     },
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -103,8 +98,8 @@ function createTransaction() {
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn(),
-    },
+      delete: jest.fn()
+    }
   };
 }
 
@@ -114,7 +109,7 @@ describe("Attendance validation", () => {
   describe("attendanceIdSchema", () => {
     test("accepts a valid MongoDB ObjectId", () => {
       const result = attendanceIdSchema.validate({
-        id: attendanceId,
+        id: attendanceId
       });
 
       expect(result.error).toBeUndefined();
@@ -122,7 +117,7 @@ describe("Attendance validation", () => {
 
     test("rejects an invalid ID", () => {
       const result = attendanceIdSchema.validate({
-        id: "invalid-id",
+        id: "invalid-id"
       });
 
       expect(result.error).toBeDefined();
@@ -149,7 +144,7 @@ describe("Attendance validation", () => {
         status: "PRESENT",
         date: validDate,
         from: "2026-10-01",
-        to: "2026-10-31",
+        to: "2026-10-31"
       });
 
       expect(result.error).toBeUndefined();
@@ -161,12 +156,12 @@ describe("Attendance validation", () => {
         const result = listAttendanceSchema.validate({ status });
 
         expect(result.error).toBeUndefined();
-      },
+      }
     );
 
     test("rejects an invalid attendance status", () => {
       const result = listAttendanceSchema.validate({
-        status: "UNKNOWN",
+        status: "UNKNOWN"
       });
 
       expect(result.error).toBeDefined();
@@ -174,7 +169,7 @@ describe("Attendance validation", () => {
 
     test("rejects an invalid child ID", () => {
       const result = listAttendanceSchema.validate({
-        childId: "invalid",
+        childId: "invalid"
       });
 
       expect(result.error).toBeDefined();
@@ -182,7 +177,7 @@ describe("Attendance validation", () => {
 
     test("rejects an invalid group ID", () => {
       const result = listAttendanceSchema.validate({
-        groupId: "invalid",
+        groupId: "invalid"
       });
 
       expect(result.error).toBeDefined();
@@ -190,35 +185,29 @@ describe("Attendance validation", () => {
 
     test("rejects an invalid date format", () => {
       const result = listAttendanceSchema.validate({
-        date: "10-10-2026",
+        date: "10-10-2026"
       });
 
       expect(result.error).toBeDefined();
-      expect(result.error.message).toContain(
-        "Date must be in YYYY-MM-DD format",
-      );
+      expect(result.error.message).toContain("Date must be in YYYY-MM-DD format");
     });
 
     test("rejects an invalid calendar date", () => {
       const result = listAttendanceSchema.validate({
-        date: "2026-02-30",
+        date: "2026-02-30"
       });
 
       expect(result.error).toBeDefined();
-      expect(result.error.message).toContain(
-        "Date must be a valid calendar date",
-      );
+      expect(result.error.message).toContain("Date must be a valid calendar date");
     });
 
     test("rejects a reversed date range", () => {
       const result = listAttendanceSchema.validate({
         from: "2026-10-31",
-        to: "2026-10-01",
+        to: "2026-10-01"
       });
 
-      expect(result.error.message).toContain(
-        "from must not be later than to",
-      );
+      expect(result.error.message).toContain("from must not be later than to");
     });
   });
 
@@ -230,7 +219,7 @@ describe("Attendance validation", () => {
       checkIn: "08:30",
       checkOut: "17:00",
       note: "Присутній",
-      absenceReason: "",
+      absenceReason: ""
     };
 
     test("accepts valid attendance data", () => {
@@ -241,7 +230,7 @@ describe("Attendance validation", () => {
 
     test("requires childId", () => {
       const result = createAttendanceSchema.validate({
-        date: validDate,
+        date: validDate
       });
 
       expect(result.error).toBeDefined();
@@ -249,7 +238,7 @@ describe("Attendance validation", () => {
 
     test("requires date", () => {
       const result = createAttendanceSchema.validate({
-        childId,
+        childId
       });
 
       expect(result.error).toBeDefined();
@@ -258,7 +247,7 @@ describe("Attendance validation", () => {
     test("uses PRESENT as the default status", () => {
       const result = createAttendanceSchema.validate({
         childId,
-        date: validDate,
+        date: validDate
       });
 
       expect(result.error).toBeUndefined();
@@ -270,7 +259,7 @@ describe("Attendance validation", () => {
         childId,
         date: validDate,
         checkIn: null,
-        checkOut: null,
+        checkOut: null
       });
 
       expect(result.error).toBeUndefined();
@@ -281,7 +270,7 @@ describe("Attendance validation", () => {
         childId,
         date: validDate,
         note: "",
-        absenceReason: "",
+        absenceReason: ""
       });
 
       expect(result.error).toBeUndefined();
@@ -292,7 +281,7 @@ describe("Attendance validation", () => {
         childId,
         date: validDate,
         note: "  Присутній  ",
-        absenceReason: "  Причина  ",
+        absenceReason: "  Причина  "
       });
 
       expect(result.value.note).toBe("Присутній");
@@ -303,7 +292,7 @@ describe("Attendance validation", () => {
       const result = createAttendanceSchema.validate({
         childId,
         date: validDate,
-        checkIn: "8:30",
+        checkIn: "8:30"
       });
 
       expect(result.error).toBeDefined();
@@ -313,7 +302,7 @@ describe("Attendance validation", () => {
       const result = createAttendanceSchema.validate({
         childId,
         date: validDate,
-        checkIn: "25:00",
+        checkIn: "25:00"
       });
 
       expect(result.error).toBeDefined();
@@ -324,12 +313,10 @@ describe("Attendance validation", () => {
         childId,
         date: validDate,
         checkIn: "17:00",
-        checkOut: "08:00",
+        checkOut: "08:00"
       });
 
-      expect(result.error.message).toContain(
-        "checkOut must be later than checkIn",
-      );
+      expect(result.error.message).toContain("checkOut must be later than checkIn");
     });
 
     test("rejects equal checkIn and checkOut", () => {
@@ -337,7 +324,7 @@ describe("Attendance validation", () => {
         childId,
         date: validDate,
         checkIn: "08:30",
-        checkOut: "08:30",
+        checkOut: "08:30"
       });
 
       expect(result.error).toBeDefined();
@@ -347,7 +334,7 @@ describe("Attendance validation", () => {
       const result = createAttendanceSchema.validate({
         childId,
         date: validDate,
-        note: "a".repeat(1001),
+        note: "a".repeat(1001)
       });
 
       expect(result.error).toBeDefined();
@@ -357,7 +344,7 @@ describe("Attendance validation", () => {
       const result = createAttendanceSchema.validate({
         childId,
         date: validDate,
-        absenceReason: "a".repeat(501),
+        absenceReason: "a".repeat(501)
       });
 
       expect(result.error).toBeDefined();
@@ -368,7 +355,7 @@ describe("Attendance validation", () => {
     test("accepts valid update data", () => {
       const result = updateAttendanceSchema.validate({
         status: "ABSENT",
-        absenceReason: "Хвороба",
+        absenceReason: "Хвороба"
       });
 
       expect(result.error).toBeUndefined();
@@ -382,7 +369,7 @@ describe("Attendance validation", () => {
 
     test("accepts updating only the date", () => {
       const result = updateAttendanceSchema.validate({
-        date: "2026-10-11",
+        date: "2026-10-11"
       });
 
       expect(result.error).toBeUndefined();
@@ -390,7 +377,7 @@ describe("Attendance validation", () => {
 
     test("accepts updating only the status", () => {
       const result = updateAttendanceSchema.validate({
-        status: "LATE",
+        status: "LATE"
       });
 
       expect(result.error).toBeUndefined();
@@ -399,7 +386,7 @@ describe("Attendance validation", () => {
     test("accepts null checkIn and checkOut", () => {
       const result = updateAttendanceSchema.validate({
         checkIn: null,
-        checkOut: null,
+        checkOut: null
       });
 
       expect(result.error).toBeUndefined();
@@ -407,7 +394,7 @@ describe("Attendance validation", () => {
 
     test("rejects an invalid status", () => {
       const result = updateAttendanceSchema.validate({
-        status: "UNKNOWN",
+        status: "UNKNOWN"
       });
 
       expect(result.error).toBeDefined();
@@ -415,7 +402,7 @@ describe("Attendance validation", () => {
 
     test("rejects an invalid date", () => {
       const result = updateAttendanceSchema.validate({
-        date: "2026-02-30",
+        date: "2026-02-30"
       });
 
       expect(result.error).toBeDefined();
@@ -424,18 +411,16 @@ describe("Attendance validation", () => {
     test("rejects an invalid time range", () => {
       const result = updateAttendanceSchema.validate({
         checkIn: "17:00",
-        checkOut: "08:00",
+        checkOut: "08:00"
       });
 
       expect(result.error).toBeDefined();
-      expect(result.error.message).toContain(
-        "checkOut must be later than checkIn",
-      );
+      expect(result.error.message).toContain("checkOut must be later than checkIn");
     });
 
     test("rejects an invalid time format", () => {
       const result = updateAttendanceSchema.validate({
-        checkIn: "8:30",
+        checkIn: "8:30"
       });
 
       expect(result.error).toBeDefined();
@@ -443,7 +428,7 @@ describe("Attendance validation", () => {
 
     test("rejects an oversized note", () => {
       const result = updateAttendanceSchema.validate({
-        note: "a".repeat(1001),
+        note: "a".repeat(1001)
       });
 
       expect(result.error).toBeDefined();
@@ -451,7 +436,7 @@ describe("Attendance validation", () => {
 
     test("rejects an oversized absence reason", () => {
       const result = updateAttendanceSchema.validate({
-        absenceReason: "a".repeat(501),
+        absenceReason: "a".repeat(501)
       });
 
       expect(result.error).toBeDefined();
@@ -466,35 +451,31 @@ describe("Attendance service", () => {
     tx = createTransaction();
 
     prisma.employee.findFirst.mockResolvedValue({
-      id: employeeId,
+      id: employeeId
     });
 
-    prisma.staffAssignment.findMany.mockResolvedValue([
-      { groupId },
-    ]);
+    prisma.staffAssignment.findMany.mockResolvedValue([{ groupId }]);
 
     prisma.parent.findFirst.mockResolvedValue({
       id: parentId,
-      children: [{ childId }],
+      children: [{ childId }]
     });
 
     prisma.child.findFirst.mockResolvedValue({
       id: childId,
-      status: "ACTIVE",
+      status: "ACTIVE"
     });
 
     prisma.groupEnrollment.findFirst.mockResolvedValue({
       childId,
-      groupId,
+      groupId
     });
 
     prisma.attendance.findMany.mockResolvedValue([]);
     prisma.attendance.findUnique.mockResolvedValue(null);
     prisma.attendance.findFirst.mockResolvedValue(null);
 
-    prisma.$transaction.mockImplementation(async (callback) =>
-      callback(tx),
-    );
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
 
     auditService.createLog.mockResolvedValue({});
   });
@@ -510,8 +491,8 @@ describe("Attendance service", () => {
       expect(prisma.attendance.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {},
-          orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-        }),
+          orderBy: [{ date: "desc" }, { createdAt: "desc" }]
+        })
       );
 
       expect(result).toHaveLength(1);
@@ -523,8 +504,8 @@ describe("Attendance service", () => {
       prisma.attendance.findMany.mockResolvedValue([
         createAttendanceRecord({
           checkIn: null,
-          checkOut: null,
-        }),
+          checkOut: null
+        })
       ]);
 
       const result = await service.getAll({}, manager);
@@ -538,8 +519,8 @@ describe("Attendance service", () => {
 
       expect(prisma.attendance.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { childId },
-        }),
+          where: { childId }
+        })
       );
     });
 
@@ -548,8 +529,8 @@ describe("Attendance service", () => {
 
       expect(prisma.attendance.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { status: "ABSENT" },
-        }),
+          where: { status: "ABSENT" }
+        })
       );
     });
 
@@ -559,9 +540,9 @@ describe("Attendance service", () => {
       expect(prisma.attendance.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            date: new Date(`${validDate}T00:00:00.000Z`),
-          },
-        }),
+            date: new Date(`${validDate}T00:00:00.000Z`)
+          }
+        })
       );
     });
 
@@ -569,9 +550,9 @@ describe("Attendance service", () => {
       await service.getAll(
         {
           from: "2026-10-01",
-          to: "2026-10-31",
+          to: "2026-10-31"
         },
-        manager,
+        manager
       );
 
       expect(prisma.attendance.findMany).toHaveBeenCalledWith(
@@ -579,10 +560,10 @@ describe("Attendance service", () => {
           where: {
             date: {
               gte: new Date("2026-10-01T00:00:00.000Z"),
-              lte: new Date("2026-10-31T00:00:00.000Z"),
-            },
-          },
-        }),
+              lte: new Date("2026-10-31T00:00:00.000Z")
+            }
+          }
+        })
       );
     });
 
@@ -594,11 +575,11 @@ describe("Attendance service", () => {
           where: {
             child: {
               enrollments: {
-                some: { groupId },
-              },
-            },
-          },
-        }),
+                some: { groupId }
+              }
+            }
+          }
+        })
       );
     });
 
@@ -609,8 +590,8 @@ describe("Attendance service", () => {
         where: {
           userId,
           status: "ACTIVE",
-          role: "TEACHER",
-        },
+          role: "TEACHER"
+        }
       });
 
       expect(prisma.staffAssignment.findMany).toHaveBeenCalled();
@@ -621,12 +602,12 @@ describe("Attendance service", () => {
             child: {
               enrollments: {
                 some: expect.objectContaining({
-                  groupId: { in: [groupId] },
-                }),
-              },
-            },
-          },
-        }),
+                  groupId: { in: [groupId] }
+                })
+              }
+            }
+          }
+        })
       );
     });
 
@@ -638,18 +619,16 @@ describe("Attendance service", () => {
       expect(prisma.attendance.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            childId: { in: [childId] },
-          },
-        }),
+            childId: { in: [childId] }
+          }
+        })
       );
     });
 
     test("rejects a teacher without an employee profile", async () => {
       prisma.employee.findFirst.mockResolvedValue(null);
 
-      await expect(service.getAll({}, teacher)).rejects.toThrow(
-        "Employee profile not found",
-      );
+      await expect(service.getAll({}, teacher)).rejects.toThrow("Employee profile not found");
 
       expect(prisma.attendance.findMany).not.toHaveBeenCalled();
     });
@@ -657,27 +636,20 @@ describe("Attendance service", () => {
     test("rejects a parent without a parent profile", async () => {
       prisma.parent.findFirst.mockResolvedValue(null);
 
-      await expect(service.getAll({}, parentUser)).rejects.toThrow(
-        "Parent profile not found",
-      );
+      await expect(service.getAll({}, parentUser)).rejects.toThrow("Parent profile not found");
 
       expect(prisma.attendance.findMany).not.toHaveBeenCalled();
     });
 
     test("rejects a user with an unsupported role", async () => {
-      await expect(
-        service.getAll({}, { id: userId, role: "STUDENT" }),
-      ).rejects.toThrow(
-        "You do not have permission to access attendance",
+      await expect(service.getAll({}, { id: userId, role: "STUDENT" })).rejects.toThrow(
+        "You do not have permission to access attendance"
       );
     });
 
     test("rejects a teacher requesting an unassigned group", async () => {
       await expect(
-        service.getAll(
-          { groupId: "507f1f77bcf86cd799439099" },
-          teacher,
-        ),
+        service.getAll({ groupId: "507f1f77bcf86cd799439099" }, teacher)
       ).rejects.toThrow("You do not have access to this group");
 
       expect(prisma.attendance.findMany).not.toHaveBeenCalled();
@@ -694,7 +666,7 @@ describe("Attendance service", () => {
 
       expect(prisma.attendance.findUnique).toHaveBeenCalledWith({
         where: { id: attendanceId },
-        include: expect.any(Object),
+        include: expect.any(Object)
       });
 
       expect(result.id).toBe(attendanceId);
@@ -705,76 +677,62 @@ describe("Attendance service", () => {
     test("throws when the record does not exist", async () => {
       prisma.attendance.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.getById(attendanceId, manager),
-      ).rejects.toThrow("Attendance record not found");
+      await expect(service.getById(attendanceId, manager)).rejects.toThrow(
+        "Attendance record not found"
+      );
     });
 
     test("checks whether the child is active", async () => {
-      prisma.attendance.findUnique.mockResolvedValue(
-        createAttendanceRecord(),
-      );
+      prisma.attendance.findUnique.mockResolvedValue(createAttendanceRecord());
 
       await service.getById(attendanceId, manager);
 
       expect(prisma.child.findFirst).toHaveBeenCalledWith({
         where: {
           id: childId,
-          status: "ACTIVE",
-        },
+          status: "ACTIVE"
+        }
       });
     });
 
     test("rejects access to an inactive or missing child", async () => {
-      prisma.attendance.findUnique.mockResolvedValue(
-        createAttendanceRecord(),
-      );
+      prisma.attendance.findUnique.mockResolvedValue(createAttendanceRecord());
 
       prisma.child.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.getById(attendanceId, manager),
-      ).rejects.toThrow("Child not found");
+      await expect(service.getById(attendanceId, manager)).rejects.toThrow("Child not found");
     });
 
     test("rejects a parent accessing another child", async () => {
-      prisma.attendance.findUnique.mockResolvedValue(
-        createAttendanceRecord(),
-      );
+      prisma.attendance.findUnique.mockResolvedValue(createAttendanceRecord());
 
       prisma.parent.findFirst.mockResolvedValue({
         id: parentId,
-        children: [{ childId: "507f1f77bcf86cd799439099" }],
+        children: [{ childId: "507f1f77bcf86cd799439099" }]
       });
 
-      await expect(
-        service.getById(attendanceId, parentUser),
-      ).rejects.toThrow("You do not have access to this child");
+      await expect(service.getById(attendanceId, parentUser)).rejects.toThrow(
+        "You do not have access to this child"
+      );
     });
 
     test("rejects a teacher without assigned groups", async () => {
-      prisma.attendance.findUnique.mockResolvedValue(
-        createAttendanceRecord(),
-      );
+      prisma.attendance.findUnique.mockResolvedValue(createAttendanceRecord());
 
       prisma.staffAssignment.findMany.mockResolvedValue([]);
 
-      await expect(
-        service.getById(attendanceId, teacher),
-      ).rejects.toThrow("You are not assigned to any group");
+      await expect(service.getById(attendanceId, teacher)).rejects.toThrow(
+        "You are not assigned to any group"
+      );
     });
 
     test("rejects a teacher when the child is not enrolled in an assigned group", async () => {
-      prisma.attendance.findUnique.mockResolvedValue(
-        createAttendanceRecord(),
-      );
+      prisma.attendance.findUnique.mockResolvedValue(createAttendanceRecord());
 
       prisma.groupEnrollment.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.getById(attendanceId, teacher),
-      ).rejects.toThrow(
-        "Child does not belong to your assigned groups on this date",
+      await expect(service.getById(attendanceId, teacher)).rejects.toThrow(
+        "Child does not belong to your assigned groups on this date"
       );
     });
   });
@@ -787,7 +745,7 @@ describe("Attendance service", () => {
       checkIn: "08:30",
       checkOut: "17:00",
       note: "Присутній",
-      absenceReason: null,
+      absenceReason: null
     };
 
     test("creates an attendance record", async () => {
@@ -801,8 +759,8 @@ describe("Attendance service", () => {
       expect(prisma.attendance.findFirst).toHaveBeenCalledWith({
         where: {
           childId,
-          date: new Date(`${validDate}T00:00:00.000Z`),
-        },
+          date: new Date(`${validDate}T00:00:00.000Z`)
+        }
       });
 
       expect(tx.attendance.create).toHaveBeenCalledWith(
@@ -814,10 +772,10 @@ describe("Attendance service", () => {
             checkOut: new Date(`${validDate}T17:00:00.000Z`),
             note: "Присутній",
             absenceReason: null,
-            recordedById: null,
+            recordedById: null
           }),
-          include: expect.any(Object),
-        }),
+          include: expect.any(Object)
+        })
       );
 
       expect(result.id).toBe(attendanceId);
@@ -826,9 +784,7 @@ describe("Attendance service", () => {
     });
 
     test("creates an audit log", async () => {
-      tx.attendance.create.mockResolvedValue(
-        createAttendanceRecord(),
-      );
+      tx.attendance.create.mockResolvedValue(createAttendanceRecord());
 
       await service.create(data, manager);
 
@@ -837,45 +793,41 @@ describe("Attendance service", () => {
           actorId: userId,
           action: "CREATE",
           entityType: "Attendance",
-          entityId: attendanceId,
+          entityId: attendanceId
         }),
-        tx,
+        tx
       );
     });
 
     test("uses employee ID as recordedById for a teacher", async () => {
-      tx.attendance.create.mockResolvedValue(
-        createAttendanceRecord(),
-      );
+      tx.attendance.create.mockResolvedValue(createAttendanceRecord());
 
       await service.create(data, teacher);
 
       expect(tx.attendance.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            recordedById: employeeId,
-          }),
-        }),
+            recordedById: employeeId
+          })
+        })
       );
     });
 
     test("rejects creation for a missing child", async () => {
       prisma.child.findFirst.mockResolvedValue(null);
 
-      await expect(service.create(data, manager)).rejects.toThrow(
-        "Child not found",
-      );
+      await expect(service.create(data, manager)).rejects.toThrow("Child not found");
 
       expect(prisma.attendance.findFirst).not.toHaveBeenCalled();
     });
 
     test("rejects creation when a record already exists", async () => {
       prisma.attendance.findFirst.mockResolvedValue({
-        id: attendanceId,
+        id: attendanceId
       });
 
       await expect(service.create(data, manager)).rejects.toThrow(
-        "Attendance record already exists for this child and date",
+        "Attendance record already exists for this child and date"
       );
 
       expect(tx.attendance.create).not.toHaveBeenCalled();
@@ -887,10 +839,10 @@ describe("Attendance service", () => {
           {
             ...data,
             checkIn: "17:00",
-            checkOut: "08:00",
+            checkOut: "08:00"
           },
-          manager,
-        ),
+          manager
+        )
       ).rejects.toThrow("checkOut must be later than checkIn");
 
       expect(tx.attendance.create).not.toHaveBeenCalled();
@@ -898,11 +850,11 @@ describe("Attendance service", () => {
 
     test("converts a Prisma duplicate error into an application error", async () => {
       tx.attendance.create.mockRejectedValue({
-        code: "P2002",
+        code: "P2002"
       });
 
       await expect(service.create(data, manager)).rejects.toThrow(
-        "Attendance record already exists for this child and date",
+        "Attendance record already exists for this child and date"
       );
     });
 
@@ -911,32 +863,28 @@ describe("Attendance service", () => {
 
       tx.attendance.create.mockRejectedValue(error);
 
-      await expect(service.create(data, manager)).rejects.toThrow(
-        "Database error",
-      );
+      await expect(service.create(data, manager)).rejects.toThrow("Database error");
     });
 
     test("sets missing note and absenceReason to null", async () => {
-      tx.attendance.create.mockResolvedValue(
-        createAttendanceRecord(),
-      );
+      tx.attendance.create.mockResolvedValue(createAttendanceRecord());
 
       await service.create(
         {
           childId,
           date: validDate,
-          status: "PRESENT",
+          status: "PRESENT"
         },
-        manager,
+        manager
       );
 
       expect(tx.attendance.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             note: null,
-            absenceReason: null,
-          }),
-        }),
+            absenceReason: null
+          })
+        })
       );
     });
   });
@@ -949,7 +897,7 @@ describe("Attendance service", () => {
 
       const updated = createAttendanceRecord({
         status: "LATE",
-        note: "Запізнився",
+        note: "Запізнився"
       });
 
       tx.attendance.update.mockResolvedValue(updated);
@@ -958,13 +906,13 @@ describe("Attendance service", () => {
         attendanceId,
         {
           status: "LATE",
-          note: "Запізнився",
+          note: "Запізнився"
         },
-        manager,
+        manager
       );
 
       expect(tx.attendance.findUnique).toHaveBeenCalledWith({
-        where: { id: attendanceId },
+        where: { id: attendanceId }
       });
 
       expect(tx.attendance.update).toHaveBeenCalledWith(
@@ -972,10 +920,10 @@ describe("Attendance service", () => {
           where: { id: attendanceId },
           data: expect.objectContaining({
             status: "LATE",
-            note: "Запізнився",
+            note: "Запізнився"
           }),
-          include: expect.any(Object),
-        }),
+          include: expect.any(Object)
+        })
       );
 
       expect(result.status).toBe("LATE");
@@ -985,16 +933,12 @@ describe("Attendance service", () => {
       tx.attendance.findUnique.mockResolvedValue(before);
 
       const updated = createAttendanceRecord({
-        status: "ABSENT",
+        status: "ABSENT"
       });
 
       tx.attendance.update.mockResolvedValue(updated);
 
-      await service.update(
-        attendanceId,
-        { status: "ABSENT" },
-        manager,
-      );
+      await service.update(attendanceId, { status: "ABSENT" }, manager);
 
       expect(auditService.createLog).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1003,18 +947,18 @@ describe("Attendance service", () => {
           entityType: "Attendance",
           entityId: attendanceId,
           before,
-          after: updated,
+          after: updated
         }),
-        tx,
+        tx
       );
     });
 
     test("throws when the record does not exist", async () => {
       tx.attendance.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.update(attendanceId, { status: "ABSENT" }, manager),
-      ).rejects.toThrow("Attendance record not found");
+      await expect(service.update(attendanceId, { status: "ABSENT" }, manager)).rejects.toThrow(
+        "Attendance record not found"
+      );
 
       expect(tx.attendance.update).not.toHaveBeenCalled();
     });
@@ -1023,26 +967,20 @@ describe("Attendance service", () => {
       tx.attendance.findUnique.mockResolvedValue(before);
       prisma.child.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.update(attendanceId, { status: "ABSENT" }, manager),
-      ).rejects.toThrow("Child not found");
+      await expect(service.update(attendanceId, { status: "ABSENT" }, manager)).rejects.toThrow(
+        "Child not found"
+      );
     });
 
     test("rejects a duplicate attendance date", async () => {
       tx.attendance.findUnique.mockResolvedValue(before);
 
       tx.attendance.findFirst.mockResolvedValue({
-        id: "507f1f77bcf86cd799439099",
+        id: "507f1f77bcf86cd799439099"
       });
 
-      await expect(
-        service.update(
-          attendanceId,
-          { date: "2026-10-11" },
-          manager,
-        ),
-      ).rejects.toThrow(
-        "Attendance record already exists for this child and date",
+      await expect(service.update(attendanceId, { date: "2026-10-11" }, manager)).rejects.toThrow(
+        "Attendance record already exists for this child and date"
       );
 
       expect(tx.attendance.update).not.toHaveBeenCalled();
@@ -1053,11 +991,7 @@ describe("Attendance service", () => {
 
       tx.attendance.update.mockResolvedValue(before);
 
-      await service.update(
-        attendanceId,
-        { status: "LATE" },
-        manager,
-      );
+      await service.update(attendanceId, { status: "LATE" }, manager);
 
       expect(tx.attendance.findFirst).not.toHaveBeenCalled();
     });
@@ -1070,10 +1004,10 @@ describe("Attendance service", () => {
           attendanceId,
           {
             checkIn: "17:00",
-            checkOut: "08:00",
+            checkOut: "08:00"
           },
-          manager,
-        ),
+          manager
+        )
       ).rejects.toThrow("checkOut must be later than checkIn");
 
       expect(tx.attendance.update).not.toHaveBeenCalled();
@@ -1084,36 +1018,30 @@ describe("Attendance service", () => {
 
       tx.attendance.update.mockResolvedValue(before);
 
-      await service.update(
-        attendanceId,
-        { status: "LATE" },
-        manager,
-      );
+      await service.update(attendanceId, { status: "LATE" }, manager);
 
       expect(tx.attendance.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            checkIn: before.checkIn,
-          }),
-        }),
+            checkIn: before.checkIn
+          })
+        })
       );
     });
 
     test("updates checkIn and checkOut using the new date", async () => {
       tx.attendance.findUnique.mockResolvedValue(before);
 
-      tx.attendance.update.mockResolvedValue(
-        createAttendanceRecord(),
-      );
+      tx.attendance.update.mockResolvedValue(createAttendanceRecord());
 
       await service.update(
         attendanceId,
         {
           date: "2026-10-11",
           checkIn: "09:00",
-          checkOut: "18:00",
+          checkOut: "18:00"
         },
-        manager,
+        manager
       );
 
       expect(tx.attendance.update).toHaveBeenCalledWith(
@@ -1121,9 +1049,9 @@ describe("Attendance service", () => {
           data: expect.objectContaining({
             date: new Date("2026-10-11T00:00:00.000Z"),
             checkIn: new Date("2026-10-11T09:00:00.000Z"),
-            checkOut: new Date("2026-10-11T18:00:00.000Z"),
-          }),
-        }),
+            checkOut: new Date("2026-10-11T18:00:00.000Z")
+          })
+        })
       );
     });
 
@@ -1133,26 +1061,26 @@ describe("Attendance service", () => {
       tx.attendance.update.mockResolvedValue(
         createAttendanceRecord({
           checkIn: null,
-          checkOut: null,
-        }),
+          checkOut: null
+        })
       );
 
       await service.update(
         attendanceId,
         {
           checkIn: null,
-          checkOut: null,
+          checkOut: null
         },
-        manager,
+        manager
       );
 
       expect(tx.attendance.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             checkIn: null,
-            checkOut: null,
-          }),
-        }),
+            checkOut: null
+          })
+        })
       );
     });
   });
@@ -1167,11 +1095,11 @@ describe("Attendance service", () => {
       await service.remove(attendanceId, manager);
 
       expect(tx.attendance.findUnique).toHaveBeenCalledWith({
-        where: { id: attendanceId },
+        where: { id: attendanceId }
       });
 
       expect(tx.attendance.delete).toHaveBeenCalledWith({
-        where: { id: attendanceId },
+        where: { id: attendanceId }
       });
     });
 
@@ -1189,18 +1117,18 @@ describe("Attendance service", () => {
           action: "DELETE",
           entityType: "Attendance",
           entityId: attendanceId,
-          before,
+          before
         }),
-        tx,
+        tx
       );
     });
 
     test("throws when the record does not exist", async () => {
       tx.attendance.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.remove(attendanceId, manager),
-      ).rejects.toThrow("Attendance record not found");
+      await expect(service.remove(attendanceId, manager)).rejects.toThrow(
+        "Attendance record not found"
+      );
 
       expect(tx.attendance.delete).not.toHaveBeenCalled();
     });
@@ -1221,9 +1149,9 @@ describe("Attendance controller", () => {
         validated: {
           query: { status: "PRESENT" },
           params: { id: attendanceId },
-          body: { status: "ABSENT" },
-        },
-      },
+          body: { status: "ABSENT" }
+        }
+      }
     };
   });
 
@@ -1235,15 +1163,12 @@ describe("Attendance controller", () => {
 
     await controller.getAll(req, res);
 
-    expect(spy).toHaveBeenCalledWith(
-      { status: "PRESENT" },
-      manager,
-    );
+    expect(spy).toHaveBeenCalledWith({ status: "PRESENT" }, manager);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
       success: true,
-      data: records,
+      data: records
     });
   });
 
@@ -1260,7 +1185,7 @@ describe("Attendance controller", () => {
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
       success: true,
-      data: record,
+      data: record
     });
   });
 
@@ -1272,21 +1197,18 @@ describe("Attendance controller", () => {
 
     await controller.create(req, res);
 
-    expect(spy).toHaveBeenCalledWith(
-      { status: "ABSENT" },
-      manager,
-    );
+    expect(spy).toHaveBeenCalledWith({ status: "ABSENT" }, manager);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
     expect(res.json).toHaveBeenCalledWith({
       success: true,
-      data: record,
+      data: record
     });
   });
 
   test("update returns the updated attendance record", async () => {
     const record = createAttendanceRecord({
-      status: "ABSENT",
+      status: "ABSENT"
     });
 
     const spy = jest.spyOn(service, "update").mockResolvedValue(record);
@@ -1295,16 +1217,12 @@ describe("Attendance controller", () => {
 
     await controller.update(req, res);
 
-    expect(spy).toHaveBeenCalledWith(
-      attendanceId,
-      { status: "ABSENT" },
-      manager,
-    );
+    expect(spy).toHaveBeenCalledWith(attendanceId, { status: "ABSENT" }, manager);
 
     expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
     expect(res.json).toHaveBeenCalledWith({
       success: true,
-      data: record,
+      data: record
     });
   });
 
@@ -1335,7 +1253,7 @@ describe("Attendance routes", () => {
       .filter((layer) => layer.route)
       .map((layer) => ({
         path: layer.route.path,
-        method: Object.keys(layer.route.methods)[0],
+        method: Object.keys(layer.route.methods)[0]
       }));
 
     expect(routes).toEqual([
@@ -1343,16 +1261,14 @@ describe("Attendance routes", () => {
       { path: "/:id", method: "get" },
       { path: "/", method: "post" },
       { path: "/:id", method: "patch" },
-      { path: "/:id", method: "delete" },
+      { path: "/:id", method: "delete" }
     ]);
   });
 
   test("registers authentication middleware", () => {
     const router = require("../../src/modules/attendance/attendance.routes");
 
-    const middlewareLayers = router.stack.filter(
-      (layer) => !layer.route,
-    );
+    const middlewareLayers = router.stack.filter((layer) => !layer.route);
 
     expect(middlewareLayers.length).toBeGreaterThan(0);
   });

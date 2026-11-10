@@ -26,11 +26,22 @@ const createPaymentSchema = Joi.object({
 }).custom((value, helpers) => {
   const allocatedAmount = value.allocations.reduce((sum, item) => sum + item.amount, 0);
 
-  if (!Number.isSafeInteger(allocatedAmount) || allocatedAmount !== value.amount) {
-    return helpers.message("The sum of allocations must equal the payment amount");
+  if (!Number.isSafeInteger(allocatedAmount) || allocatedAmount > value.amount) {
+    return helpers.message("The sum of allocations cannot exceed the payment amount");
   }
 
   return value;
+});
+
+const applyCreditSchema = Joi.object({
+  payerId: Joi.string().pattern(OBJECT_ID).optional(),
+  invoiceId: Joi.string().pattern(OBJECT_ID).required(),
+  amount: Joi.number().integer().positive().max(Number.MAX_SAFE_INTEGER).optional(),
+  idempotencyKey: Joi.string().trim().min(8).max(128).required()
+});
+
+const creditBalanceQuerySchema = Joi.object({
+  payerId: Joi.string().pattern(OBJECT_ID).optional()
 });
 
 const paymentIdSchema = Joi.object({
@@ -53,5 +64,7 @@ const listPaymentsSchema = Joi.object({
 module.exports = {
   createPaymentSchema,
   paymentIdSchema,
-  listPaymentsSchema
+  listPaymentsSchema,
+  applyCreditSchema,
+  creditBalanceQuerySchema
 };

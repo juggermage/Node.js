@@ -1,6 +1,7 @@
 const Joi = require("joi");
 
 const ageYears = Joi.number().integer().min(2).max(5);
+const category = Joi.string().valid("A2", "A3", "A4", "A5");
 const objectId = Joi.string().hex().length(24);
 
 const isoDate = Joi.string()
@@ -20,12 +21,15 @@ const isoDate = Joi.string()
   });
 
 const createMealRateSchema = Joi.object({
-  ageYears: ageYears.required(),
+  ageYears,
+  category,
   amount: Joi.number().integer().positive().max(Number.MAX_SAFE_INTEGER).required(),
   validFrom: isoDate.required(),
   validTo: isoDate.allow(null)
 })
   .custom((value, helpers) => {
+    if (!value.category && value.ageYears === undefined) return helpers.error("any.required");
+    if (value.category && value.ageYears !== undefined) return helpers.error("any.invalid");
     if (value.validTo && value.validTo < value.validFrom) {
       return helpers.error("any.custom");
     }
@@ -33,13 +37,16 @@ const createMealRateSchema = Joi.object({
     return value;
   })
   .messages({
-    "any.custom": "validTo must not be earlier than validFrom"
+    "any.custom": "validTo must not be earlier than validFrom",
+    "any.required": "category or ageYears is required",
+    "any.invalid": "Specify category or ageYears, not both"
   });
 
 const rateQuerySchema = Joi.object({
   ageYears,
+  category,
   onDate: isoDate
-});
+}).oxor("ageYears", "category");
 
 const calculateMealSchema = Joi.object({
   childId: objectId.required(),
