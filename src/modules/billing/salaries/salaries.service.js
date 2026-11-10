@@ -1,6 +1,7 @@
 const prisma = require("../../../config/prisma");
 const AppError = require("../../../utils/app-error");
 const HTTP_STATUS = require("../../../utils/http-status");
+const auditService = require("../../audit/audit.service");
 
 const ROLE_RATES = {
   MANAGER: {
@@ -38,7 +39,27 @@ function fail(message, status, code) {
 }
 
 function toNumber(value) {
-  return Number(value);
+  const result = Number(value);
+
+  if (!Number.isSafeInteger(result)) {
+    fail(
+      "Amount exceeds the safe integer range",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "AMOUNT_OVERFLOW"
+    );
+  }
+
+  return result;
+}
+
+function normalizeDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    fail("Invalid date", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_DATE");
+  }
+
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
 function serializeRate(rate) {
@@ -90,9 +111,9 @@ function calculateSalary(role, rate, childrenCount = 0) {
   const threshold = rate.childThreshold ?? 0;
 
   if (
-    ![baseAmount, perChildAmount, extraChildBonusAmount].every(
-      (value) => Number.isSafeInteger(value) && value >= 0
-    )
+    ![baseAmount, perChildAmount, extraChildBonusAmount].every((value) => value >= 0) ||
+    !Number.isInteger(threshold) ||
+    threshold < 0
   ) {
     fail("Invalid salary rate", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_SALARY_RATE");
   }
@@ -138,51 +159,80 @@ function calculateSalary(role, rate, childrenCount = 0) {
 async function getRates({ employeeId } = {}) {
   const rates = await prisma.salaryRate.findMany({
     where: employeeId ? { employeeId } : {},
-    include: { employee: true },
-    orderBy: [{ validFrom: "desc" }]
+    include: {
+      employee: true
+    },
+    orderBy: {
+      validFrom: "desc"
+    }
   });
 
   return rates.map(serializeRate);
 }
 
-async function createRate({ employeeId, validFrom, validTo = null }) {
-  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+async function createRate({ employeeId, validFrom, validTo = null }, actorId) {
+  const startDate = normalizeDate(validFrom);
+  const endDate = validTo ? normalizeDate(validTo) : null;
 
-  if (!employee || employee.status !== "ACTIVE") {
-    fail("Active employee not found", HTTP_STATUS.NOT_FOUND, "EMPLOYEE_NOT_FOUND");
-  }
-
-  const roleRate = ROLE_RATES[employee.role];
-
-  if (!roleRate) {
-    fail("Unsupported employee role", HTTP_STATUS.UNPROCESSABLE_ENTITY, "UNSUPPORTED_ROLE");
-  }
-
-  const startDate = new Date(validFrom);
-  const endDate = validTo ? new Date(validTo) : null;
-
-  if (Number.isNaN(startDate.getTime()) || (endDate && endDate <= startDate)) {
+  if (endDate && endDate <= startDate) {
     fail("Invalid salary rate dates", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_RATE_DATES");
   }
 
   return prisma.$transaction(async (tx) => {
+    const employee = await tx.employee.findUnique({
+      where: {
+        id: employeeId
+      }
+    });
+
+    if (!employee || employee.status !== "ACTIVE") {
+      fail("Active employee not found", HTTP_STATUS.NOT_FOUND, "EMPLOYEE_NOT_FOUND");
+    }
+
+    const roleRate = ROLE_RATES[employee.role];
+
+    if (!roleRate) {
+      fail("Unsupported employee role", HTTP_STATUS.UNPROCESSABLE_ENTITY, "UNSUPPORTED_ROLE");
+    }
+
     const overlappingRates = await tx.salaryRate.findMany({
       where: {
         employeeId,
-        validFrom: { lt: endDate || new Date("9999-12-31T00:00:00.000Z") },
-        OR: [{ validTo: null }, { validTo: { gt: startDate } }]
+        validFrom: {
+          lt: endDate || new Date("9999-12-31T00:00:00.000Z")
+        },
+        OR: [
+          {
+            validTo: null
+          },
+          {
+            validTo: {
+              gt: startDate
+            }
+          }
+        ]
       },
-      orderBy: { validFrom: "desc" }
+      orderBy: {
+        validFrom: "desc"
+      }
     });
 
-    const futureOrConflictingRate = overlappingRates.find((rate) => rate.validFrom >= startDate);
+    for (const rate of overlappingRates) {
+      if (rate.validFrom >= startDate) {
+        fail(
+          "Salary rate overlaps with an existing rate",
+          HTTP_STATUS.CONFLICT,
+          "SALARY_RATE_OVERLAP"
+        );
+      }
 
-    if (futureOrConflictingRate) {
-      fail(
-        "Salary rate overlaps with an existing rate",
-        HTTP_STATUS.CONFLICT,
-        "SALARY_RATE_OVERLAP"
-      );
+      if (rate.validFrom < startDate && rate.validTo !== null && rate.validTo > startDate) {
+        fail(
+          "New salary rate overlaps with an existing rate",
+          HTTP_STATUS.CONFLICT,
+          "SALARY_RATE_OVERLAP"
+        );
+      }
     }
 
     const previousOpenRate = overlappingRates.find(
@@ -191,8 +241,12 @@ async function createRate({ employeeId, validFrom, validTo = null }) {
 
     if (previousOpenRate) {
       await tx.salaryRate.update({
-        where: { id: previousOpenRate.id },
-        data: { validTo: startDate }
+        where: {
+          id: previousOpenRate.id
+        },
+        data: {
+          validTo: startDate
+        }
       });
     }
 
@@ -207,8 +261,21 @@ async function createRate({ employeeId, validFrom, validTo = null }) {
         validFrom: startDate,
         validTo: endDate
       },
-      include: { employee: true }
+      include: {
+        employee: true
+      }
     });
+
+    await auditService.createLog(
+      {
+        actorId,
+        action: "CREATE",
+        entityType: "SalaryRate",
+        entityId: rate.id,
+        after: rate
+      },
+      tx
+    );
 
     return serializeRate(rate);
   });
@@ -218,10 +285,23 @@ async function getEmployeeRate(tx, employeeId, periodStart) {
   const rate = await tx.salaryRate.findFirst({
     where: {
       employeeId,
-      validFrom: { lte: periodStart },
-      OR: [{ validTo: null }, { validTo: { gt: periodStart } }]
+      validFrom: {
+        lte: periodStart
+      },
+      OR: [
+        {
+          validTo: null
+        },
+        {
+          validTo: {
+            gt: periodStart
+          }
+        }
+      ]
     },
-    orderBy: { validFrom: "desc" }
+    orderBy: {
+      validFrom: "desc"
+    }
   });
 
   if (!rate) {
@@ -239,7 +319,9 @@ async function getChildrenCount(tx, groupId, periodStart) {
   const enrollments = await tx.groupEnrollment.findMany({
     where: {
       groupId,
-      startDate: { lte: periodStart }
+      startDate: {
+        lte: periodStart
+      }
     }
   });
 
@@ -257,7 +339,9 @@ async function getEmployeeChildrenCount(tx, employee, periodStart) {
     where: {
       employeeId: employee.id,
       role: employee.role,
-      startDate: { lte: periodStart }
+      startDate: {
+        lte: periodStart
+      }
     }
   });
 
@@ -283,9 +367,12 @@ async function getEmployeeChildrenCount(tx, employee, periodStart) {
 
   return getChildrenCount(tx, activeAssignments[0].groupId, periodStart);
 }
+
 async function calculateEmployeeSalary(tx, employee, periodYear, periodMonth, periodStart) {
   const rate = await getEmployeeRate(tx, employee.id, periodStart);
+
   const childrenCount = await getEmployeeChildrenCount(tx, employee, periodStart);
+
   const result = calculateSalary(employee.role, rate, childrenCount);
 
   const rateSnapshot = {
@@ -313,13 +400,15 @@ async function calculateEmployeeSalary(tx, employee, periodYear, periodMonth, pe
       rateSnapshot,
       status: "DRAFT"
     },
-    include: { employee: true }
+    include: {
+      employee: true
+    }
   });
 
-  return serializeCalculation(calculation);
+  return calculation;
 }
 
-async function createCalculations({ periodYear, periodMonth, employeeId }) {
+async function createCalculations({ periodYear, periodMonth, employeeId }, actorId) {
   const { start } = getPeriodBounds(periodYear, periodMonth);
 
   try {
@@ -329,7 +418,17 @@ async function createCalculations({ periodYear, periodMonth, employeeId }) {
           status: "ACTIVE",
           ...(employeeId ? { id: employeeId } : {})
         },
-        orderBy: [{ role: "asc" }, { lastName: "asc" }, { firstName: "asc" }]
+        orderBy: [
+          {
+            role: "asc"
+          },
+          {
+            lastName: "asc"
+          },
+          {
+            firstName: "asc"
+          }
+        ]
       });
 
       if (employeeId && employees.length === 0) {
@@ -339,9 +438,26 @@ async function createCalculations({ periodYear, periodMonth, employeeId }) {
       const calculations = [];
 
       for (const employee of employees) {
-        calculations.push(
-          await calculateEmployeeSalary(tx, employee, periodYear, periodMonth, start)
+        const calculation = await calculateEmployeeSalary(
+          tx,
+          employee,
+          periodYear,
+          periodMonth,
+          start
         );
+
+        await auditService.createLog(
+          {
+            actorId,
+            action: "CREATE",
+            entityType: "SalaryCalculation",
+            entityId: calculation.id,
+            after: calculation
+          },
+          tx
+        );
+
+        calculations.push(serializeCalculation(calculation));
       }
 
       return calculations;
@@ -362,15 +478,38 @@ async function createCalculations({ periodYear, periodMonth, employeeId }) {
 async function getCalculations(query = {}) {
   const where = {};
 
-  if (query.employeeId) where.employeeId = query.employeeId;
-  if (query.periodYear !== undefined) where.periodYear = Number(query.periodYear);
-  if (query.periodMonth !== undefined) where.periodMonth = Number(query.periodMonth);
-  if (query.status) where.status = query.status;
+  if (query.employeeId) {
+    where.employeeId = query.employeeId;
+  }
+
+  if (query.periodYear !== undefined) {
+    where.periodYear = Number(query.periodYear);
+  }
+
+  if (query.periodMonth !== undefined) {
+    where.periodMonth = Number(query.periodMonth);
+  }
+
+  if (query.status) {
+    where.status = query.status;
+  }
 
   const calculations = await prisma.salaryCalculation.findMany({
     where,
-    include: { employee: true },
-    orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }, { calculatedAt: "desc" }]
+    include: {
+      employee: true
+    },
+    orderBy: [
+      {
+        periodYear: "desc"
+      },
+      {
+        periodMonth: "desc"
+      },
+      {
+        calculatedAt: "desc"
+      }
+    ]
   });
 
   return calculations.map(serializeCalculation);
@@ -378,8 +517,12 @@ async function getCalculations(query = {}) {
 
 async function getCalculationById(id) {
   const calculation = await prisma.salaryCalculation.findUnique({
-    where: { id },
-    include: { employee: true }
+    where: {
+      id
+    },
+    include: {
+      employee: true
+    }
   });
 
   if (!calculation) {
@@ -389,36 +532,63 @@ async function getCalculationById(id) {
   return serializeCalculation(calculation);
 }
 
-async function cancelCalculation(id) {
-  const calculation = await prisma.salaryCalculation.findUnique({ where: { id } });
+async function cancelCalculation(id, actorId) {
+  return prisma.$transaction(async (tx) => {
+    const calculation = await tx.salaryCalculation.findUnique({
+      where: {
+        id
+      },
+      include: {
+        employee: true
+      }
+    });
 
-  if (!calculation) {
-    fail("Salary calculation not found", HTTP_STATUS.NOT_FOUND, "SALARY_CALCULATION_NOT_FOUND");
-  }
+    if (!calculation) {
+      fail("Salary calculation not found", HTTP_STATUS.NOT_FOUND, "SALARY_CALCULATION_NOT_FOUND");
+    }
 
-  if (calculation.status === "PAID") {
-    fail(
-      "Paid salary calculation cannot be cancelled",
-      HTTP_STATUS.CONFLICT,
-      "PAID_CALCULATION_CANNOT_BE_CANCELLED"
+    if (calculation.status === "PAID") {
+      fail(
+        "Paid salary calculation cannot be cancelled",
+        HTTP_STATUS.CONFLICT,
+        "PAID_CALCULATION_CANNOT_BE_CANCELLED"
+      );
+    }
+
+    if (calculation.status === "CANCELLED") {
+      fail(
+        "Salary calculation is already cancelled",
+        HTTP_STATUS.CONFLICT,
+        "SALARY_CALCULATION_ALREADY_CANCELLED"
+      );
+    }
+
+    const updated = await tx.salaryCalculation.update({
+      where: {
+        id
+      },
+      data: {
+        status: "CANCELLED"
+      },
+      include: {
+        employee: true
+      }
+    });
+
+    await auditService.createLog(
+      {
+        actorId,
+        action: "CANCEL",
+        entityType: "SalaryCalculation",
+        entityId: id,
+        before: calculation,
+        after: updated
+      },
+      tx
     );
-  }
 
-  if (calculation.status === "CANCELLED") {
-    fail(
-      "Salary calculation is already cancelled",
-      HTTP_STATUS.CONFLICT,
-      "SALARY_CALCULATION_ALREADY_CANCELLED"
-    );
-  }
-
-  const updated = await prisma.salaryCalculation.update({
-    where: { id },
-    data: { status: "CANCELLED" },
-    include: { employee: true }
+    return serializeCalculation(updated);
   });
-
-  return serializeCalculation(updated);
 }
 
 module.exports = {

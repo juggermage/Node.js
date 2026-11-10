@@ -26,22 +26,7 @@ const periodFields = {
   dueDate: isoDate
 };
 
-const createMonthlyInvoiceSchema = Joi.object({
-  ...periodFields,
-  attendedDays: Joi.number().integer().min(0).max(31).required()
-})
-  .custom((value, helpers) => {
-    const daysInMonth = new Date(Date.UTC(value.periodYear, value.periodMonth, 0)).getUTCDate();
-
-    if (value.attendedDays > daysInMonth) {
-      return helpers.error("any.custom");
-    }
-
-    return value;
-  })
-  .messages({
-    "any.custom": "Attended days exceed the number of days in the month"
-  });
+const createMonthlyInvoiceSchema = Joi.object(periodFields);
 
 const createAnnualInvoiceSchema = Joi.object(periodFields);
 

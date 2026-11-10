@@ -31,6 +31,20 @@ enum RecordStatus {
   ARCHIVED
 }
 
+enum MealCategory {
+  A2
+  A3
+  A4
+  A5
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
 enum ParentRelation {
   MOTHER
   FATHER
@@ -57,6 +71,7 @@ model Child {
   enrollments GroupEnrollment[]
   discounts   ChildDiscount[]
   invoices    Invoice[]
+  attendance  Attendance[]
 
   @@map("children")
 }
@@ -74,9 +89,12 @@ model Parent {
   userId     String?      @unique @db.ObjectId
   user       User?        @relation(fields: [userId], references: [id])
 
-  children ChildParent[]
-  invoices Invoice[]
-  payments Payment[]
+  children           ChildParent[]
+  invoices           Invoice[]
+  payments           Payment[]
+  creditBalance      CreditBalance?
+  creditTransactions CreditBalanceTransaction[]
+  invoiceAdjustments InvoiceAdjustment[]
 
   @@map("parents")
 }
@@ -100,15 +118,16 @@ model ChildParent {
 }
 
 model Group {
-  id            String       @id @default(auto()) @map("_id") @db.ObjectId
-  name          String       @unique
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  name          String        @unique
   ageFromMonths Int
   ageToMonths   Int
-  capacity      Int          @default(20)
-  status        RecordStatus @default(ACTIVE)
+  capacity      Int           @default(20)
+  mealCategory  MealCategory?
+  status        RecordStatus  @default(ACTIVE)
   archivedAt    DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   mainRoomId String? @db.ObjectId
   mainRoom   Room?   @relation("GroupMainRoom", fields: [mainRoomId], references: [id])
@@ -116,6 +135,7 @@ model Group {
   enrollments      GroupEnrollment[]
   staffAssignments StaffAssignment[]
   schedules        Schedule[]
+  expenses         Expense[]
 
   @@index([mainRoomId])
   @@map("groups")
@@ -134,6 +154,28 @@ model GroupEnrollment {
   @@index([childId, endDate])
   @@index([groupId, endDate])
   @@map("group_enrollments")
+}
+
+model Attendance {
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
+  childId       String           @db.ObjectId
+  recordedById  String?          @db.ObjectId
+  date          DateTime
+  status        AttendanceStatus @default(PRESENT)
+  checkIn       DateTime?
+  checkOut      DateTime?
+  note          String?
+  absenceReason String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  child      Child     @relation(fields: [childId], references: [id])
+  recordedBy Employee? @relation(fields: [recordedById], references: [id])
+
+  @@unique([childId, date])
+  @@index([date, status])
+  @@index([recordedById, date])
+  @@map("attendance")
 }
 
 model Room {
@@ -179,6 +221,7 @@ model Employee {
   scheduleItems      ScheduleItem[]
   salaryRates        SalaryRate[]
   salaryCalculations SalaryCalculation[]
+  recordedAttendance Attendance[]
 
   @@map("employees")
 }
@@ -309,14 +352,16 @@ model TuitionRate {
 }
 
 model MealRate {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  ageYears  Int
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  ageYears  Int?
+  category  MealCategory?
   amount    BigInt
   validFrom DateTime
   validTo   DateTime?
-  createdAt DateTime  @default(now())
+  createdAt DateTime      @default(now())
 
   @@index([ageYears, validFrom])
+  @@index([category, validFrom])
   @@map("meal_rates")
 }
 
@@ -390,10 +435,12 @@ model Invoice {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  child       Child               @relation(fields: [childId], references: [id])
-  payer       Parent              @relation(fields: [payerId], references: [id])
-  lines       InvoiceLine[]
-  allocations PaymentAllocation[]
+  child              Child                      @relation(fields: [childId], references: [id])
+  payer              Parent                     @relation(fields: [payerId], references: [id])
+  lines              InvoiceLine[]
+  allocations        PaymentAllocation[]
+  adjustments        InvoiceAdjustment[]        @relation("InvoiceAdjustments")
+  creditTransactions CreditBalanceTransaction[]
 
   @@unique([childId, periodYear, periodMonth, type])
   @@index([payerId, status])
@@ -427,11 +474,81 @@ model Payment {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  payer       Parent              @relation(fields: [payerId], references: [id])
-  allocations PaymentAllocation[]
+  payer              Parent                     @relation(fields: [payerId], references: [id])
+  allocations        PaymentAllocation[]
+  creditTransactions CreditBalanceTransaction[]
 
   @@index([payerId, paidAt])
   @@map("payments")
+}
+
+model InvoiceAdjustment {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  originalInvoiceId String   @db.ObjectId
+  payerId           String   @db.ObjectId
+  reason            String
+  previousAmount    BigInt
+  adjustedAmount    BigInt
+  createdById       String?  @db.ObjectId
+  reversedFromId    String?  @unique @db.ObjectId
+  createdAt         DateTime @default(now())
+
+  originalInvoice Invoice @relation("InvoiceAdjustments", fields: [originalInvoiceId], references: [id])
+  payer           Parent  @relation(fields: [payerId], references: [id])
+
+  @@index([originalInvoiceId, createdAt])
+  @@index([payerId, createdAt])
+  @@map("invoice_adjustments")
+}
+
+model CreditBalance {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  parentId  String   @unique @db.ObjectId
+  balance   BigInt   @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent       Parent                     @relation(fields: [parentId], references: [id])
+  transactions CreditBalanceTransaction[]
+
+  @@map("credit_balances")
+}
+
+enum CreditBalanceTransactionType {
+  OVERPAYMENT
+  APPLY_TO_INVOICE
+  ADJUSTMENT_CREDIT
+  REVERSAL
+  CREDIT_APPLICATION_REVERSAL
+}
+
+model CreditBalanceTransaction {
+  id                  String                       @id @default(auto()) @map("_id") @db.ObjectId
+  balanceId           String                       @db.ObjectId
+  parentId            String                       @db.ObjectId
+  type                CreditBalanceTransactionType
+  amountDelta         BigInt                       @map("amount")
+  balanceAfter        BigInt
+  paymentId           String?                      @db.ObjectId
+  invoiceId           String?                      @db.ObjectId
+  adjustmentId        String?                      @db.ObjectId
+  sourceTransactionId String?                      @db.ObjectId
+  reversalOfId        String?                      @unique @db.ObjectId
+  idempotencyKey      String                       @unique
+  description         String?
+  createdAt           DateTime                     @default(now())
+
+  balance CreditBalance @relation(fields: [balanceId], references: [id])
+  parent  Parent        @relation(fields: [parentId], references: [id])
+  payment Payment?      @relation(fields: [paymentId], references: [id])
+  invoice Invoice?      @relation(fields: [invoiceId], references: [id])
+
+  @@index([parentId, createdAt])
+  @@index([paymentId])
+  @@index([invoiceId])
+  @@index([adjustmentId])
+  @@index([sourceTransactionId])
+  @@map("credit_balance_transactions")
 }
 
 model PaymentAllocation {
@@ -523,6 +640,7 @@ model SalaryCalculation {
 
 model Expense {
   id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  groupId     String?         @db.ObjectId
   category    ExpenseCategory
   description String
   amount      BigInt
@@ -530,6 +648,9 @@ model Expense {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
+  group Group? @relation(fields: [groupId], references: [id])
+
+  @@index([groupId, expenseDate])
   @@index([category, expenseDate])
   @@map("expenses")
 }

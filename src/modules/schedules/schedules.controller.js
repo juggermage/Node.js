@@ -4,7 +4,6 @@ const HTTP_STATUS = require("../../utils/http-status");
 
 async function getAll(req, res) {
   const filters = res.locals.validated.query;
-
   const schedules = await schedulesService.getAll(filters);
 
   return res.status(HTTP_STATUS.OK).json({
@@ -15,7 +14,6 @@ async function getAll(req, res) {
 
 async function getById(req, res) {
   const { id } = res.locals.validated.params;
-
   const schedule = await schedulesService.getById(id);
 
   return res.status(HTTP_STATUS.OK).json({
@@ -25,9 +23,7 @@ async function getById(req, res) {
 }
 
 async function create(req, res) {
-  const data = res.locals.validated.body;
-
-  const schedule = await schedulesService.create(data);
+  const schedule = await schedulesService.create(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -37,9 +33,8 @@ async function create(req, res) {
 
 async function update(req, res) {
   const { id } = res.locals.validated.params;
-  const data = res.locals.validated.body;
 
-  const schedule = await schedulesService.update(id, data);
+  const schedule = await schedulesService.update(id, res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -50,7 +45,7 @@ async function update(req, res) {
 async function remove(req, res) {
   const { id } = res.locals.validated.params;
 
-  await schedulesService.remove(id);
+  await schedulesService.remove(id, req.user);
 
   return res.status(HTTP_STATUS.NO_CONTENT).send();
 }
@@ -58,7 +53,7 @@ async function remove(req, res) {
 async function publish(req, res) {
   const { id } = res.locals.validated.params;
 
-  const schedule = await schedulesService.publish(id);
+  const schedule = await schedulesService.publish(id, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -68,9 +63,8 @@ async function publish(req, res) {
 
 async function createItem(req, res) {
   const { id } = res.locals.validated.params;
-  const data = res.locals.validated.body;
 
-  const item = await schedulesService.createItem(id, data);
+  const item = await schedulesService.createItem(id, res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -80,9 +74,8 @@ async function createItem(req, res) {
 
 async function updateItem(req, res) {
   const { id, itemId } = res.locals.validated.params;
-  const data = res.locals.validated.body;
 
-  const item = await schedulesService.updateItem(id, itemId, data);
+  const item = await schedulesService.updateItem(id, itemId, res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -93,16 +86,15 @@ async function updateItem(req, res) {
 async function removeItem(req, res) {
   const { id, itemId } = res.locals.validated.params;
 
-  await schedulesService.removeItem(id, itemId);
+  await schedulesService.removeItem(id, itemId, req.user);
 
   return res.status(HTTP_STATUS.NO_CONTENT).send();
 }
 
 async function cancelItem(req, res) {
   const { id, itemId } = res.locals.validated.params;
-  const data = res.locals.validated.body;
 
-  const item = await schedulesService.cancelItem(id, itemId, data);
+  const item = await schedulesService.cancelItem(id, itemId, res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -111,9 +103,7 @@ async function cancelItem(req, res) {
 }
 
 async function generate(req, res) {
-  const data = res.locals.validated.body;
-
-  const schedule = await schedulesGenerator.generate(data);
+  const schedule = await schedulesGenerator.generate(res.locals.validated.body, req.user);
 
   return res.status(HTTP_STATUS.CREATED).json({
     success: true,

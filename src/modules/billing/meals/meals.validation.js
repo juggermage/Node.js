@@ -45,7 +45,6 @@ const calculateMealSchema = Joi.object({
   childId: objectId.required(),
   periodStart: isoDate.required(),
   periodEnd: isoDate.required(),
-  attendedDays: Joi.number().integer().min(0).required(),
   ageYears
 })
   .custom((value, helpers) => {

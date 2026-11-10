@@ -1,5 +1,9 @@
 const { Router } = require("express");
+
 const validate = require("../../../middleware/validate.middleware");
+const requireAuth = require("../../../middleware/auth.middleware");
+const authorizeRoles = require("../../../middleware/rbac.middleware");
+
 const controller = require("./discounts.controller");
 
 const {
@@ -9,6 +13,9 @@ const {
 } = require("./discounts.validation");
 
 const router = Router();
+
+router.use(requireAuth);
+router.use(authorizeRoles("ADMIN", "MANAGER"));
 
 router.get("/", validate(queryDiscountsSchema, "query"), controller.getAll);
 

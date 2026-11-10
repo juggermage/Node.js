@@ -1,5 +1,9 @@
 const { Router } = require("express");
+
 const validate = require("../../middleware/validate.middleware");
+const requireAuth = require("../../middleware/auth.middleware");
+const authorizeRoles = require("../../middleware/rbac.middleware");
+
 const controller = require("./teacher-subjects.controller");
 
 const {
@@ -10,16 +14,23 @@ const {
 
 const router = Router();
 
-router.get("/", controller.getAll);
+router.use(requireAuth);
 
-router.post("/", validate(createAssignmentSchema, "body"), controller.create);
+const readAccess = authorizeRoles("ADMIN", "MANAGER", "TEACHER");
+
+const managementAccess = authorizeRoles("ADMIN", "MANAGER");
+
+router.get("/", readAccess, controller.getAll);
+
+router.post("/", managementAccess, validate(createAssignmentSchema, "body"), controller.create);
 
 router.get(
   "/employee/:employeeId",
+  readAccess,
   validate(employeeParamsSchema, "params"),
   controller.getTeacherSubjects
 );
 
-router.delete("/:id", validate(idParamsSchema, "params"), controller.remove);
+router.delete("/:id", managementAccess, validate(idParamsSchema, "params"), controller.remove);
 
 module.exports = router;
