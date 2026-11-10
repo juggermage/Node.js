@@ -4,6 +4,7 @@ const HTTP_STATUS = require("../../../utils/http-status");
 const tuitionService = require("../tuition/tuition.service");
 const mealsService = require("../meals/meals.service");
 const auditService = require("../../audit/audit.service");
+const creditService = require("../credit-balance.service");
 
 function fail(message, status, code) {
   throw new AppError(message, status, code);
@@ -34,11 +35,11 @@ function parseDate(value) {
   return date;
 }
 
-function serializeInvoice(invoice, paidAmount = 0n) {
+function serializeInvoice(invoice, paidAmount = 0n, effectiveAmount = invoice.amountDue) {
   const data = { ...invoice };
   delete data.allocations;
 
-  const amountDue = BigInt(invoice.amountDue);
+  const amountDue = BigInt(effectiveAmount);
   const balance = amountDue - paidAmount;
 
   return {
@@ -50,6 +51,12 @@ function serializeInvoice(invoice, paidAmount = 0n) {
       ...line,
       unitAmount: line.unitAmount.toString(),
       amount: line.amount.toString()
+    })),
+    adjustments: (invoice.adjustments || []).map((adjustment) => ({
+      ...adjustment,
+      previousAmount: adjustment.previousAmount.toString(),
+      adjustedAmount: adjustment.adjustedAmount.toString(),
+      delta: (adjustment.adjustedAmount - adjustment.previousAmount).toString()
     }))
   };
 }
@@ -59,19 +66,20 @@ function getPaidAmountFromAllocations(allocations = []) {
 }
 
 async function getPaidAmount(tx, invoiceId) {
-  const allocations = await tx.paymentAllocation.findMany({
-    where: {
-      invoiceId,
-      payment: {
-        status: "COMPLETED"
-      }
-    },
-    select: {
-      amount: true
-    }
-  });
+  if (tx.creditBalanceTransaction) {
+    return creditService.getInvoicePaidAmount(tx, invoiceId);
+  }
 
+  const allocations = await tx.paymentAllocation.findMany({
+    where: { invoiceId, payment: { status: "COMPLETED" } },
+    select: { amount: true }
+  });
   return getPaidAmountFromAllocations(allocations);
+}
+
+async function getEffectiveAmount(tx, invoice) {
+  if (!tx.invoiceAdjustment) return invoice.amountDue;
+  return creditService.getEffectiveInvoiceAmount(tx, invoice);
 }
 
 async function getChildAndPayer(tx, childId, payerId) {
@@ -110,19 +118,11 @@ async function getChildAndPayer(tx, childId, payerId) {
   return { child, parent };
 }
 
-async function createInvoice(data, type) {
+async function createInvoice(data, type, actorId) {
   const { start, end } = periodBounds(data.periodYear, data.periodMonth);
 
   if (data.dueDate) {
     parseDate(data.dueDate);
-  }
-
-  if (type === "MONTHLY" && data.attendedDays > end.getUTCDate()) {
-    fail(
-      "Attended days exceed the number of days in the month",
-      HTTP_STATUS.UNPROCESSABLE_ENTITY,
-      "INVALID_ATTENDED_DAYS"
-    );
   }
 
   try {
@@ -142,6 +142,35 @@ async function createInvoice(data, type) {
           HTTP_STATUS.CONFLICT,
           "INVOICE_ALREADY_EXISTS"
         );
+      }
+
+      if (tx.invoice.findMany) {
+        const childInvoices = await tx.invoice.findMany({
+          where: { childId: data.childId }
+        });
+        const targetStart = start;
+        const targetEnd =
+          type === "ANNUAL"
+            ? new Date(Date.UTC(start.getUTCFullYear() + 1, start.getUTCMonth(), 0))
+            : end;
+
+        const overlaps = childInvoices.some((item) => {
+          if (item.status === "CANCELLED") return false;
+          const itemStart = new Date(Date.UTC(item.periodYear, item.periodMonth - 1, 1));
+          const itemEnd =
+            item.type === "ANNUAL"
+              ? new Date(Date.UTC(item.periodYear + 1, item.periodMonth - 1, 0))
+              : new Date(Date.UTC(item.periodYear, item.periodMonth, 0));
+          return itemStart <= targetEnd && targetStart <= itemEnd;
+        });
+
+        if (overlaps) {
+          fail(
+            "Another invoice already covers part of this billing period",
+            HTTP_STATUS.CONFLICT,
+            "INVOICE_PERIOD_OVERLAP"
+          );
+        }
       }
 
       await getChildAndPayer(tx, data.childId, data.payerId);
@@ -173,20 +202,28 @@ async function createInvoice(data, type) {
         const meals = await mealsService.calculateMealCost({
           childId: data.childId,
           periodStart: start.toISOString().slice(0, 10),
-          periodEnd: end.toISOString().slice(0, 10),
-          attendedDays: data.attendedDays
+          periodEnd: end.toISOString().slice(0, 10)
         });
 
-        const mealAmount = BigInt(meals.total);
-        const dailyRate = BigInt(meals.dailyRate);
-
-        lines.push({
-          description: "Харчування",
-          quantity: data.attendedDays,
-          unitAmount: dailyRate,
-          amount: mealAmount,
-          tariffSnapshot: meals
-        });
+        for (const rate of meals.rateBreakdown) {
+          lines.push({
+            description: `Харчування — вікова категорія ${rate.ageYears}`,
+            quantity: rate.attendedDays,
+            unitAmount: BigInt(rate.dailyRate),
+            amount: BigInt(rate.amount),
+            tariffSnapshot: {
+              periodStart: meals.periodStart,
+              periodEnd: meals.periodEnd,
+              rateId: rate.rateId,
+              ageYears: rate.ageYears,
+              dailyRate: rate.dailyRate,
+              attendedDays: rate.attendedDays,
+              amount: rate.amount,
+              validFrom: rate.validFrom,
+              validTo: rate.validTo
+            }
+          });
+        }
       }
 
       const amountDue = lines.reduce((sum, line) => sum + line.amount, 0n);
@@ -215,6 +252,7 @@ async function createInvoice(data, type) {
 
       await auditService.createLog(
         {
+          actorId,
           action: "CREATE",
           entityType: "Invoice",
           entityId: createdInvoice.id,
@@ -249,23 +287,40 @@ async function createInvoice(data, type) {
   }
 }
 
-async function createMonthly(data) {
-  return createInvoice(data, "MONTHLY");
+async function createMonthly(data, actorId) {
+  return createInvoice(data, "MONTHLY", actorId);
 }
 
-async function createAnnual(data) {
-  return createInvoice(data, "ANNUAL");
+async function createAnnual(data, actorId) {
+  return createInvoice(data, "ANNUAL", actorId);
 }
 
-async function getAll(filters = {}) {
+async function getAll(filters = {}, user) {
   const where = {};
 
-  if (filters.childId) {
-    where.childId = filters.childId;
-  }
+  if (user.role === "PARENT") {
+    const parent = await prisma.parent.findUnique({
+      where: {
+        userId: user.id
+      },
+      select: {
+        id: true
+      }
+    });
 
-  if (filters.payerId) {
-    where.payerId = filters.payerId;
+    if (!parent) {
+      fail("Parent profile not found", HTTP_STATUS.NOT_FOUND, "PARENT_NOT_FOUND");
+    }
+
+    where.payerId = parent.id;
+  } else {
+    if (filters.childId) {
+      where.childId = filters.childId;
+    }
+
+    if (filters.payerId) {
+      where.payerId = filters.payerId;
+    }
   }
 
   if (filters.status) {
@@ -290,6 +345,7 @@ async function getAll(filters = {}) {
       child: true,
       payer: true,
       lines: true,
+      adjustments: { orderBy: { createdAt: "desc" }, take: 1 },
       allocations: {
         where: {
           payment: {
@@ -304,20 +360,28 @@ async function getAll(filters = {}) {
     orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }, { createdAt: "desc" }]
   });
 
-  return invoices.map((invoice) => {
-    const paidAmount = getPaidAmountFromAllocations(invoice.allocations);
-
-    return serializeInvoice(invoice, paidAmount);
-  });
+  return Promise.all(
+    invoices.map(async (invoice) => {
+      const paidAmountPromise = prisma.creditBalanceTransaction
+        ? getPaidAmount(prisma, invoice.id)
+        : Promise.resolve(getPaidAmountFromAllocations(invoice.allocations));
+      const [paidAmount, effectiveAmount] = await Promise.all([
+        paidAmountPromise,
+        getEffectiveAmount(prisma, invoice)
+      ]);
+      return serializeInvoice(invoice, paidAmount, effectiveAmount);
+    })
+  );
 }
 
-async function getById(id) {
+async function getById(id, user) {
   const invoice = await prisma.invoice.findUnique({
     where: { id },
     include: {
       child: true,
       payer: true,
       lines: true,
+      adjustments: { orderBy: { createdAt: "asc" } },
       allocations: {
         where: {
           payment: {
@@ -335,12 +399,22 @@ async function getById(id) {
     fail("Invoice not found", HTTP_STATUS.NOT_FOUND, "INVOICE_NOT_FOUND");
   }
 
-  const paidAmount = getPaidAmountFromAllocations(invoice.allocations);
+  if (user.role === "PARENT" && invoice.payer.userId !== user.id) {
+    fail("You do not have permission to access this invoice", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
+  }
 
-  return serializeInvoice(invoice, paidAmount);
+  const paidAmountPromise = prisma.creditBalanceTransaction
+    ? getPaidAmount(prisma, invoice.id)
+    : Promise.resolve(getPaidAmountFromAllocations(invoice.allocations));
+  const [paidAmount, effectiveAmount] = await Promise.all([
+    paidAmountPromise,
+    getEffectiveAmount(prisma, invoice)
+  ]);
+
+  return serializeInvoice(invoice, paidAmount, effectiveAmount);
 }
 
-async function cancel(id) {
+async function cancel(id, actorId) {
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({
       where: { id },
@@ -357,7 +431,10 @@ async function cancel(id) {
       fail("Invoice is already cancelled", HTTP_STATUS.CONFLICT, "INVOICE_ALREADY_CANCELLED");
     }
 
-    if (invoice.status === "PAID" || invoice.status === "PARTIALLY_PAID") {
+    if (
+      !tx.creditBalanceTransaction &&
+      (invoice.status === "PAID" || invoice.status === "PARTIALLY_PAID")
+    ) {
       fail(
         "Paid or partially paid invoice cannot be cancelled",
         HTTP_STATUS.CONFLICT,
@@ -365,10 +442,22 @@ async function cancel(id) {
       );
     }
 
-    const paidAmount = await getPaidAmount(tx, id);
+    const cashAllocations = await tx.paymentAllocation.findMany({
+      where: { invoiceId: id, payment: { status: "COMPLETED" } },
+      select: { amount: true }
+    });
+    const cashPaid = getPaidAmountFromAllocations(cashAllocations);
 
-    if (paidAmount > 0n) {
-      fail("Invoice has completed payments", HTTP_STATUS.CONFLICT, "INVOICE_HAS_PAYMENTS");
+    if (cashPaid > 0n) {
+      fail(
+        "Cancel completed payments before cancelling this invoice",
+        HTTP_STATUS.CONFLICT,
+        "INVOICE_HAS_PAYMENTS"
+      );
+    }
+
+    if (tx.creditBalanceTransaction) {
+      await creditService.restoreInvoiceCreditApplications(tx, id, actorId);
     }
 
     const updatedInvoice = await tx.invoice.update({
@@ -385,6 +474,7 @@ async function cancel(id) {
 
     await auditService.createLog(
       {
+        actorId,
         action: "CANCEL",
         entityType: "Invoice",
         entityId: id,
