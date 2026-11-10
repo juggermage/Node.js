@@ -112,7 +112,11 @@ function serializeRate(rate) {
 async function getAllRates({ ageYears, category, onDate } = {}) {
   if (ageYears !== undefined) checkAge(ageYears);
   if (category !== undefined && !["A2", "A3", "A4", "A5"].includes(category)) {
-    throw new AppError("Invalid meal category", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_MEAL_CATEGORY");
+    throw new AppError(
+      "Invalid meal category",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "INVALID_MEAL_CATEGORY"
+    );
   }
 
   const where = {};
@@ -158,11 +162,19 @@ async function getApplicableRate(ageYears, onDate) {
 
 async function createRate({ ageYears, category, amount, validFrom, validTo = null }, user) {
   if (category !== undefined && !["A2", "A3", "A4", "A5"].includes(category)) {
-    throw new AppError("Invalid meal category", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_MEAL_CATEGORY");
+    throw new AppError(
+      "Invalid meal category",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "INVALID_MEAL_CATEGORY"
+    );
   }
   if (category === undefined) checkAge(ageYears);
   if (category === undefined && ageYears === undefined) {
-    throw new AppError("Meal category is required", HTTP_STATUS.UNPROCESSABLE_ENTITY, "INVALID_MEAL_CATEGORY");
+    throw new AppError(
+      "Meal category is required",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "INVALID_MEAL_CATEGORY"
+    );
   }
   const rateKey = category ? { category } : { ageYears };
 
@@ -282,10 +294,7 @@ async function calculateMealCost({ childId, periodStart, periodEnd, ageYears }, 
     where: {
       childId,
       startDate: { lte: to },
-      OR: [
-        { endDate: { isSet: false } },
-        { endDate: { gte: from } }
-      ]
+      OR: [{ endDate: { isSet: false } }, { endDate: { gte: from } }]
     },
     include: { group: { select: { id: true, name: true, mealCategory: true } } },
     orderBy: { startDate: "asc" }
@@ -330,8 +339,12 @@ async function calculateMealCost({ childId, periodStart, periodEnd, ageYears }, 
     const rate = rates.find((item) => {
       const validFrom = parseDay(item.validFrom);
       const validTo = item.validTo ? parseDay(item.validTo) : null;
-      const matchesCategory = item.category ? item.category === category : item.ageYears === categoryAge;
-      return matchesCategory && validFrom <= attendanceDate && (!validTo || validTo >= attendanceDate);
+      const matchesCategory = item.category
+        ? item.category === category
+        : item.ageYears === categoryAge;
+      return (
+        matchesCategory && validFrom <= attendanceDate && (!validTo || validTo >= attendanceDate)
+      );
     });
 
     if (!rate) {

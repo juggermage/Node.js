@@ -350,48 +350,48 @@ async function create(data, user) {
 
   try {
     return await prisma.$transaction(async (tx) => {
-    const record = await tx.attendance.create({
-      data: {
-        childId: data.childId,
-        date,
-        status: data.status,
-        checkIn,
-        checkOut,
-        note: data.note ?? null,
-        absenceReason: data.absenceReason ?? null,
-        recordedById: context.employeeId
-      },
-      include: {
-        child: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            childCode: true
-          }
+      const record = await tx.attendance.create({
+        data: {
+          childId: data.childId,
+          date,
+          status: data.status,
+          checkIn,
+          checkOut,
+          note: data.note ?? null,
+          absenceReason: data.absenceReason ?? null,
+          recordedById: context.employeeId
         },
-        recordedBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true
+        include: {
+          child: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              childCode: true
+            }
+          },
+          recordedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true
+            }
           }
         }
-      }
-    });
+      });
 
-    await auditService.createLog(
-      {
-        actorId: user.id,
-        action: "CREATE",
-        entityType: "Attendance",
-        entityId: record.id,
-        after: record
-      },
-      tx
-    );
+      await auditService.createLog(
+        {
+          actorId: user.id,
+          action: "CREATE",
+          entityType: "Attendance",
+          entityId: record.id,
+          after: record
+        },
+        tx
+      );
 
-    return formatAttendance(record);
+      return formatAttendance(record);
     });
   } catch (error) {
     if (error.code === "P2002") {
