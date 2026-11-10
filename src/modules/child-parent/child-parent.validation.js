@@ -20,9 +20,14 @@ const parentParamsSchema = Joi.object({
   parentId: objectId.required()
 });
 
+const historyQuerySchema = Joi.object({
+  includeEnded: Joi.boolean().default(false)
+});
+
 module.exports = {
   createLinkSchema,
   idParamsSchema,
   childParamsSchema,
-  parentParamsSchema
+  parentParamsSchema,
+  historyQuerySchema
 };

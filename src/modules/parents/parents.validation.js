@@ -31,7 +31,9 @@ const updateParentSchema = Joi.object({
 
 const queryParentsSchema = Joi.object({
   search: Joi.string().trim().max(100).allow(""),
-  status: Joi.string().valid("ACTIVE", "INACTIVE", "ARCHIVED")
+  status: Joi.string().valid("ACTIVE", "INACTIVE", "ARCHIVED"),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20)
 });
 
 module.exports = {

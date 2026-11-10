@@ -1,25 +1,79 @@
 const { Router } = require("express");
 
 const validate = require("../../../middleware/validate.middleware");
+const requireAuth = require("../../../middleware/auth.middleware");
+const authorizeRoles = require("../../../middleware/rbac.middleware");
+
 const controller = require("./invoices.controller");
 
 const {
   createMonthlyInvoiceSchema,
   createAnnualInvoiceSchema,
   invoiceQuerySchema,
-  invoiceIdSchema
+  invoiceIdSchema,
+  adjustmentIdSchema,
+  createInvoiceAdjustmentSchema
 } = require("./invoices.validation");
 
 const router = Router();
 
-router.get("/", validate(invoiceQuerySchema, "query"), controller.getAll);
+router.use(requireAuth);
 
-router.post("/monthly", validate(createMonthlyInvoiceSchema, "body"), controller.createMonthly);
+router.get(
+  "/",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(invoiceQuerySchema, "query"),
+  controller.getAll
+);
 
-router.post("/annual", validate(createAnnualInvoiceSchema, "body"), controller.createAnnual);
+router.post(
+  "/monthly",
+  authorizeRoles("ADMIN", "MANAGER"),
+  validate(createMonthlyInvoiceSchema, "body"),
+  controller.createMonthly
+);
 
-router.get("/:id", validate(invoiceIdSchema, "params"), controller.getById);
+router.post(
+  "/annual",
+  authorizeRoles("ADMIN", "MANAGER"),
+  validate(createAnnualInvoiceSchema, "body"),
+  controller.createAnnual
+);
 
-router.patch("/:id/cancel", validate(invoiceIdSchema, "params"), controller.cancel);
+router.get(
+  "/:id/adjustments",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(invoiceIdSchema, "params"),
+  controller.getAdjustmentHistory
+);
+
+router.post(
+  "/:id/adjustments",
+  authorizeRoles("ADMIN", "MANAGER"),
+  validate(invoiceIdSchema, "params"),
+  validate(createInvoiceAdjustmentSchema, "body"),
+  controller.createAdjustment
+);
+
+router.patch(
+  "/adjustments/:adjustmentId/cancel",
+  authorizeRoles("ADMIN", "MANAGER"),
+  validate(adjustmentIdSchema, "params"),
+  controller.cancelAdjustment
+);
+
+router.get(
+  "/:id",
+  authorizeRoles("ADMIN", "MANAGER", "PARENT"),
+  validate(invoiceIdSchema, "params"),
+  controller.getById
+);
+
+router.patch(
+  "/:id/cancel",
+  authorizeRoles("ADMIN", "MANAGER"),
+  validate(invoiceIdSchema, "params"),
+  controller.cancel
+);
 
 module.exports = router;

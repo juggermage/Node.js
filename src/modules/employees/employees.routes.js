@@ -1,5 +1,9 @@
 const { Router } = require("express");
+
 const validate = require("../../middleware/validate.middleware");
+const requireAuth = require("../../middleware/auth.middleware");
+const authorizeRoles = require("../../middleware/rbac.middleware");
+
 const controller = require("./employees.controller");
 
 const {
@@ -11,19 +15,26 @@ const {
 
 const router = Router();
 
-router.get("/", validate(queryEmployeesSchema, "query"), controller.getAll);
+router.use(requireAuth);
 
-router.get("/:id", validate(idParamsSchema, "params"), controller.getById);
+const readAccess = authorizeRoles("ADMIN", "MANAGER", "TEACHER", "EDUCATOR", "ASSISTANT");
 
-router.post("/", validate(createEmployeeSchema, "body"), controller.create);
+const managementAccess = authorizeRoles("ADMIN", "MANAGER");
+
+router.get("/", readAccess, validate(queryEmployeesSchema, "query"), controller.getAll);
+
+router.get("/:id", readAccess, validate(idParamsSchema, "params"), controller.getById);
+
+router.post("/", managementAccess, validate(createEmployeeSchema, "body"), controller.create);
 
 router.patch(
   "/:id",
+  managementAccess,
   validate(idParamsSchema, "params"),
   validate(updateEmployeeSchema, "body"),
   controller.update
 );
 
-router.delete("/:id", validate(idParamsSchema, "params"), controller.remove);
+router.delete("/:id", managementAccess, validate(idParamsSchema, "params"), controller.remove);
 
 module.exports = router;

@@ -275,7 +275,11 @@ async function calculateMealCost({ childId, periodStart, periodEnd, ageYears }, 
 
   const child = await prisma.child.findUnique({
     where: { id: childId },
-    select: { id: true, birthDate: true, status: true }
+    select: {
+      id: true,
+      birthDate: true,
+      status: true
+    }
   });
 
   if (!child || child.status !== "ACTIVE") {
