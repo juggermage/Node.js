@@ -48,8 +48,6 @@ const routes = require("../../src/modules/staff-assignments/staff-assignments.ro
 const validation = require("../../src/modules/staff-assignments/staff-assignments.validation");
 
 const requireAuth = require("../../src/middleware/auth.middleware");
-const authorizeRoles = require("../../src/middleware/rbac.middleware");
-const validate = require("../../src/middleware/validate.middleware");
 
 const ASSIGNMENT_ID = "507f1f77bcf86cd799439011";
 const EMPLOYEE_ID = "507f1f77bcf86cd799439012";

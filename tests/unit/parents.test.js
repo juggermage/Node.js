@@ -680,8 +680,6 @@ describe("Parents Routes", () => {
   });
 
   test("GET /:id/children uses params validation", () => {
-    const route = getRoute("get", "/:id/children");
-
     expect(
       getValidation(getRoute("get", "/:id/children"), "params")
     ).toBeDefined();

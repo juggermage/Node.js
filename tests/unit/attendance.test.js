@@ -240,17 +240,17 @@ describe("Attendance validation", () => {
     });
 
     test("requires childId", () => {
-      const { childId: ignored, ...data } = validData;
-
-      const result = createAttendanceSchema.validate(data);
+      const result = createAttendanceSchema.validate({
+        date: validDate,
+      });
 
       expect(result.error).toBeDefined();
     });
 
     test("requires date", () => {
-      const { date: ignored, ...data } = validData;
-
-      const result = createAttendanceSchema.validate(data);
+      const result = createAttendanceSchema.validate({
+        childId,
+      });
 
       expect(result.error).toBeDefined();
     });

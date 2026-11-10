@@ -1,6 +1,6 @@
+
 const prisma = require("../../src/config/prisma");
 const auditService = require("../../src/modules/audit/audit.service");
-const AppError = require("../../src/utils/app-error");
 const HTTP_STATUS = require("../../src/utils/http-status");
 
 jest.mock("../../src/config/prisma", () => ({
@@ -76,7 +76,6 @@ function createTransaction() {
       findUnique: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
-      findUnique: jest.fn(),
       delete: jest.fn()
     }
   };

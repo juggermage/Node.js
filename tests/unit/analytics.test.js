@@ -43,7 +43,6 @@ const query = {
   to: "2026-10-31",
 };
 
-const emptyArray = [];
 
 function createResponse() {
   const res = {

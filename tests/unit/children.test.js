@@ -307,7 +307,10 @@ describe("Children Validation", () => {
     });
 
     test("rejects missing firstName", () => {
-      const { firstName, ...data } = validChild;
+      const data = {
+        lastName: validChild.lastName,
+        birthDate: validChild.birthDate
+      };
 
       const result = validation.createChildSchema.validate(data);
 
@@ -315,7 +318,10 @@ describe("Children Validation", () => {
     });
 
     test("rejects missing lastName", () => {
-      const { lastName, ...data } = validChild;
+      const data = {
+        firstName: validChild.firstName,
+        birthDate: validChild.birthDate
+      };
 
       const result = validation.createChildSchema.validate(data);
 
@@ -323,7 +329,10 @@ describe("Children Validation", () => {
     });
 
     test("rejects missing birthDate", () => {
-      const { birthDate, ...data } = validChild;
+      const data = {
+        firstName: validChild.firstName,
+        lastName: validChild.lastName
+      };
 
       const result = validation.createChildSchema.validate(data);
 

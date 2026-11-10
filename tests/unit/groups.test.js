@@ -91,10 +91,6 @@ const ADMIN = {
   role: "ADMIN"
 };
 
-const MANAGER = {
-  id: "222222222222222222222222",
-  role: "MANAGER"
-};
 
 const PARENT = {
   id: "333333333333333333333333",

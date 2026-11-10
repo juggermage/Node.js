@@ -1,5 +1,3 @@
-const express = require("express");
-
 jest.mock("../../src/config/prisma", () => ({
   $transaction: jest.fn(),
   parent: { findUnique: jest.fn() },

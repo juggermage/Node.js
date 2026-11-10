@@ -55,7 +55,6 @@ jest.mock("../../src/middleware/validate.middleware", () =>
   })
 );
 
-const Joi = require("joi");
 const { ScheduleStatus, ScheduleItemType } = require("@prisma/client");
 
 const prisma = require("../../src/config/prisma");
@@ -71,7 +70,6 @@ const rules = require("../../src/modules/schedules/schedules.rules");
 const config = require("../../src/modules/schedules/schedules.config");
 
 const HTTP_STATUS = require("../../src/utils/http-status");
-const AppError = require("../../src/utils/app-error");
 
 const requireAuth = require("../../src/middleware/auth.middleware");
 
@@ -596,7 +594,8 @@ describe("Schedules validation", () => {
     });
 
     test("rejects missing group id", () => {
-      const { groupId, ...data } = createScheduleData;
+      const data = { ...createScheduleData };
+      delete data.groupId;
 
       const result = schedulesValidation.createScheduleSchema.validate(data);
 
@@ -665,7 +664,8 @@ describe("Schedules validation", () => {
     });
 
     test("requires subject for lesson", () => {
-      const { subjectId, ...data } = createLessonData;
+      const data = { ...createLessonData };
+      delete data.subjectId;
 
       const result = schedulesValidation.createItemSchema.validate(data);
 
@@ -673,7 +673,8 @@ describe("Schedules validation", () => {
     });
 
     test("requires teacher for lesson", () => {
-      const { teacherId, ...data } = createLessonData;
+      const data = { ...createLessonData };
+      delete data.teacherId;
 
       const result = schedulesValidation.createItemSchema.validate(data);
 
@@ -681,7 +682,8 @@ describe("Schedules validation", () => {
     });
 
     test("requires room for lesson", () => {
-      const { roomId, ...data } = createLessonData;
+      const data = { ...createLessonData };
+      delete data.roomId;
 
       const result = schedulesValidation.createItemSchema.validate(data);
 

@@ -210,13 +210,15 @@ describe("Invoice validation", () => {
     });
 
     it("should reject a missing childId", () => {
-      const { childId: ignored, ...data } = validData;
+      const data = { ...validData };
+      delete data.childId;
 
       expect(createMonthlyInvoiceSchema.validate(data).error).toBeDefined();
     });
 
     it("should reject a missing payerId", () => {
-      const { payerId: ignored, ...data } = validData;
+      const data = { ...validData };
+      delete data.payerId;
 
       expect(createMonthlyInvoiceSchema.validate(data).error).toBeDefined();
     });
@@ -294,7 +296,8 @@ describe("Invoice validation", () => {
     });
 
     it("should allow an omitted dueDate", () => {
-      const { dueDate: ignored, ...data } = validData;
+      const data = { ...validData };
+      delete data.dueDate;
 
       expect(createMonthlyInvoiceSchema.validate(data).error).toBeUndefined();
     });

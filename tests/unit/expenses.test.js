@@ -118,9 +118,11 @@ describe("Expenses validation", () => {
     });
 
     it("should reject a missing category", () => {
-      const { category: ignored, ...data } = validData;
-
-      const { error } = createExpenseSchema.validate(data);
+      const { error } = createExpenseSchema.validate({
+        description: validData.description,
+        amount: validData.amount,
+        expenseDate: validData.expenseDate
+      });
 
       expect(error).toBeDefined();
     });
@@ -153,9 +155,11 @@ describe("Expenses validation", () => {
     });
 
     it("should reject a missing description", () => {
-      const { description: ignored, ...data } = validData;
-
-      const { error } = createExpenseSchema.validate(data);
+      const { error } = createExpenseSchema.validate({
+        category: validData.category,
+        amount: validData.amount,
+        expenseDate: validData.expenseDate
+      });
 
       expect(error).toBeDefined();
     });
@@ -197,9 +201,11 @@ describe("Expenses validation", () => {
     });
 
     it("should reject a missing amount", () => {
-      const { amount: ignored, ...data } = validData;
-
-      const { error } = createExpenseSchema.validate(data);
+      const { error } = createExpenseSchema.validate({
+        category: validData.category,
+        description: validData.description,
+        expenseDate: validData.expenseDate
+      });
 
       expect(error).toBeDefined();
     });
@@ -223,9 +229,11 @@ describe("Expenses validation", () => {
     });
 
     it("should reject a missing expenseDate", () => {
-      const { expenseDate: ignored, ...data } = validData;
-
-      const { error } = createExpenseSchema.validate(data);
+      const { error } = createExpenseSchema.validate({
+        category: validData.category,
+        description: validData.description,
+        amount: validData.amount
+      });
 
       expect(error).toBeDefined();
     });
