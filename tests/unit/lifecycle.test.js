@@ -36,32 +36,48 @@ describe("Lifecycle service", () => {
     tx = {
       child: {
         findUnique: jest.fn().mockResolvedValue(record),
-        update: jest.fn().mockResolvedValue({ ...record, status: "ARCHIVED", archivedAt: new Date() }),
+        update: jest
+          .fn()
+          .mockResolvedValue({ ...record, status: "ARCHIVED", archivedAt: new Date() }),
         delete: jest.fn().mockResolvedValue(record)
       },
       auditLog: { create: jest.fn() }
     };
-    prisma.$transaction.mockImplementation(callback => callback(tx));
+    prisma.$transaction.mockImplementation((callback) => callback(tx));
     audit.createLog.mockResolvedValue({});
   });
 
   test("archives a record and audits before and after", async () => {
     const result = await service.archive("children", id, user);
-    expect(tx.child.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id },
-      data: expect.objectContaining({ status: "ARCHIVED" })
-    }));
-    expect(audit.createLog).toHaveBeenCalledWith(expect.objectContaining({
-      action: "ARCHIVE", before: record, after: result
-    }), tx);
+    expect(tx.child.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id },
+        data: expect.objectContaining({ status: "ARCHIVED" })
+      })
+    );
+    expect(audit.createLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "ARCHIVE",
+        before: record,
+        after: result
+      }),
+      tx
+    );
   });
 
   test("restores only archived records", async () => {
-    tx.child.findUnique.mockResolvedValue({ ...record, status: "ARCHIVED", archivedAt: new Date() });
+    tx.child.findUnique.mockResolvedValue({
+      ...record,
+      status: "ARCHIVED",
+      archivedAt: new Date()
+    });
     tx.child.update.mockResolvedValue({ ...record, status: "ACTIVE" });
     const result = await service.restore("children", id, user);
     expect(result.status).toBe("ACTIVE");
-    expect(audit.createLog).toHaveBeenCalledWith(expect.objectContaining({ action: "RESTORE" }), tx);
+    expect(audit.createLog).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "RESTORE" }),
+      tx
+    );
   });
 
   test("requires archive before hard delete", async () => {
@@ -74,7 +90,7 @@ describe("Lifecycle service", () => {
   test("blocks hard delete when references exist", async () => {
     tx.child.findUnique.mockResolvedValue({ ...record, status: "ARCHIVED" });
     tx.childParent = { count: jest.fn().mockResolvedValue(1) };
-    const error = await service.hardDelete("children", id, user).catch(value => value);
+    const error = await service.hardDelete("children", id, user).catch((value) => value);
     expect(error.code).toBe("RECORD_HAS_DEPENDENCIES");
     expect(tx.child.delete).not.toHaveBeenCalled();
   });

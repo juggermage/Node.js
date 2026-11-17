@@ -141,7 +141,11 @@ function checkAgeRange(from, to) {
 
 function checkGroupCapacity(ageToMonths, capacity) {
   if (capacity > MAX_CAPACITY) {
-    fail("Group capacity cannot exceed 20 children", HTTP_STATUS.BAD_REQUEST, "GROUP_CAPACITY_LIMIT");
+    fail(
+      "Group capacity cannot exceed 20 children",
+      HTTP_STATUS.BAD_REQUEST,
+      "GROUP_CAPACITY_LIMIT"
+    );
   }
 }
 

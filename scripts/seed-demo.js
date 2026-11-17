@@ -1,75 +1,110 @@
+require("dotenv").config();
 
-require('dotenv').config();
-
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
 const CHILD_COUNT = 100;
 
 const GROUPS = [
-  { name: 'A2 Сонечко 1', category: 'A2', from: 24, to: 35, count: 13 },
-  { name: 'A2 Сонечко 2', category: 'A2', from: 24, to: 35, count: 12 },
-  { name: 'A3 Веселка 1', category: 'A3', from: 36, to: 47, count: 13 },
-  { name: 'A3 Веселка 2', category: 'A3', from: 36, to: 47, count: 12 },
-  { name: 'A4 Зірочки 1', category: 'A4', from: 48, to: 59, count: 13 },
-  { name: 'A4 Зірочки 2', category: 'A4', from: 48, to: 59, count: 12 },
-  { name: 'A5 Джерельце 1', category: 'A5', from: 60, to: 71, count: 13 },
-  { name: 'A5 Джерельце 2', category: 'A5', from: 60, to: 71, count: 12 }
+  { name: "A2 Сонечко 1", category: "A2", from: 24, to: 35, count: 13 },
+  { name: "A2 Сонечко 2", category: "A2", from: 24, to: 35, count: 12 },
+  { name: "A3 Веселка 1", category: "A3", from: 36, to: 47, count: 13 },
+  { name: "A3 Веселка 2", category: "A3", from: 36, to: 47, count: 12 },
+  { name: "A4 Зірочки 1", category: "A4", from: 48, to: 59, count: 13 },
+  { name: "A4 Зірочки 2", category: "A4", from: 48, to: 59, count: 12 },
+  { name: "A5 Джерельце 1", category: "A5", from: 60, to: 71, count: 13 },
+  { name: "A5 Джерельце 2", category: "A5", from: 60, to: 71, count: 12 }
 ];
 
 const FIRST_NAMES = [
-  'Артем', 'Софія', 'Максим', 'Анна', 'Данило',
-  'Марія', 'Матвій', 'Єва', 'Олександр', 'Злата',
-  'Михайло', 'Вікторія', 'Дмитро', 'Поліна',
-  'Богдан', 'Анастасія', 'Іван', 'Мілана',
-  'Тимофій', 'Вероніка'
+  "Артем",
+  "Софія",
+  "Максим",
+  "Анна",
+  "Данило",
+  "Марія",
+  "Матвій",
+  "Єва",
+  "Олександр",
+  "Злата",
+  "Михайло",
+  "Вікторія",
+  "Дмитро",
+  "Поліна",
+  "Богдан",
+  "Анастасія",
+  "Іван",
+  "Мілана",
+  "Тимофій",
+  "Вероніка"
 ];
 
 const LAST_NAMES = [
-  'Коваленко', 'Мельник', 'Бондаренко', 'Шевченко',
-  'Ткаченко', 'Кравченко', 'Олійник', 'Поліщук',
-  'Лисенко', 'Романюк', 'Савченко', 'Мороз',
-  'Петренко', 'Клименко', 'Бойко', 'Іваненко'
+  "Коваленко",
+  "Мельник",
+  "Бондаренко",
+  "Шевченко",
+  "Ткаченко",
+  "Кравченко",
+  "Олійник",
+  "Поліщук",
+  "Лисенко",
+  "Романюк",
+  "Савченко",
+  "Мороз",
+  "Петренко",
+  "Клименко",
+  "Бойко",
+  "Іваненко"
 ];
 
 const PARENT_FIRST_NAMES = [
-  'Олена', 'Андрій', 'Наталія', 'Олег', 'Ірина',
-  'Сергій', 'Тетяна', 'Віталій', 'Юлія', 'Роман',
-  'Світлана', 'Володимир'
+  "Олена",
+  "Андрій",
+  "Наталія",
+  "Олег",
+  "Ірина",
+  "Сергій",
+  "Тетяна",
+  "Віталій",
+  "Юлія",
+  "Роман",
+  "Світлана",
+  "Володимир"
 ];
 
 const SUBJECTS = [
-  ['Математика та логіка', 'Логічне мислення, лічба та базові математичні поняття'],
-  ['Мовленнєвий розвиток', 'Розвиток мовлення та комунікації'],
-  ['Англійська мова', 'Початкове знайомство з англійською мовою'],
-  ['Пізнання світу та природи', 'Пізнання навколишнього світу'],
-  ['Мистецтво та творчість', 'Малювання, аплікація та творчі заняття'],
-  ['Музика', 'Музичний розвиток і ритміка'],
-  ['Фізичний розвиток', 'Рухова активність та координація'],
-  ['Конструювання та робототехніка', 'Конструювання та прості STEM-завдання']
+  ["Математика та логіка", "Логічне мислення, лічба та базові математичні поняття"],
+  ["Мовленнєвий розвиток", "Розвиток мовлення та комунікації"],
+  ["Англійська мова", "Початкове знайомство з англійською мовою"],
+  ["Пізнання світу та природи", "Пізнання навколишнього світу"],
+  ["Мистецтво та творчість", "Малювання, аплікація та творчі заняття"],
+  ["Музика", "Музичний розвиток і ритміка"],
+  ["Фізичний розвиток", "Рухова активність та координація"],
+  ["Конструювання та робототехніка", "Конструювання та прості STEM-завдання"]
 ];
 
 const SPECIAL_ROOM_NAMES = [
-  'Математика та логіка',
-  'Мовленнєвий розвиток та англійська',
-  'Пізнання світу та природи',
-  'Мистецтво та творчість',
-  'Музична зала',
-  'Танцювальна зала',
-  'Спортивна зала',
-  'Конструювання та робототехніка'
+  "Математика та логіка",
+  "Мовленнєвий розвиток та англійська",
+  "Пізнання світу та природи",
+  "Мистецтво та творчість",
+  "Музична зала",
+  "Танцювальна зала",
+  "Спортивна зала",
+  "Конструювання та робототехніка"
 ];
 
 const SPECIAL_ROOM_PURPOSES = [
-  'SPECIALIST_MATH_LOGIC',
-  'SPECIALIST_LANGUAGE',
-  'SPECIALIST_WORLD_DISCOVERY',
-  'SPECIALIST_ARTS',
-  'SPECIALIST_MUSIC',
-  'SPECIALIST_DANCE',
-  'SPECIALIST_SPORTS',
-  'SPECIALIST_ROBOTICS'
+  "SPECIALIST_MATH_LOGIC",
+  "SPECIALIST_LANGUAGE",
+  "SPECIALIST_WORLD_DISCOVERY",
+  "SPECIALIST_ARTS",
+  "SPECIALIST_MUSIC",
+  "SPECIALIST_DANCE",
+  "SPECIALIST_SPORTS",
+  "SPECIALIST_ROBOTICS"
 ];
 
 function pick(list, index) {
@@ -106,91 +141,81 @@ async function ensureRelation(model, where, data) {
 
 async function main() {
   if (!process.env.DATABASE_URL) {
-    throw new Error('У .env не задано DATABASE_URL.');
+    throw new Error("У .env не задано DATABASE_URL.");
   }
 
-  const databaseName = new URL(process.env.DATABASE_URL)
-    .pathname.replace(/^\/+/, '')
-    .split('?')[0];
+  const databaseName = new URL(process.env.DATABASE_URL).pathname.replace(/^\/+/, "").split("?")[0];
 
   const confirmation = process.env.DEMO_SEED_CONFIRM_DB;
 
   if (!confirmation || confirmation !== databaseName) {
     throw new Error(
       `Захист від випадкового запуску. Поточна база: "${databaseName}". ` +
-      `Додай у .env DEMO_SEED_CONFIRM_DB="${databaseName}" і повтори запуск.`
+        `Додай у .env DEMO_SEED_CONFIRM_DB="${databaseName}" і повтори запуск.`
     );
   }
 
   console.log(`Демонстраційне наповнення бази: ${databaseName}`);
-  console.log('Скрипт не видаляє наявні записи.');
+  console.log("Скрипт не видаляє наявні записи.");
 
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
-  const startOfMonth = dateAtUtc(
-    today.getUTCFullYear(),
-    today.getUTCMonth(),
-    1
-  );
+  const startOfMonth = dateAtUtc(today.getUTCFullYear(), today.getUTCMonth(), 1);
 
-  const enrollmentDate = dateAtUtc(
-    today.getUTCFullYear(),
-    today.getUTCMonth() - 2,
-    1
-  );
+  const enrollmentDate = dateAtUtc(today.getUTCFullYear(), today.getUTCMonth() - 2, 1);
 
   const rooms = [];
 
   for (let i = 1; i <= 12; i++) {
-    rooms.push(await prisma.room.upsert({
-      where: {
-        name: `Групова кімната ${String(i).padStart(2, '0')}`
-      },
-      update: {
-        purpose: 'GROUP_BASE',
-        capacity: 20,
-        status: 'ACTIVE',
-        archivedAt: null
-      },
-      create: {
-        name: `Групова кімната ${String(i).padStart(2, '0')}`,
-        purpose: 'GROUP_BASE',
-        capacity: 20
-      }
-    }));
+    rooms.push(
+      await prisma.room.upsert({
+        where: {
+          name: `Групова кімната ${String(i).padStart(2, "0")}`
+        },
+        update: {
+          purpose: "GROUP_BASE",
+          capacity: 20,
+          status: "ACTIVE",
+          archivedAt: null
+        },
+        create: {
+          name: `Групова кімната ${String(i).padStart(2, "0")}`,
+          purpose: "GROUP_BASE",
+          capacity: 20
+        }
+      })
+    );
   }
 
   for (let i = 0; i < SPECIAL_ROOM_NAMES.length; i++) {
-    rooms.push(await prisma.room.upsert({
-      where: {
-        name: SPECIAL_ROOM_NAMES[i]
-      },
-      update: {
-        purpose: SPECIAL_ROOM_PURPOSES[i],
-        capacity: 20,
-        status: 'ACTIVE',
-        archivedAt: null
-      },
-      create: {
-        name: SPECIAL_ROOM_NAMES[i],
-        purpose: SPECIAL_ROOM_PURPOSES[i],
-        capacity: 20
-      }
-    }));
+    rooms.push(
+      await prisma.room.upsert({
+        where: {
+          name: SPECIAL_ROOM_NAMES[i]
+        },
+        update: {
+          purpose: SPECIAL_ROOM_PURPOSES[i],
+          capacity: 20,
+          status: "ACTIVE",
+          archivedAt: null
+        },
+        create: {
+          name: SPECIAL_ROOM_NAMES[i],
+          purpose: SPECIAL_ROOM_PURPOSES[i],
+          capacity: 20
+        }
+      })
+    );
   }
 
-  const roomByName = new Map(
-    rooms.map(room => [room.name, room])
-  );
+  const roomByName = new Map(rooms.map((room) => [room.name, room]));
 
   const groupRecords = [];
   let groupIndex = 0;
 
   for (const spec of GROUPS) {
-    const room = roomByName.get(
-      `Групова кімната ${String(groupIndex + 1).padStart(2, '0')}`
-    );
+    const room = roomByName.get(`Групова кімната ${String(groupIndex + 1).padStart(2, "0")}`);
 
     const group = await prisma.group.upsert({
       where: {
@@ -202,7 +227,7 @@ async function main() {
         capacity: 20,
         mealCategory: spec.category,
         mainRoomId: room.id,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         archivedAt: null
       },
       create: {
@@ -225,21 +250,21 @@ async function main() {
   }
 
   const manager = await prisma.employee.upsert({
-    where: { employeeCode: 'DEMO-MANAGER-001' },
+    where: { employeeCode: "DEMO-MANAGER-001" },
     update: {
-      firstName: 'Оксана',
-      lastName: 'Керівник',
-      role: 'MANAGER',
-      status: 'ACTIVE',
+      firstName: "Оксана",
+      lastName: "Керівник",
+      role: "MANAGER",
+      status: "ACTIVE",
       archivedAt: null
     },
     create: {
-      employeeCode: 'DEMO-MANAGER-001',
-      firstName: 'Оксана',
-      lastName: 'Керівник',
-      role: 'MANAGER',
-      phone: '+380670000001',
-      email: 'manager.demo@kindergarten.local'
+      employeeCode: "DEMO-MANAGER-001",
+      firstName: "Оксана",
+      lastName: "Керівник",
+      role: "MANAGER",
+      phone: "+380670000001",
+      email: "manager.demo@kindergarten.local"
     }
   });
 
@@ -249,38 +274,38 @@ async function main() {
   for (let i = 0; i < groupRecords.length; i++) {
     const educator = await prisma.employee.upsert({
       where: {
-        employeeCode: `DEMO-EDU-${String(i + 1).padStart(3, '0')}`
+        employeeCode: `DEMO-EDU-${String(i + 1).padStart(3, "0")}`
       },
       update: {
-        role: 'EDUCATOR',
-        status: 'ACTIVE',
+        role: "EDUCATOR",
+        status: "ACTIVE",
         archivedAt: null
       },
       create: {
-        employeeCode: `DEMO-EDU-${String(i + 1).padStart(3, '0')}`,
+        employeeCode: `DEMO-EDU-${String(i + 1).padStart(3, "0")}`,
         firstName: pick(PARENT_FIRST_NAMES, i),
         lastName: pick(LAST_NAMES, i + 2),
-        role: 'EDUCATOR',
-        phone: `+380670100${String(i).padStart(3, '0')}`,
+        role: "EDUCATOR",
+        phone: `+380670100${String(i).padStart(3, "0")}`,
         email: `educator${i + 1}@kindergarten.local`
       }
     });
 
     const assistant = await prisma.employee.upsert({
       where: {
-        employeeCode: `DEMO-AST-${String(i + 1).padStart(3, '0')}`
+        employeeCode: `DEMO-AST-${String(i + 1).padStart(3, "0")}`
       },
       update: {
-        role: 'ASSISTANT',
-        status: 'ACTIVE',
+        role: "ASSISTANT",
+        status: "ACTIVE",
         archivedAt: null
       },
       create: {
-        employeeCode: `DEMO-AST-${String(i + 1).padStart(3, '0')}`,
+        employeeCode: `DEMO-AST-${String(i + 1).padStart(3, "0")}`,
         firstName: pick(PARENT_FIRST_NAMES, i + 4),
         lastName: pick(LAST_NAMES, i + 5),
-        role: 'ASSISTANT',
-        phone: `+380670200${String(i).padStart(3, '0')}`,
+        role: "ASSISTANT",
+        phone: `+380670200${String(i).padStart(3, "0")}`,
         email: `assistant${i + 1}@kindergarten.local`
       }
     });
@@ -298,7 +323,7 @@ async function main() {
       {
         employeeId: educator.id,
         groupId: groupRecords[i].record.id,
-        role: 'EDUCATOR',
+        role: "EDUCATOR",
         startDate: enrollmentDate
       }
     );
@@ -313,7 +338,7 @@ async function main() {
       {
         employeeId: assistant.id,
         groupId: groupRecords[i].record.id,
-        role: 'ASSISTANT',
+        role: "ASSISTANT",
         startDate: enrollmentDate
       }
     );
@@ -324,19 +349,19 @@ async function main() {
   for (let i = 0; i < SUBJECTS.length; i++) {
     const employee = await prisma.employee.upsert({
       where: {
-        employeeCode: `DEMO-TEACH-${String(i + 1).padStart(3, '0')}`
+        employeeCode: `DEMO-TEACH-${String(i + 1).padStart(3, "0")}`
       },
       update: {
-        role: 'TEACHER',
-        status: 'ACTIVE',
+        role: "TEACHER",
+        status: "ACTIVE",
         archivedAt: null
       },
       create: {
-        employeeCode: `DEMO-TEACH-${String(i + 1).padStart(3, '0')}`,
+        employeeCode: `DEMO-TEACH-${String(i + 1).padStart(3, "0")}`,
         firstName: pick(PARENT_FIRST_NAMES, i + 2),
         lastName: pick(LAST_NAMES, i + 7),
-        role: 'TEACHER',
-        phone: `+380670300${String(i).padStart(3, '0')}`,
+        role: "TEACHER",
+        phone: `+380670300${String(i).padStart(3, "0")}`,
         email: `teacher${i + 1}@kindergarten.local`
       }
     });
@@ -347,15 +372,17 @@ async function main() {
   const subjects = [];
 
   for (const [name, description] of SUBJECTS) {
-    subjects.push(await prisma.subject.upsert({
-      where: { name },
-      update: {
-        description,
-        status: 'ACTIVE',
-        archivedAt: null
-      },
-      create: { name, description }
-    }));
+    subjects.push(
+      await prisma.subject.upsert({
+        where: { name },
+        update: {
+          description,
+          status: "ACTIVE",
+          archivedAt: null
+        },
+        create: { name, description }
+      })
+    );
   }
 
   for (let i = 0; i < teachers.length; i++) {
@@ -378,19 +405,15 @@ async function main() {
   for (let groupIndex = 0; groupIndex < groupRecords.length; groupIndex++) {
     const groupSpec = groupRecords[groupIndex];
 
-    for (
-      let j = 0;
-      j < groupSpec.count && childNumber < CHILD_COUNT;
-      j++
-    ) {
+    for (let j = 0; j < groupSpec.count && childNumber < CHILD_COUNT; j++) {
       childNumber++;
 
-      const code = `DEMO-CH-${String(childNumber).padStart(3, '0')}`;
+      const code = `DEMO-CH-${String(childNumber).padStart(3, "0")}`;
 
       const child = await prisma.child.upsert({
         where: { childCode: code },
         update: {
-          status: 'ACTIVE',
+          status: "ACTIVE",
           archivedAt: null
         },
         create: {
@@ -398,22 +421,18 @@ async function main() {
           firstName: pick(FIRST_NAMES, childNumber * 3 + groupIndex),
           lastName: pick(LAST_NAMES, childNumber + groupIndex),
           birthDate: ageBirthDate(
-            groupSpec.from +
-            ((j * 3) % (groupSpec.to - groupSpec.from + 1)),
+            groupSpec.from + ((j * 3) % (groupSpec.to - groupSpec.from + 1)),
             childNumber
           ),
           enrolledAt: enrollmentDate,
-          status: 'ACTIVE',
+          status: "ACTIVE",
           dietaryNotes:
             childNumber % 13 === 0
-              ? 'Без горіхів'
+              ? "Без горіхів"
               : childNumber % 17 === 0
-                ? 'Не вживати цитрусові'
+                ? "Не вживати цитрусові"
                 : null,
-          notes:
-            childNumber % 19 === 0
-              ? 'Демонстраційний запис для перевірки картки дитини'
-              : null
+          notes: childNumber % 19 === 0 ? "Демонстраційний запис для перевірки картки дитини" : null
         }
       });
 
@@ -440,21 +459,13 @@ async function main() {
       const parentCount = childNumber % 4 === 0 ? 2 : 1;
 
       for (let parentIndex = 0; parentIndex < parentCount; parentIndex++) {
-        const parentCode =
-          `DEMO-P-${String(childNumber).padStart(3, '0')}-${parentIndex + 1}`;
+        const parentCode = `DEMO-P-${String(childNumber).padStart(3, "0")}-${parentIndex + 1}`;
 
-        const phone =
-          `+380${String(670000000 + childNumber * 10 + parentIndex).padStart(9, '0')}`;
+        const phone = `+380${String(670000000 + childNumber * 10 + parentIndex).padStart(9, "0")}`;
 
-        const parentFirstName = pick(
-          PARENT_FIRST_NAMES,
-          childNumber + parentIndex * 3
-        );
+        const parentFirstName = pick(PARENT_FIRST_NAMES, childNumber + parentIndex * 3);
 
-        const parentLastName = pick(
-          LAST_NAMES,
-          childNumber + parentIndex * 5
-        );
+        const parentLastName = pick(LAST_NAMES, childNumber + parentIndex * 5);
 
         const userEmail = `${parentCode.toLowerCase()}@demo.kindergarten.local`;
 
@@ -471,7 +482,7 @@ async function main() {
             data: {
               email: userEmail,
               name: `${parentFirstName} ${parentLastName}`,
-              role: 'PARENT',
+              role: "PARENT",
               isActive: true
             }
           });
@@ -484,7 +495,7 @@ async function main() {
               lastName: parentLastName,
               phone,
               email: `${parentCode.toLowerCase()}@example.local`,
-              status: 'ACTIVE',
+              status: "ACTIVE",
               userId: user.id
             }
           });
@@ -496,9 +507,7 @@ async function main() {
         }
 
         const relation =
-          parentIndex === 0
-            ? childNumber % 2 === 0 ? 'MOTHER' : 'FATHER'
-            : 'GUARDIAN';
+          parentIndex === 0 ? (childNumber % 2 === 0 ? "MOTHER" : "FATHER") : "GUARDIAN";
 
         await ensureRelation(
           prisma.childParent,
@@ -538,18 +547,14 @@ async function main() {
 
       const status =
         dayVariant === 0
-          ? 'ABSENT'
+          ? "ABSENT"
           : dayVariant === 1
-            ? 'LATE'
+            ? "LATE"
             : dayVariant === 2
-              ? 'EXCUSED'
-              : 'PRESENT';
+              ? "EXCUSED"
+              : "PRESENT";
 
-      const dateOnly = dateAtUtc(
-        date.getUTCFullYear(),
-        date.getUTCMonth(),
-        date.getUTCDate()
-      );
+      const dateOnly = dateAtUtc(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 
       const existing = await prisma.attendance.findFirst({
         where: {
@@ -563,38 +568,28 @@ async function main() {
           data: {
             childId: item.child.id,
             recordedById:
-              educators[
-                groupRecords.findIndex(
-                  g => g.record.id === item.group.id
-                )
-              ].id,
+              educators[groupRecords.findIndex((g) => g.record.id === item.group.id)].id,
             date: dateOnly,
             status,
             checkIn:
-              status === 'PRESENT' || status === 'LATE'
+              status === "PRESENT" || status === "LATE"
                 ? dateAtUtc(
                     date.getUTCFullYear(),
                     date.getUTCMonth(),
                     date.getUTCDate(),
-                    status === 'LATE' ? 9 : 8,
-                    status === 'LATE' ? 17 : 45
+                    status === "LATE" ? 9 : 8,
+                    status === "LATE" ? 17 : 45
                   )
                 : null,
             checkOut:
-              status === 'PRESENT' || status === 'LATE'
-                ? dateAtUtc(
-                    date.getUTCFullYear(),
-                    date.getUTCMonth(),
-                    date.getUTCDate(),
-                    17,
-                    0
-                  )
+              status === "PRESENT" || status === "LATE"
+                ? dateAtUtc(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 17, 0)
                 : null,
             absenceReason:
-              status === 'ABSENT'
-                ? 'Демонстраційна відсутність'
-                : status === 'EXCUSED'
-                  ? 'Поважна причина'
+              status === "ABSENT"
+                ? "Демонстраційна відсутність"
+                : status === "EXCUSED"
+                  ? "Поважна причина"
                   : null
           }
         });
@@ -604,7 +599,7 @@ async function main() {
 
   const tuition = await prisma.tuitionRate.findFirst({
     where: {
-      name: 'Демонстраційний місячний тариф',
+      name: "Демонстраційний місячний тариф",
       validTo: null
     }
   });
@@ -612,7 +607,7 @@ async function main() {
   if (!tuition) {
     await prisma.tuitionRate.create({
       data: {
-        name: 'Демонстраційний місячний тариф',
+        name: "Демонстраційний місячний тариф",
         amount: money(15000),
         validFrom: startOfMonth
       }
@@ -620,10 +615,10 @@ async function main() {
   }
 
   const mealRates = [
-    { category: 'A2', ageYears: 2, amount: money(300) },
-    { category: 'A3', ageYears: 3, amount: money(400) },
-    { category: 'A4', ageYears: 4, amount: money(500) },
-    { category: 'A5', ageYears: 5, amount: money(600) }
+    { category: "A2", ageYears: 2, amount: money(300) },
+    { category: "A3", ageYears: 3, amount: money(400) },
+    { category: "A4", ageYears: 4, amount: money(500) },
+    { category: "A5", ageYears: 5, amount: money(600) }
   ];
 
   for (const rate of mealRates) {
@@ -645,17 +640,17 @@ async function main() {
   }
 
   const salarySpecs = [
-    ...educators.map(employee => ({
+    ...educators.map((employee) => ({
       employeeId: employee.id,
-      type: 'MIXED',
+      type: "MIXED",
       baseAmount: money(0),
       perChildAmount: money(2000),
       childThreshold: 12,
       extraChildBonusAmount: money(5000)
     })),
-    ...assistants.map(employee => ({
+    ...assistants.map((employee) => ({
       employeeId: employee.id,
-      type: 'MIXED',
+      type: "MIXED",
       baseAmount: money(20000),
       perChildAmount: money(0),
       childThreshold: 12,
@@ -663,15 +658,15 @@ async function main() {
     })),
     {
       employeeId: manager.id,
-      type: 'FIXED',
+      type: "FIXED",
       baseAmount: money(80000),
       perChildAmount: money(0),
       childThreshold: null,
       extraChildBonusAmount: money(0)
     },
-    ...teachers.map(employee => ({
+    ...teachers.map((employee) => ({
       employeeId: employee.id,
-      type: 'FIXED',
+      type: "FIXED",
       baseAmount: money(40000),
       perChildAmount: money(0),
       childThreshold: null,
@@ -702,7 +697,7 @@ async function main() {
     }
   }
 
-  console.log('\nГотово. Демонстраційні дані створено/доповнено:');
+  console.log("\nГотово. Демонстраційні дані створено/доповнено:");
   console.log(`- Приміщення: ${rooms.length}`);
   console.log(`- Групи: ${groupRecords.length}`);
   console.log(`- Діти: ${createdChildren.length}`);
@@ -710,15 +705,15 @@ async function main() {
   console.log(`- Помічники: ${assistants.length}`);
   console.log(`- Викладачі: ${teachers.length}`);
   console.log(`- Предмети: ${subjects.length}`);
-  console.log('- Відвідування: до 4 попередніх тижнів');
-  console.log('- Тарифи та ставки зарплат: перевірено/створено');
-  console.log('\nРозклад не створювався — його потрібно згенерувати на сайті.');
-  console.log('Адміністратор не створювався — використовуй окремий скрипт.');
+  console.log("- Відвідування: до 4 попередніх тижнів");
+  console.log("- Тарифи та ставки зарплат: перевірено/створено");
+  console.log("\nРозклад не створювався — його потрібно згенерувати на сайті.");
+  console.log("Адміністратор не створювався — використовуй окремий скрипт.");
 }
 
 main()
-  .catch(error => {
-    console.error('Помилка seed-demo:', error);
+  .catch((error) => {
+    console.error("Помилка seed-demo:", error);
     process.exitCode = 1;
   })
   .finally(async () => {

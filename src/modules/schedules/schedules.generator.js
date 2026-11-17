@@ -42,7 +42,6 @@ function fail(message, status, code) {
   throw new AppError(message, status, code);
 }
 
-
 async function getCurrentEnrollments() {
   const enrollments = await prisma.groupEnrollment.findMany({
     where: {
@@ -89,7 +88,9 @@ async function generate({ groupId, name, validFrom, validTo }, user) {
   }
 
   const periodStart = new Date(`${validFrom}T00:00:00.000Z`);
-  const periodEnd = validTo ? new Date(`${validTo}T23:59:59.999Z`) : new Date("9999-12-31T23:59:59.999Z");
+  const periodEnd = validTo
+    ? new Date(`${validTo}T23:59:59.999Z`)
+    : new Date("9999-12-31T23:59:59.999Z");
   const existingSchedule = await prisma.schedule.findFirst({
     where: {
       groupId,
@@ -151,7 +152,9 @@ async function generate({ groupId, name, validFrom, validTo }, user) {
       capacity: { gte: children.length }
     }
   });
-  const roomsByPurpose = new Map(specialistRooms.map((specialistRoom) => [specialistRoom.purpose, specialistRoom]));
+  const roomsByPurpose = new Map(
+    specialistRooms.map((specialistRoom) => [specialistRoom.purpose, specialistRoom])
+  );
 
   const teachers = await prisma.employee.findMany({
     where: {
@@ -270,7 +273,7 @@ async function generate({ groupId, name, validFrom, validTo }, user) {
       }
     }
 
-      return schedulesService.getById(schedule.id);
+    return schedulesService.getById(schedule.id);
   } catch (error) {
     await schedulesService.remove(schedule.id, user).catch(() => {});
     throw error;
@@ -287,7 +290,11 @@ async function generateAll({ validFrom, validTo }, user) {
   const populatedGroups = groups.filter((group) => enrolledGroupIds.has(group.id));
   const skippedGroups = groups
     .filter((group) => !enrolledGroupIds.has(group.id))
-    .map((group) => ({ groupId: group.id, groupName: group.name, reason: "Немає активних зарахованих дітей" }));
+    .map((group) => ({
+      groupId: group.id,
+      groupName: group.name,
+      reason: "Немає активних зарахованих дітей"
+    }));
 
   if (populatedGroups.length === 0) {
     const demoChildrenCount = await prisma.child.count({
@@ -308,10 +315,7 @@ async function generateAll({ validFrom, validTo }, user) {
       groupId: { in: groupIds },
       status: { in: ["DRAFT", "PUBLISHED"] },
       validFrom: periodEnd ? { lte: periodEnd } : { lte: new Date("9999-12-31T23:59:59.999Z") },
-      OR: [
-        { validTo: null },
-        { validTo: { gte: periodStart } }
-      ]
+      OR: [{ validTo: null }, { validTo: { gte: periodStart } }]
     },
     include: { group: { select: { id: true, name: true } } }
   });

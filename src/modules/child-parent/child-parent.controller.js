@@ -55,7 +55,11 @@ async function getForParent(req, res) {
 }
 
 async function update(req, res) {
-  const data = await service.update(res.locals.validated.params.id, res.locals.validated.body, req.user);
+  const data = await service.update(
+    res.locals.validated.params.id,
+    res.locals.validated.body,
+    req.user
+  );
   return res.status(HTTP_STATUS.OK).json({ success: true, data });
 }
 

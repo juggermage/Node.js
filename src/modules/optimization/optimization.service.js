@@ -186,17 +186,12 @@ async function getCounts(start, endExclusive) {
   };
 }
 
-
 async function getDatabaseScenario({ from, to }) {
   const { start, endExclusive } = period(from, to);
   const enrollments = await prisma.groupEnrollment.findMany({
     where: {
       startDate: { lt: endExclusive },
-      OR: [
-        { endDate: null },
-        { endDate: { isSet: false } },
-        { endDate: { gte: start } }
-      ]
+      OR: [{ endDate: null }, { endDate: { isSet: false } }, { endDate: { gte: start } }]
     },
     include: {
       child: { select: { id: true, birthDate: true, status: true } },
@@ -214,7 +209,13 @@ async function getDatabaseScenario({ from, to }) {
   const children = { A2: 0, A3: 0, A4: 0, A5: 0 };
   const childAge = new Map();
   for (const item of unique.values()) {
-    const months = Math.max(0, (start.getUTCFullYear() - item.child.birthDate.getUTCFullYear()) * 12 + start.getUTCMonth() - item.child.birthDate.getUTCMonth() - (start.getUTCDate() < item.child.birthDate.getUTCDate() ? 1 : 0));
+    const months = Math.max(
+      0,
+      (start.getUTCFullYear() - item.child.birthDate.getUTCFullYear()) * 12 +
+        start.getUTCMonth() -
+        item.child.birthDate.getUTCMonth() -
+        (start.getUTCDate() < item.child.birthDate.getUTCDate() ? 1 : 0)
+    );
     const groupAge = item.group?.mealCategory;
     const age = ["A2", "A3", "A4", "A5"].includes(groupAge)
       ? groupAge
@@ -229,7 +230,11 @@ async function getDatabaseScenario({ from, to }) {
     childAge.set(item.childId, age);
   }
   const attendance = await prisma.attendance.findMany({
-    where: { childId: { in: [...childAge.keys()] }, date: { gte: start, lt: endExclusive }, status: "PRESENT" },
+    where: {
+      childId: { in: [...childAge.keys()] },
+      date: { gte: start, lt: endExclusive },
+      status: "PRESENT"
+    },
     select: { childId: true, date: true }
   });
   const activeTeachers = await prisma.employee.findMany({
@@ -242,36 +247,55 @@ async function getDatabaseScenario({ from, to }) {
     select: { id: true }
   });
   const schedules = await prisma.schedule.findMany({
-    where: { status: "PUBLISHED", validFrom: { lt: endExclusive }, OR: [{ validTo: null }, { validTo: { gte: start } }] },
+    where: {
+      status: "PUBLISHED",
+      validFrom: { lt: endExclusive },
+      OR: [{ validTo: null }, { validTo: { gte: start } }]
+    },
     select: { id: true, groupId: true }
   });
-  const scheduleItems = schedules.length ? await prisma.scheduleItem.findMany({
-    where: { scheduleId: { in: schedules.map((item) => item.id) }, status: "ACTIVE", cancelledAt: null },
-    select: { startTime: true, endTime: true }
-  }) : [];
+  const scheduleItems = schedules.length
+    ? await prisma.scheduleItem.findMany({
+        where: {
+          scheduleId: { in: schedules.map((item) => item.id) },
+          status: "ACTIVE",
+          cancelledAt: null
+        },
+        select: { startTime: true, endTime: true }
+      })
+    : [];
   const totalWeeklyMinutes = scheduleItems.reduce((total, item) => {
     const [sh, sm] = item.startTime.split(":").map(Number);
     const [eh, em] = item.endTime.split(":").map(Number);
-    return total + Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
+    return total + Math.max(0, eh * 60 + em - (sh * 60 + sm));
   }, 0);
   const scheduledGroupCount = new Set(schedules.map((item) => item.groupId)).size;
-  const weeklyLessonMinutesPerGroup = scheduledGroupCount ? Math.round(totalWeeklyMinutes / scheduledGroupCount) : null;
-  const daySets = Object.fromEntries(["A2","A3","A4","A5"].map((age) => [age, new Set()]));
+  const weeklyLessonMinutesPerGroup = scheduledGroupCount
+    ? Math.round(totalWeeklyMinutes / scheduledGroupCount)
+    : null;
+  const daySets = Object.fromEntries(["A2", "A3", "A4", "A5"].map((age) => [age, new Set()]));
   const perChildDays = new Map();
   for (const item of attendance) {
     const age = childAge.get(item.childId);
     if (!age) continue;
-    const key = `${item.childId}:${item.date.toISOString().slice(0,10)}`;
+    const key = `${item.childId}:${item.date.toISOString().slice(0, 10)}`;
     if (!perChildDays.has(key)) perChildDays.set(key, age);
     daySets[age].add(key);
   }
   const attendanceDays = {};
-  for (const age of ["A2","A3","A4","A5"]) {
-    const actualAttendanceCount = [...perChildDays.values()].filter((value) => value === age).length;
-    attendanceDays[age] = children[age] ? Math.min(31, Math.round(actualAttendanceCount / children[age])) : 0;
+  for (const age of ["A2", "A3", "A4", "A5"]) {
+    const actualAttendanceCount = [...perChildDays.values()].filter(
+      (value) => value === age
+    ).length;
+    attendanceDays[age] = children[age]
+      ? Math.min(31, Math.round(actualAttendanceCount / children[age]))
+      : 0;
   }
   return {
-    from, to, children, attendanceDays,
+    from,
+    to,
+    children,
+    attendanceDays,
     attendanceSource: "PRESENT attendance records",
     enrolledChildren: [...childAge.keys()].length,
     attendanceRecords: attendance.length,

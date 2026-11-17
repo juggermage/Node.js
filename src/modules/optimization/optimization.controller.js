@@ -1,6 +1,6 @@
-const service = require('./optimization.service');
-const engine = require('./optimization.engine');
-const HTTP_STATUS = require('../../utils/http-status');
+const service = require("./optimization.service");
+const engine = require("./optimization.engine");
+const HTTP_STATUS = require("../../utils/http-status");
 
 async function getReport(req, res) {
   const data = await service.getReport(res.locals.validated.query);
@@ -14,7 +14,10 @@ async function compareScenarios(req, res) {
 
 async function optimizeFromDatabase(req, res) {
   const input = await service.getDatabaseScenario(res.locals.validated.body);
-  const data = engine.optimize({ ...input, weeklyLessonMinutesPerGroup: input.weeklyLessonMinutesPerGroup });
+  const data = engine.optimize({
+    ...input,
+    weeklyLessonMinutesPerGroup: input.weeklyLessonMinutesPerGroup
+  });
   return res.status(HTTP_STATUS.OK).json({ success: true, data: { ...data, source: input } });
 }
 
@@ -33,4 +36,11 @@ function calculateManual(req, res) {
   return res.status(HTTP_STATUS.OK).json({ success: true, data });
 }
 
-module.exports = { optimizeFromDatabase, getReport, compareScenarios, optimize, calculateManual, compareForecasts };
+module.exports = {
+  optimizeFromDatabase,
+  getReport,
+  compareScenarios,
+  optimize,
+  calculateManual,
+  compareForecasts
+};

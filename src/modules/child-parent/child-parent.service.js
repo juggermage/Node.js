@@ -1,4 +1,3 @@
-
 const prisma = require("../../config/prisma");
 const auditService = require("../audit/audit.service");
 const AppError = require("../../utils/app-error");
@@ -391,21 +390,28 @@ async function update(id, data, user) {
     return await prisma.$transaction(async (tx) => {
       const before = await getLinkOrFail(id, tx);
       if (before.endDate !== null) {
-        fail("Cannot edit an ended relationship", HTTP_STATUS.CONFLICT, "RELATIONSHIP_ALREADY_ENDED");
+        fail(
+          "Cannot edit an ended relationship",
+          HTTP_STATUS.CONFLICT,
+          "RELATIONSHIP_ALREADY_ENDED"
+        );
       }
       const link = await tx.childParent.update({
         where: { id },
         data: { relation: data.relation },
         include: { child: true, parent: true }
       });
-      await auditService.createLog({
-        actorId: user.id,
-        action: "UPDATE",
-        entityType: "ChildParent",
-        entityId: link.id,
-        before,
-        after: link
-      }, tx);
+      await auditService.createLog(
+        {
+          actorId: user.id,
+          action: "UPDATE",
+          entityType: "ChildParent",
+          entityId: link.id,
+          before,
+          after: link
+        },
+        tx
+      );
       return link;
     });
   } catch (error) {

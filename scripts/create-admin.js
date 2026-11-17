@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 
 const bcrypt = require("bcryptjs");
@@ -16,9 +15,7 @@ async function main() {
   }
 
   if (!name || !email || !password) {
-    throw new Error(
-      "Вкажи ADMIN_NAME, ADMIN_EMAIL та ADMIN_PASSWORD у файлі .env"
-    );
+    throw new Error("Вкажи ADMIN_NAME, ADMIN_EMAIL та ADMIN_PASSWORD у файлі .env");
   }
 
   if (password.length < 8) {

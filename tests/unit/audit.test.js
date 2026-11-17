@@ -1013,27 +1013,30 @@ describe("Audit routes", () => {
   });
 });
 
-
 describe("Audit snapshot integrity", () => {
   test("CREATE requires the resulting state", async () => {
     prisma.auditLog.create.mockClear();
-    await expect(service.createLog({
-      actorId,
-      action: "CREATE",
-      entityType: "Child",
-      entityId
-    })).rejects.toMatchObject({ code: "AUDIT_AFTER_REQUIRED" });
+    await expect(
+      service.createLog({
+        actorId,
+        action: "CREATE",
+        entityType: "Child",
+        entityId
+      })
+    ).rejects.toMatchObject({ code: "AUDIT_AFTER_REQUIRED" });
     expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 
   test("UPDATE requires both previous and resulting states", async () => {
-    await expect(service.createLog({
-      actorId,
-      action: "UPDATE",
-      entityType: "Child",
-      entityId,
-      before: { firstName: "Old" }
-    })).rejects.toMatchObject({ code: "AUDIT_SNAPSHOTS_REQUIRED" });
+    await expect(
+      service.createLog({
+        actorId,
+        action: "UPDATE",
+        entityType: "Child",
+        entityId,
+        before: { firstName: "Old" }
+      })
+    ).rejects.toMatchObject({ code: "AUDIT_SNAPSHOTS_REQUIRED" });
   });
 
   test("PAYMENT records a newly created payment with a null previous state", async () => {
@@ -1073,12 +1076,14 @@ describe("Audit snapshot integrity", () => {
   });
 
   test("DELETE rejects a missing previous state", async () => {
-    await expect(service.createLog({
-      actorId,
-      action: "DELETE",
-      entityType: "Child",
-      entityId,
-      after: null
-    })).rejects.toMatchObject({ code: "AUDIT_DELETE_SNAPSHOT_INVALID" });
+    await expect(
+      service.createLog({
+        actorId,
+        action: "DELETE",
+        entityType: "Child",
+        entityId,
+        after: null
+      })
+    ).rejects.toMatchObject({ code: "AUDIT_DELETE_SNAPSHOT_INVALID" });
   });
 });

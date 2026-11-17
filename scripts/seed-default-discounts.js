@@ -16,7 +16,11 @@ async function main() {
     });
 
     if (existing) {
-      if (!existing.isActive || existing.type !== "PERCENTAGE" || existing.percentage !== item.percentage) {
+      if (
+        !existing.isActive ||
+        existing.type !== "PERCENTAGE" ||
+        existing.percentage !== item.percentage
+      ) {
         await prisma.discount.update({
           where: { id: existing.id },
           data: {
@@ -40,7 +44,9 @@ async function main() {
     });
   }
 
-  process.stdout.write("Стандартні знижки 10%, 20%, 30% і річну знижку 12% перевірено. Існуючі записи не видалялися.\n");
+  process.stdout.write(
+    "Стандартні знижки 10%, 20%, 30% і річну знижку 12% перевірено. Існуючі записи не видалялися.\n"
+  );
 }
 
 main()

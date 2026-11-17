@@ -21,6 +21,14 @@ module.exports = [
     }
   },
   {
+    files: ["public/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.browser
+      }
+    }
+  },
+  {
     files: ["tests/**/*.js"],
     languageOptions: {
       globals: {

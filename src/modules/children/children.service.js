@@ -315,7 +315,9 @@ async function setDiscount(id, { discountId, annualDiscountId }, user) {
     }
 
     const today = new Date();
-    const validFrom = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const validFrom = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+    );
     const previousDay = new Date(validFrom.getTime() - 86400000);
     const currentAssignments = await tx.childDiscount.findMany({
       where: { childId: id, OR: [{ validTo: null }, { validTo: { gte: validFrom } }] },
@@ -326,7 +328,10 @@ async function setDiscount(id, { discountId, annualDiscountId }, user) {
       if (assignment.validFrom >= validFrom) {
         await tx.childDiscount.delete({ where: { id: assignment.id } });
       } else {
-        await tx.childDiscount.update({ where: { id: assignment.id }, data: { validTo: previousDay } });
+        await tx.childDiscount.update({
+          where: { id: assignment.id },
+          data: { validTo: previousDay }
+        });
       }
     }
 
@@ -347,22 +352,31 @@ async function setDiscount(id, { discountId, annualDiscountId }, user) {
         }
       });
       if (!discount) {
-        throw new AppError("Selected discount not found or has an invalid percentage", HTTP_STATUS.NOT_FOUND, "DISCOUNT_NOT_FOUND");
+        throw new AppError(
+          "Selected discount not found or has an invalid percentage",
+          HTTP_STATUS.NOT_FOUND,
+          "DISCOUNT_NOT_FOUND"
+        );
       }
-      assignments.push(await tx.childDiscount.create({
-        data: { childId: id, discountId: discount.id, validFrom },
-        include: { discount: true }
-      }));
+      assignments.push(
+        await tx.childDiscount.create({
+          data: { childId: id, discountId: discount.id, validFrom },
+          include: { discount: true }
+        })
+      );
     }
 
-    await auditService.createLog({
-      actorId: user.id,
-      action: "UPDATE",
-      entityType: "ChildDiscount",
-      entityId: id,
-      before: currentAssignments,
-      after: assignments
-    }, tx);
+    await auditService.createLog(
+      {
+        actorId: user.id,
+        action: "UPDATE",
+        entityType: "ChildDiscount",
+        entityId: id,
+        before: currentAssignments,
+        after: assignments
+      },
+      tx
+    );
 
     return assignments;
   });

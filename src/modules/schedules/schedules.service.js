@@ -327,7 +327,8 @@ async function remove(id, user) {
           action: "DELETE",
           entityType: "ScheduleItem",
           entityId: item.id,
-          before: item, after: null
+          before: item,
+          after: null
         },
         tx
       );
@@ -347,7 +348,8 @@ async function remove(id, user) {
         action: "DELETE",
         entityType: "Schedule",
         entityId: id,
-        before: schedule, after: null
+        before: schedule,
+        after: null
       },
       tx
     );
@@ -490,7 +492,8 @@ async function removeItem(scheduleId, itemId, user) {
         action: "DELETE",
         entityType: "ScheduleItem",
         entityId: itemId,
-        before: item, after: null
+        before: item,
+        after: null
       },
       tx
     );
@@ -602,7 +605,7 @@ async function publish(id, user) {
     );
   }
 
-  const otherItems = await loadOtherPublishedItems(schedule, schedule.items);
+  const otherItems = await loadOtherScheduleItems(schedule, schedule.items);
 
   for (const item of schedule.items) {
     assertDayRules(item);
