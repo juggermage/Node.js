@@ -8,6 +8,12 @@ const createLinkSchema = Joi.object({
   relation: Joi.string().valid("MOTHER", "FATHER", "GUARDIAN", "GRANDPARENT", "OTHER").required()
 });
 
+const updateLinkSchema = Joi.object({
+  childId: objectId.optional(),
+  parentId: objectId.optional(),
+  relation: Joi.string().valid("MOTHER", "FATHER", "GUARDIAN", "GRANDPARENT", "OTHER").required()
+});
+
 const idParamsSchema = Joi.object({
   id: objectId.required()
 });
@@ -24,10 +30,17 @@ const historyQuerySchema = Joi.object({
   includeEnded: Joi.boolean().default(false)
 });
 
+const listQuerySchema = Joi.object({
+  search: Joi.string().allow(""),
+  includeEnded: Joi.boolean().default(false)
+});
+
 module.exports = {
   createLinkSchema,
+  updateLinkSchema,
   idParamsSchema,
   childParamsSchema,
   parentParamsSchema,
-  historyQuerySchema
+  historyQuerySchema,
+  listQuerySchema
 };

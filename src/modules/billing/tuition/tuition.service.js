@@ -210,6 +210,18 @@ async function getApplicableDiscount(childId, from, to) {
   return applicable.length ? applicable[0].discount : null;
 }
 
+async function hasAnnualDiscount(childId, from, to) {
+  const assignments = await prisma.childDiscount.findMany({
+    where: {
+      childId,
+      validFrom: { lte: from },
+      OR: [{ validTo: null }, { validTo: { gte: to } }],
+      discount: { isActive: true, type: "PERCENTAGE", percentage: 12 }
+    }
+  });
+  return assignments.length > 0;
+}
+
 async function getActiveChild(childId) {
   const child = await prisma.child.findUnique({
     where: {
@@ -336,6 +348,7 @@ async function calculateAnnualTuitionCost({ childId, periodStart }) {
 
   const rate = await getRateForPeriod(from, to);
   const discount = await getApplicableDiscount(childId, from, to);
+  const annualPrepayment = await hasAnnualDiscount(childId, from, to);
 
   return buildCalculation({
     childId,
@@ -344,7 +357,7 @@ async function calculateAnnualTuitionCost({ childId, periodStart }) {
     periodEnd: to,
     months: 12,
     discount,
-    annualPrepayment: true
+    annualPrepayment
   });
 }
 

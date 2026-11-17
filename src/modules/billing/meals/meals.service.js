@@ -4,10 +4,10 @@ const AppError = require("../../../utils/app-error");
 const HTTP_STATUS = require("../../../utils/http-status");
 
 const DEFAULT_RATES = Object.freeze({
-  2: 300,
-  3: 400,
-  4: 500,
-  5: 600
+  2: 100,
+  3: 200,
+  4: 300,
+  5: 400
 });
 
 const DAY_MS = 86400000;

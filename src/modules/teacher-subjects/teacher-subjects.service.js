@@ -211,7 +211,7 @@ async function remove(id, user) {
           entityType: "TeacherSubject",
           entityId: id,
           before,
-          after: deleted
+          after: null
         },
         tx
       );

@@ -71,7 +71,7 @@ describe("Discount validation", () => {
       });
     });
 
-    it.each([10, 20, 30])("should accept discount value %i", (value) => {
+    it.each([10, 12, 20, 30])("should accept discount value %i", (value) => {
       const { error } = createDiscountSchema.validate({
         name: "Discount",
         value

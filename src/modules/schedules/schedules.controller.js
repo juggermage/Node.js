@@ -111,6 +111,15 @@ async function generate(req, res) {
   });
 }
 
+async function generateAll(req, res) {
+  const result = await schedulesGenerator.generateAll(res.locals.validated.body, req.user);
+
+  return res.status(HTTP_STATUS.CREATED).json({
+    success: true,
+    data: result
+  });
+}
+
 module.exports = {
   getAll,
   getById,
@@ -122,5 +131,6 @@ module.exports = {
   updateItem,
   removeItem,
   cancelItem,
-  generate
+  generate,
+  generateAll
 };

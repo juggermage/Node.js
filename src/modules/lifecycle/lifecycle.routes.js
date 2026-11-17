@@ -1,0 +1,12 @@
+const express = require("express");
+const controller = require("./lifecycle.controller");
+const validate = require("../../middleware/validate.middleware");
+const requireAuth = require("../../middleware/auth.middleware");
+const authorizeRoles = require("../../middleware/rbac.middleware");
+const { paramsSchema } = require("./lifecycle.validation");
+const router = express.Router();
+router.use(requireAuth, authorizeRoles("ADMIN", "MANAGER"));
+router.post("/:entity/:id/archive", validate(paramsSchema, "params"), controller.archive);
+router.post("/:entity/:id/restore", validate(paramsSchema, "params"), controller.restore);
+router.delete("/:entity/:id", validate(paramsSchema, "params"), controller.hardDelete);
+module.exports = router;

@@ -89,10 +89,17 @@ function buildSearchFilter(search) {
 
   const query = search.trim();
   const parts = query.split(/\s+/);
+  const codeFilter = {
+    childCode: {
+      contains: query,
+      mode: "insensitive"
+    }
+  };
 
   if (parts.length === 2) {
     return {
       OR: [
+        codeFilter,
         {
           firstName: {
             contains: parts[0],
@@ -119,6 +126,7 @@ function buildSearchFilter(search) {
 
   return {
     OR: [
+      codeFilter,
       {
         firstName: {
           contains: query,
@@ -171,11 +179,15 @@ async function getAll(filters = {}, user) {
         },
         enrollments: {
           where: {
-            endDate: null
+            OR: [{ endDate: null }, { endDate: { isSet: false } }]
           },
           include: {
             group: true
           }
+        },
+        discounts: {
+          where: { OR: [{ validTo: null }, { validTo: { gte: new Date() } }] },
+          include: { discount: true }
         }
       }
     }),
@@ -216,6 +228,10 @@ async function getById(id, user) {
         include: {
           group: true
         }
+      },
+      discounts: {
+        where: { OR: [{ validTo: null }, { validTo: { gte: new Date() } }] },
+        include: { discount: true }
       }
     }
   });
@@ -289,6 +305,69 @@ async function update(id, data, user) {
   });
 }
 
+async function setDiscount(id, { discountId, annualDiscountId }, user) {
+  ensureManagementAccess(user);
+
+  return prisma.$transaction(async (tx) => {
+    const child = await tx.child.findFirst({ where: { id, status: { not: "ARCHIVED" } } });
+    if (!child) {
+      throw new AppError("Child not found", HTTP_STATUS.NOT_FOUND, "CHILD_NOT_FOUND");
+    }
+
+    const today = new Date();
+    const validFrom = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const previousDay = new Date(validFrom.getTime() - 86400000);
+    const currentAssignments = await tx.childDiscount.findMany({
+      where: { childId: id, OR: [{ validTo: null }, { validTo: { gte: validFrom } }] },
+      include: { discount: true }
+    });
+
+    for (const assignment of currentAssignments) {
+      if (assignment.validFrom >= validFrom) {
+        await tx.childDiscount.delete({ where: { id: assignment.id } });
+      } else {
+        await tx.childDiscount.update({ where: { id: assignment.id }, data: { validTo: previousDay } });
+      }
+    }
+
+    const assignments = [];
+    const selections = [
+      { id: discountId, allowed: [10, 20, 30], label: "regular" },
+      { id: annualDiscountId, allowed: [12], label: "annual" }
+    ];
+
+    for (const selection of selections) {
+      if (!selection.id) continue;
+      const discount = await tx.discount.findFirst({
+        where: {
+          id: selection.id,
+          isActive: true,
+          type: "PERCENTAGE",
+          percentage: { in: selection.allowed }
+        }
+      });
+      if (!discount) {
+        throw new AppError("Selected discount not found or has an invalid percentage", HTTP_STATUS.NOT_FOUND, "DISCOUNT_NOT_FOUND");
+      }
+      assignments.push(await tx.childDiscount.create({
+        data: { childId: id, discountId: discount.id, validFrom },
+        include: { discount: true }
+      }));
+    }
+
+    await auditService.createLog({
+      actorId: user.id,
+      action: "UPDATE",
+      entityType: "ChildDiscount",
+      entityId: id,
+      before: currentAssignments,
+      after: assignments
+    }, tx);
+
+    return assignments;
+  });
+}
+
 async function remove(id, user) {
   ensureManagementAccess(user);
 
@@ -327,9 +406,11 @@ async function remove(id, user) {
 }
 
 module.exports = {
+  buildSearchFilter,
   getAll,
   getById,
   create,
   update,
+  setDiscount,
   remove
 };

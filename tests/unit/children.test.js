@@ -847,9 +847,24 @@ describe("Children Service", () => {
       expect(realService.buildSearchFilter("   ")).toEqual({});
     });
 
+    test("searches by child code, first name and last name", () => {
+      expect(realService.buildSearchFilter("DEMO-CH-013").OR[0]).toEqual({
+        childCode: {
+          contains: "DEMO-CH-013",
+          mode: "insensitive"
+        }
+      });
+    });
+
     test("builds filter for one search word", () => {
       expect(realService.buildSearchFilter("John")).toEqual({
         OR: [
+          {
+            childCode: {
+              contains: "John",
+              mode: "insensitive"
+            }
+          },
           {
             firstName: {
               contains: "John",
@@ -869,6 +884,12 @@ describe("Children Service", () => {
     test("builds filter for two search words", () => {
       expect(realService.buildSearchFilter("John Smith")).toEqual({
         OR: [
+          {
+            childCode: {
+              contains: "John Smith",
+              mode: "insensitive"
+            }
+          },
           {
             firstName: {
               contains: "John",
@@ -896,15 +917,16 @@ describe("Children Service", () => {
     test("trims search before building filter", () => {
       const result = realService.buildSearchFilter("  John  ");
 
-      expect(result.OR[0].firstName.contains).toBe("John");
+      expect(result.OR[1].firstName.contains).toBe("John");
     });
 
     test("builds filter for more than two words", () => {
       const result = realService.buildSearchFilter("John Michael Smith");
 
-      expect(result.OR).toHaveLength(2);
-      expect(result.OR[0].firstName.contains).toBe("John Michael Smith");
-      expect(result.OR[1].lastName.contains).toBe("John Michael Smith");
+      expect(result.OR).toHaveLength(3);
+      expect(result.OR[0].childCode.contains).toBe("John Michael Smith");
+      expect(result.OR[1].firstName.contains).toBe("John Michael Smith");
+      expect(result.OR[2].lastName.contains).toBe("John Michael Smith");
     });
   });
 

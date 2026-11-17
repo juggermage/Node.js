@@ -39,7 +39,7 @@ function getGroupAccessFilter(user) {
     return {
       enrollments: {
         some: {
-          endDate: null,
+          OR: [{ endDate: null }, { endDate: { isSet: false } }],
           child: {
             parents: {
               some: {
@@ -99,7 +99,7 @@ function getChildAccessFilter(user) {
     return {
       enrollments: {
         some: {
-          endDate: null,
+          OR: [{ endDate: null }, { endDate: { isSet: false } }],
           group: {
             staffAssignments: {
               some: {
@@ -136,6 +136,12 @@ function ageInMonths(birthDate, now = new Date()) {
 function checkAgeRange(from, to) {
   if (from > to) {
     fail("Invalid age range", HTTP_STATUS.BAD_REQUEST, "INVALID_AGE_RANGE");
+  }
+}
+
+function checkGroupCapacity(ageToMonths, capacity) {
+  if (capacity > MAX_CAPACITY) {
+    fail("Group capacity cannot exceed 20 children", HTTP_STATUS.BAD_REQUEST, "GROUP_CAPACITY_LIMIT");
   }
 }
 
@@ -253,7 +259,9 @@ async function getAllGroups(query = {}, user) {
       _count: {
         select: {
           enrollments: {
-            where: { endDate: null }
+            where: {
+              OR: [{ endDate: null }, { endDate: { isSet: false } }]
+            }
           }
         }
       }
@@ -275,7 +283,7 @@ async function getGroupById(id, user) {
       mainRoom: true,
       enrollments: {
         where: {
-          endDate: null,
+          OR: [{ endDate: null }, { endDate: { isSet: false } }],
           child: getChildAccessFilter(user)
         },
         include: { child: true }
@@ -294,6 +302,7 @@ async function createGroup(data, user) {
   ensureManagementAccess(user);
 
   checkAgeRange(data.ageFromMonths, data.ageToMonths);
+  checkGroupCapacity(data.ageToMonths, data.capacity ?? MAX_CAPACITY);
 
   try {
     return await prisma.$transaction(async (tx) => {
@@ -347,6 +356,7 @@ async function updateGroup(id, data, user) {
       const nextStatus = data.status ?? group.status;
 
       checkAgeRange(from, to);
+      checkGroupCapacity(to, capacity);
 
       if (data.name !== undefined) {
         await checkUniqueName(tx, data.name, id);
@@ -361,7 +371,7 @@ async function updateGroup(id, data, user) {
       const enrollments = await tx.groupEnrollment.findMany({
         where: {
           groupId: id,
-          endDate: null
+          OR: [{ endDate: null }, { endDate: { isSet: false } }]
         },
         include: { child: true }
       });
@@ -449,7 +459,7 @@ async function softDeleteGroup(id, user) {
     const count = await tx.groupEnrollment.count({
       where: {
         groupId: id,
-        endDate: null
+        OR: [{ endDate: null }, { endDate: { isSet: false } }]
       }
     });
 
@@ -502,7 +512,7 @@ async function enrollChild(groupId, { childId }, user) {
     const existing = await tx.groupEnrollment.findFirst({
       where: {
         childId,
-        endDate: null
+        OR: [{ endDate: null }, { endDate: { isSet: false } }]
       }
     });
 
@@ -513,7 +523,7 @@ async function enrollChild(groupId, { childId }, user) {
     const count = await tx.groupEnrollment.count({
       where: {
         groupId,
-        endDate: null
+        OR: [{ endDate: null }, { endDate: { isSet: false } }]
       }
     });
 

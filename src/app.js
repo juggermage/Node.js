@@ -3,6 +3,7 @@ const attendanceRoutes = require("./modules/attendance/attendance.routes");
 const optimizationRoutes = require("./modules/optimization/optimization.routes");
 
 const express = require("express");
+const path = require("path");
 const cors = require("cors");
 
 // Children, Rooms
@@ -36,6 +37,7 @@ const staffAssignmentRoutes = require("./modules/staff-assignments/staff-assignm
 
 // Audit
 const auditRoutes = require("./modules/audit/audit.routes");
+const lifecycleRoutes = require("./modules/lifecycle/lifecycle.routes");
 
 // Analytics
 const analyticsRoutes = require("./modules/analytics/analytics.routes");
@@ -47,7 +49,8 @@ const errorHandler = require("./middleware/error.middleware");
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
+app.use(express.static(path.join(__dirname, "..", "public")));
 
 // Перевірка працездатності API
 app.get("/api/v1/health", (req, res) => {
@@ -100,6 +103,7 @@ app.use("/api/v1/employees", employeesRoutes);
 
 // Audit
 app.use("/api/v1/audit", auditRoutes);
+app.use("/api/v1/lifecycle", lifecycleRoutes);
 
 // Зв'язки працівників
 app.use("/api/v1/teacher-subject", teacherSubjectRoutes);

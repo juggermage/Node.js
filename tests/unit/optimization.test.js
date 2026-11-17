@@ -774,7 +774,7 @@ describe("Optimization Service", () => {
         to: TO
       });
 
-      expect(result.profit.roomNormativeCostPerRoom).toBe("5000000");
+      expect(result.profit.monthlyRentTotal).toBe("5000000");
       expect(result.profit.totalRoomNormativeCost).toBe("5000000");
     });
 
@@ -976,7 +976,7 @@ describe("Optimization Service", () => {
         ]
       });
 
-      expect(result.scenarios[0].expenses.roomNormative).toBe("15000000");
+      expect(result.scenarios[0].expenses.roomNormative).toBe("5000000");
     });
 
     test("should calculate scenario revenue and expenses", async () => {

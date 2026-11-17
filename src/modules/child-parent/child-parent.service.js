@@ -1,3 +1,4 @@
+
 const prisma = require("../../config/prisma");
 const auditService = require("../audit/audit.service");
 const AppError = require("../../utils/app-error");
@@ -14,6 +15,16 @@ function ensureManagementAccess(user) {
   if (!user || !MANAGEMENT_ROLES.includes(user.role)) {
     fail("You do not have permission to perform this action", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
   }
+}
+
+function getActiveRelationFilter(includeEnded = false) {
+  if (includeEnded) {
+    return {};
+  }
+
+  return {
+    OR: [{ endDate: null }, { endDate: { isSet: false } }]
+  };
 }
 
 function getReadAccessFilter(user) {
@@ -203,6 +214,37 @@ async function getById(id, user) {
   return ensureLinkAccess(id, user);
 }
 
+async function getAll({ search, includeEnded = false } = {}, user) {
+  const accessFilter = getReadAccessFilter(user);
+  const where = {
+    ...accessFilter,
+    ...getActiveRelationFilter(includeEnded)
+  };
+
+  if (search && search.trim()) {
+    const query = search.trim();
+    where.AND = [
+      {
+        OR: [
+          { child: { firstName: { contains: query, mode: "insensitive" } } },
+          { child: { lastName: { contains: query, mode: "insensitive" } } },
+          { child: { childCode: { contains: query, mode: "insensitive" } } },
+          { parent: { firstName: { contains: query, mode: "insensitive" } } },
+          { parent: { lastName: { contains: query, mode: "insensitive" } } },
+          { parent: { phone: { contains: query } } },
+          { parent: { email: { contains: query, mode: "insensitive" } } }
+        ]
+      }
+    ];
+  }
+
+  return prisma.childParent.findMany({
+    where,
+    include: { child: true, parent: true },
+    orderBy: [{ startDate: "desc" }, { id: "asc" }]
+  });
+}
+
 async function getForChild(childId, includeEnded = false, user) {
   const accessFilter = getReadAccessFilter(user);
 
@@ -250,7 +292,7 @@ async function getForChild(childId, includeEnded = false, user) {
   return prisma.childParent.findMany({
     where: {
       childId,
-      ...(includeEnded ? {} : { endDate: null }),
+      ...getActiveRelationFilter(includeEnded),
       ...accessFilter
     },
     include: {
@@ -318,7 +360,7 @@ async function getForParent(parentId, includeEnded = false, user) {
     return prisma.childParent.findMany({
       where: {
         id: { in: ids },
-        ...(includeEnded ? {} : { endDate: null })
+        ...getActiveRelationFilter(includeEnded)
       },
       include: {
         child: true
@@ -332,7 +374,7 @@ async function getForParent(parentId, includeEnded = false, user) {
   return prisma.childParent.findMany({
     where: {
       parentId,
-      ...(includeEnded ? {} : { endDate: null })
+      ...getActiveRelationFilter(includeEnded)
     },
     include: {
       child: true
@@ -341,6 +383,35 @@ async function getForParent(parentId, includeEnded = false, user) {
       startDate: "desc"
     }
   });
+}
+
+async function update(id, data, user) {
+  ensureManagementAccess(user);
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const before = await getLinkOrFail(id, tx);
+      if (before.endDate !== null) {
+        fail("Cannot edit an ended relationship", HTTP_STATUS.CONFLICT, "RELATIONSHIP_ALREADY_ENDED");
+      }
+      const link = await tx.childParent.update({
+        where: { id },
+        data: { relation: data.relation },
+        include: { child: true, parent: true }
+      });
+      await auditService.createLog({
+        actorId: user.id,
+        action: "UPDATE",
+        entityType: "ChildParent",
+        entityId: link.id,
+        before,
+        after: link
+      }, tx);
+      return link;
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    handlePrismaError(error);
+  }
 }
 
 async function complete(id, user) {
@@ -388,7 +459,9 @@ async function complete(id, user) {
 module.exports = {
   createOrRestore,
   getById,
+  getAll,
   getForChild,
   getForParent,
+  update,
   complete
 };

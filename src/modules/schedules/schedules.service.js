@@ -123,7 +123,7 @@ async function assertReferences(item, schedule) {
   }
 }
 
-async function loadOtherPublishedItems(schedule, items) {
+async function loadOtherScheduleItems(schedule, items) {
   const teacherIds = [...new Set(items.map((item) => item.teacherId).filter(Boolean))];
 
   const roomIds = [...new Set(items.map((item) => item.roomId).filter(Boolean))];
@@ -146,7 +146,7 @@ async function loadOtherPublishedItems(schedule, items) {
     where: {
       scheduleId: { not: schedule.id },
       status: "ACTIVE",
-      schedule: { status: "PUBLISHED" },
+      schedule: { status: { in: ["DRAFT", "PUBLISHED"] } },
       OR: conditions
     },
     include: {
@@ -201,7 +201,7 @@ async function validateItem(schedule, item, excludeItemId = null) {
     }
   });
 
-  const otherItems = await loadOtherPublishedItems(schedule, [item]);
+  const otherItems = await loadOtherScheduleItems(schedule, [item]);
 
   assertNoConflicts(item, ownItems, otherItems, excludeItemId);
 }
@@ -327,7 +327,7 @@ async function remove(id, user) {
           action: "DELETE",
           entityType: "ScheduleItem",
           entityId: item.id,
-          before: item
+          before: item, after: null
         },
         tx
       );
@@ -347,7 +347,7 @@ async function remove(id, user) {
         action: "DELETE",
         entityType: "Schedule",
         entityId: id,
-        before: schedule
+        before: schedule, after: null
       },
       tx
     );
@@ -490,7 +490,7 @@ async function removeItem(scheduleId, itemId, user) {
         action: "DELETE",
         entityType: "ScheduleItem",
         entityId: itemId,
-        before: item
+        before: item, after: null
       },
       tx
     );

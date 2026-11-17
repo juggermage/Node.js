@@ -10,6 +10,15 @@ async function create(req, res) {
   });
 }
 
+async function getAll(req, res) {
+  const data = await service.getAll(res.locals.validated.query, req.user);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data
+  });
+}
+
 async function getById(req, res) {
   const data = await service.getById(res.locals.validated.params.id, req.user);
 
@@ -45,6 +54,11 @@ async function getForParent(req, res) {
   });
 }
 
+async function update(req, res) {
+  const data = await service.update(res.locals.validated.params.id, res.locals.validated.body, req.user);
+  return res.status(HTTP_STATUS.OK).json({ success: true, data });
+}
+
 async function complete(req, res) {
   const data = await service.complete(res.locals.validated.params.id, req.user);
 
@@ -56,8 +70,10 @@ async function complete(req, res) {
 
 module.exports = {
   create,
+  getAll,
   getById,
   getForChild,
   getForParent,
+  update,
   complete
 };

@@ -467,12 +467,8 @@ async function cancel(id, user) {
         action: "CANCEL",
         entityType: "Payment",
         entityId: updatedPayment.id,
-        before: {
-          status: existingPayment.status
-        },
-        after: {
-          status: updatedPayment.status
-        }
+        before: existingPayment,
+        after: updatedPayment
       },
       tx
     );

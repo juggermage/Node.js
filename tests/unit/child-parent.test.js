@@ -26,6 +26,7 @@ jest.mock("../../src/modules/child-parent/child-parent.service", () => ({
   getById: jest.fn(),
   getForChild: jest.fn(),
   getForParent: jest.fn(),
+  update: jest.fn(),
   complete: jest.fn()
 }));
 
@@ -225,6 +226,10 @@ describe("Child-Parent Routes", () => {
         expect.objectContaining({
           path: "/:id",
           methods: expect.objectContaining({ get: true })
+        }),
+        expect.objectContaining({
+          path: "/:id",
+          methods: expect.objectContaining({ patch: true })
         }),
         expect.objectContaining({
           path: "/:id/complete",

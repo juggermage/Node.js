@@ -1,3 +1,4 @@
+
 const prisma = require("../../config/prisma");
 const auditService = require("../audit/audit.service");
 const AppError = require("../../utils/app-error");
@@ -7,6 +8,12 @@ const MANAGEMENT_ROLES = ["ADMIN", "MANAGER"];
 
 function fail(message, status, code) {
   throw new AppError(message, status, code);
+}
+
+function getActiveRelationFilter() {
+  return {
+    OR: [{ endDate: null }, { endDate: { isSet: false } }]
+  };
 }
 
 function ensureManagementAccess(user) {
@@ -127,7 +134,7 @@ async function getAll(query = {}, user) {
     const children = await prisma.childParent.findMany({
       where: {
         parentId: parent.id,
-        endDate: null
+        ...getActiveRelationFilter()
       },
       include: {
         child: true
@@ -318,7 +325,7 @@ async function getChildren(id, user) {
   return prisma.childParent.findMany({
     where: {
       parentId: parent.id,
-      endDate: null,
+      ...getActiveRelationFilter(),
       child: {
         status: { not: "ARCHIVED" }
       }
