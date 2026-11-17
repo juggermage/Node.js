@@ -8,10 +8,12 @@ const controller = require("./child-parent.controller");
 
 const {
   createLinkSchema,
+  updateLinkSchema,
   idParamsSchema,
   childParamsSchema,
   parentParamsSchema,
-  historyQuerySchema
+  historyQuerySchema,
+  listQuerySchema
 } = require("./child-parent.validation");
 
 const router = Router();
@@ -21,6 +23,8 @@ router.use(requireAuth);
 const readAccess = authorizeRoles("ADMIN", "MANAGER", "PARENT", "TEACHER", "EDUCATOR", "ASSISTANT");
 
 const managementAccess = authorizeRoles("ADMIN", "MANAGER");
+
+router.get("/", readAccess, validate(listQuerySchema, "query"), controller.getAll);
 
 router.post("/", managementAccess, validate(createLinkSchema, "body"), controller.create);
 
@@ -41,6 +45,14 @@ router.get(
 );
 
 router.get("/:id", readAccess, validate(idParamsSchema, "params"), controller.getById);
+
+router.patch(
+  "/:id",
+  managementAccess,
+  validate(idParamsSchema, "params"),
+  validate(updateLinkSchema, "body"),
+  controller.update
+);
 
 router.patch(
   "/:id/complete",

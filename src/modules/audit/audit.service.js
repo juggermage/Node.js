@@ -54,6 +54,29 @@ async function createLog(
     );
   }
 
+  const requiresBothSnapshots = ["UPDATE", "ARCHIVE", "RESTORE", "CANCEL"].includes(action);
+  if (action === "CREATE" && after === null) {
+    throw new AppError(
+      "Created state is required for audit records",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "AUDIT_AFTER_REQUIRED"
+    );
+  }
+  if (action === "DELETE" && (before === null || after !== null)) {
+    throw new AppError(
+      "Deleted records must include the previous state and a null new state",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "AUDIT_DELETE_SNAPSHOT_INVALID"
+    );
+  }
+  if (requiresBothSnapshots && (before === null || after === null)) {
+    throw new AppError(
+      "Previous and new states are required for this audit action",
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      "AUDIT_SNAPSHOTS_REQUIRED"
+    );
+  }
+
   if (
     typeof entityType !== "string" ||
     !entityType.trim() ||

@@ -8,6 +8,7 @@ const authorizeRoles = require("../../middleware/rbac.middleware");
 const {
   createChildSchema,
   updateChildSchema,
+  setChildDiscountSchema,
   childIdSchema,
   searchChildSchema
 } = require("./children.validation");
@@ -43,6 +44,14 @@ router.patch(
   validate(childIdSchema, "params"),
   validate(updateChildSchema),
   childrenController.update
+);
+
+router.put(
+  "/:id/discount",
+  authorizeRoles("ADMIN", "MANAGER"),
+  validate(childIdSchema, "params"),
+  validate(setChildDiscountSchema, "body"),
+  childrenController.setDiscount
 );
 
 router.delete(

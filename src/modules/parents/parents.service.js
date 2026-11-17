@@ -9,6 +9,12 @@ function fail(message, status, code) {
   throw new AppError(message, status, code);
 }
 
+function getActiveRelationFilter() {
+  return {
+    OR: [{ endDate: null }, { endDate: { isSet: false } }]
+  };
+}
+
 function ensureManagementAccess(user) {
   if (!user || !MANAGEMENT_ROLES.includes(user.role)) {
     fail("You do not have permission to perform this action", HTTP_STATUS.FORBIDDEN, "FORBIDDEN");
@@ -127,7 +133,7 @@ async function getAll(query = {}, user) {
     const children = await prisma.childParent.findMany({
       where: {
         parentId: parent.id,
-        endDate: null
+        ...getActiveRelationFilter()
       },
       include: {
         child: true
@@ -318,7 +324,7 @@ async function getChildren(id, user) {
   return prisma.childParent.findMany({
     where: {
       parentId: parent.id,
-      endDate: null,
+      ...getActiveRelationFilter(),
       child: {
         status: { not: "ARCHIVED" }
       }

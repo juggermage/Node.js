@@ -14,7 +14,13 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "db:seed:facility": "node scripts/seed-facility.js",
+    "db:repair:demo-enrollments": "node scripts/repair-demo-enrollments.js",
+    "db:repair:demo-enrollments:check": "node --check scripts/repair-demo-enrollments.js",
+    "db:seed:discounts": "node scripts/seed-default-discounts.js",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --runInBand --coverage"
   },
   "repository": {
     "type": "git",
@@ -41,6 +47,7 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.13.0",
     "globals": "^17.13.0",
+    "jest": "^30.5.2",
     "prettier": "^3.9.10",
     "prisma": "^6.19.3"
   },

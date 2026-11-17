@@ -128,6 +128,11 @@ const generateScheduleSchema = Joi.object({
   validTo: dateSchema.allow(null)
 }).custom(ensurePeriodOrder);
 
+const generateAllSchedulesSchema = Joi.object({
+  validFrom: dateSchema.required(),
+  validTo: dateSchema.allow(null).default(null)
+}).custom(ensurePeriodOrder);
+
 module.exports = {
   scheduleIdSchema,
   itemParamsSchema,
@@ -137,5 +142,6 @@ module.exports = {
   createItemSchema,
   updateItemSchema,
   cancelItemSchema,
-  generateScheduleSchema
+  generateScheduleSchema,
+  generateAllSchedulesSchema
 };

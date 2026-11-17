@@ -42,6 +42,17 @@ async function update(req, res) {
   });
 }
 
+async function setDiscount(req, res) {
+  const { id } = res.locals.validated.params;
+  const { discountId, annualDiscountId } = res.locals.validated.body;
+  const assignment = await childrenService.setDiscount(
+    id,
+    { discountId, annualDiscountId },
+    req.user
+  );
+  return res.status(HTTP_STATUS.OK).json({ success: true, data: assignment });
+}
+
 async function remove(req, res) {
   const { id } = res.locals.validated.params;
 
@@ -55,5 +66,6 @@ module.exports = {
   getById,
   create,
   update,
+  setDiscount,
   remove
 };

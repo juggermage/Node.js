@@ -49,6 +49,11 @@ const updateChildSchema = Joi.object({
   status: Joi.string().valid("ACTIVE", "INACTIVE")
 }).min(1);
 
+const setChildDiscountSchema = Joi.object({
+  discountId: Joi.string().hex().length(24).allow(null).required(),
+  annualDiscountId: Joi.string().hex().length(24).allow(null).required()
+});
+
 const childIdSchema = Joi.object({
   id: Joi.string()
     .pattern(/^[0-9a-fA-F]{24}$/)
@@ -65,6 +70,7 @@ const searchChildSchema = Joi.object({
 module.exports = {
   createChildSchema,
   updateChildSchema,
+  setChildDiscountSchema,
   childIdSchema,
   searchChildSchema
 };

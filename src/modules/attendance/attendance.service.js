@@ -521,7 +521,8 @@ async function remove(id, user) {
         action: "DELETE",
         entityType: "Attendance",
         entityId: id,
-        before
+        before,
+        after: null
       },
       tx
     );

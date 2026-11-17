@@ -22,7 +22,7 @@ function handlePrismaError(error) {
 async function create({ name, value }, actorId) {
   const normalizedName = name.trim();
 
-  if (![10, 20, 30].includes(value)) {
+  if (![10, 12, 20, 30].includes(value)) {
     fail(
       "Discount value must be 10, 20, or 30",
       HTTP_STATUS.UNPROCESSABLE_ENTITY,
@@ -72,7 +72,43 @@ async function create({ name, value }, actorId) {
   }
 }
 
+async function ensureDefaultDiscounts() {
+  const defaults = [
+    { name: "Знижка 10%", percentage: 10 },
+    { name: "Знижка 20%", percentage: 20 },
+    { name: "Знижка 30%", percentage: 30 },
+    { name: "Річна передоплата 12%", percentage: 12 }
+  ];
+
+  for (const item of defaults) {
+    const existing = await prisma.discount.findFirst({
+      where: { percentage: item.percentage }
+    });
+
+    if (existing) {
+      if (!existing.isActive || existing.type !== "PERCENTAGE") {
+        await prisma.discount.update({
+          where: { id: existing.id },
+          data: { isActive: true, type: "PERCENTAGE", fixedAmount: null }
+        });
+      }
+      continue;
+    }
+
+    await prisma.discount.create({
+      data: {
+        name: item.name,
+        type: "PERCENTAGE",
+        percentage: item.percentage,
+        isActive: true
+      }
+    });
+  }
+}
+
 async function getAll(includeInactive = false) {
+  await ensureDefaultDiscounts();
+
   return prisma.discount.findMany({
     where: includeInactive ? {} : { isActive: true },
     orderBy: {

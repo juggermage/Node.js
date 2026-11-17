@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kindergarten Manager</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">K</span>
+          <div><strong>Kindergarten</strong><small>Management panel</small></div>
+        </div>
+        <nav id="navigation"></nav>
+        <div class="sidebar-bottom">
+          <span class="status-dot"></span> API panel <span id="api-status">перевірка...</span>
+        </div>
+      </aside>
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">ПАНЕЛЬ КЕРУВАННЯ</p>
+            <h1 id="page-title">Огляд</h1>
+          </div>
+          <div class="top-actions">
+            <span id="user-label">Не авторизовано</span
+            ><button class="button button-ghost" id="logout">Вийти</button>
+          </div>
+        </header>
+        <section id="login-panel" class="login-card hidden">
+          <div class="login-copy">
+            <p class="eyebrow">ДОСТУП ДО СИСТЕМИ</p>
+            <h2>Увійдіть до панелі</h2>
+            <p>Використайте обліковий запис адміністратора або менеджера.</p>
+          </div>
+          <form id="login-form">
+            <label
+              >Email<input
+                name="email"
+                type="email"
+                required
+                placeholder="admin@example.com" /></label
+            ><label
+              >Пароль<input
+                name="password"
+                type="password"
+                required
+                placeholder="••••••••" /></label
+            ><button class="button button-primary" type="submit">Увійти</button>
+            <p id="login-error" class="error-text"></p>
+          </form>
+        </section>
+        <section id="dashboard" class="hidden">
+          <div class="welcome-row">
+            <div>
+              <h2>Вітаємо в системі управління</h2>
+              <p>Керуйте сутностями садочка та моделюйте фінансові сценарії.</p>
+            </div>
+            <div class="date-chip" id="today"></div>
+          </div>
+          <div class="stats-grid" id="overview-stats"></div>
+          <div class="panel-grid">
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">ШВИДКИЙ ДОСТУП</p>
+                  <h3>Основні розділи</h3>
+                </div>
+              </div>
+              <div class="quick-grid" id="quick-links"></div>
+            </article>
+            <article class="panel">
+              <p class="eyebrow">МОДЕЛЬ ЗАКЛАДУ</p>
+              <h3>Поточні обмеження</h3>
+              <div class="rule-list">
+                <div><span>Групові кімнати</span><strong>12</strong></div>
+                <div><span>Спеціалізовані кімнати</span><strong>8</strong></div>
+                <div><span>Максимум дітей у групі</span><strong>20*</strong></div>
+                <div><span>Оренда за всі приміщення</span><strong>50 000 ₴ / міс.</strong></div>
+              </div>
+              <p class="muted">* Для всіх вікових категорій A2–A5 діє ліміт 20 дітей у групі.</p>
+            </article>
+          </div>
+        </section>
+        <section id="entity-view" class="hidden">
+          <div class="toolbar">
+            <div>
+              <p id="entity-description" class="muted"></p>
+              <label class="filter-label"
+                >Пошук<input
+                  id="entity-search"
+                  placeholder="Ім’я, назва або ключове слово" /></label
+              ><label class="filter-label"
+                >Статус<select id="entity-status">
+                  <option value="">Усі статуси</option>
+                  <option value="ACTIVE">Активні</option>
+                  <option value="INACTIVE">Неактивні</option>
+                  <option value="ARCHIVED">Архівні</option>
+                </select></label
+              >
+            </div>
+            <div class="toolbar-actions">
+              <button class="button button-secondary" id="apply-filter">Застосувати фільтр</button
+              ><button class="button button-secondary" id="refresh-entity">Оновити</button
+              ><button class="button button-secondary hidden" id="generate-schedule">
+                Згенерувати повний розклад</button
+              ><button class="button button-primary" id="create-entity">+ Створити запис</button>
+            </div>
+          </div>
+          <div class="panel hidden" id="analytics-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">ЗВІТИ ЗА ПЕРІОД</p>
+                <h3>Аналітика закладу</h3>
+              </div>
+            </div>
+            <div class="audit-filters-grid">
+              <label>Дата від<input type="date" id="analytics-from" /></label
+              ><label>Дата до<input type="date" id="analytics-to" /></label>
+              <div class="editor-actions">
+                <button class="button button-primary" id="analytics-load">Сформувати звіт</button>
+              </div>
+            </div>
+            <div id="analytics-results">
+              <p class="muted">Оберіть період для формування звіту.</p>
+            </div>
+          </div>
+          <div class="panel hidden" id="schedule-generation-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">АВТОМАТИЧНА ГЕНЕРАЦІЯ</p>
+                <h3>Повний розклад для всіх активних груп</h3>
+              </div>
+            </div>
+            <div class="audit-filters-grid">
+              <label>Дата початку<input type="date" id="schedule-valid-from" required /></label
+              ><label>Дата завершення<input type="date" id="schedule-valid-to" /></label>
+            </div>
+            <p class="muted">
+              Генератор створить буденний розклад для кожної активної групи з дітьми. Якщо група
+              порожня, вона буде пропущена. Якщо є конфлікт викладача або кімнати, генерація
+              скасується без збереження часткового результату.
+            </p>
+            <div id="schedule-generation-result" class="message"></div>
+            <div class="divider"></div>
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">ОКРЕМА ГРУПА</p>
+                <h3>Генерація розкладу для однієї групи</h3>
+              </div>
+            </div>
+            <div class="audit-filters-grid">
+              <label
+                >Активна група<select id="single-schedule-group" required>
+                  <option value="">Завантаження груп...</option>
+                </select></label
+              ><label
+                >Назва розкладу<input
+                  id="single-schedule-name"
+                  maxlength="100"
+                  placeholder="Автоматична назва групи"
+              /></label>
+            </div>
+            <div class="editor-actions">
+              <button class="button button-primary" id="generate-single-schedule" type="button">
+                Згенерувати розклад групи
+              </button>
+            </div>
+            <div id="single-schedule-result" class="message"></div>
+          </div>
+          <div class="panel hidden" id="audit-filters">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">ІСТОРІЯ ЗМІН</p>
+                <h3>Фільтри аудиту</h3>
+              </div>
+            </div>
+            <div class="audit-filters-grid">
+              <label
+                >Сутність<select id="audit-entity">
+                  <option value="">Усі сутності</option>
+                  <option value="Child">Діти</option>
+                  <option value="ChildDiscount">Знижки дітей</option>
+                  <option value="Parent">Батьки</option>
+                  <option value="ChildParent">Зв’язки дітей і батьків</option>
+                  <option value="Group">Групи</option>
+                  <option value="GroupEnrollment">Зарахування до груп</option>
+                  <option value="Room">Кімнати</option>
+                  <option value="Employee">Працівники</option>
+                  <option value="StaffAssignment">Призначення персоналу</option>
+                  <option value="Subject">Предмети</option>
+                  <option value="TeacherSubject">Предмети викладачів</option>
+                  <option value="Schedule">Розклади</option>
+                  <option value="ScheduleItem">Елементи розкладу</option>
+                  <option value="Attendance">Відвідуваність</option>
+                  <option value="Invoice">Рахунки</option>
+                  <option value="InvoiceAdjustment">Коригування рахунків</option>
+                  <option value="Payment">Платежі</option>
+                  <option value="CreditBalanceTransaction">Операції балансу</option>
+                  <option value="TuitionRate">Тарифи навчання</option>
+                  <option value="MealRate">Тарифи харчування</option>
+                  <option value="Discount">Типи знижок</option>
+                  <option value="SalaryRate">Тарифні ставки</option>
+                  <option value="SalaryCalculation">Розрахунки зарплат</option>
+                  <option value="Expense">Витрати</option>
+                  <option value="User">Користувачі</option>
+                </select></label
+              ><label
+                >Дія<select id="audit-action">
+                  <option value="">Усі дії</option>
+                  <option>CREATE</option>
+                  <option>UPDATE</option>
+                  <option>DELETE</option>
+                  <option>ARCHIVE</option>
+                  <option>RESTORE</option>
+                  <option>PAYMENT</option>
+                  <option>CANCEL</option>
+                </select></label
+              ><label
+                >Кількість записів<select id="audit-limit">
+                  <option>20</option>
+                  <option>50</option>
+                  <option>100</option>
+                </select></label
+              >
+            </div>
+            <div class="editor-actions">
+              <button class="button button-primary" id="audit-apply">Застосувати</button>
+            </div>
+          </div>
+          <div class="panel hidden" id="group-details"></div>
+          <div class="panel table-panel">
+            <div class="table-wrap">
+              <table>
+                <thead id="table-head"></thead>
+                <tbody id="table-body"></tbody>
+              </table>
+            </div>
+            <div class="empty-state hidden" id="empty-state">
+              Записів поки немає або немає доступу до цього розділу.
+            </div>
+            <div class="pagination-bar" id="pagination-controls">
+              <span id="pagination-info">Показано 0–0 із 0 записів</span>
+              <div class="pagination-actions">
+                <label for="page-size">На сторінці</label>
+                <select id="page-size">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <button class="button button-secondary" id="page-prev" type="button">Назад</button>
+                <span id="page-indicator">Сторінка 1 із 1</span>
+                <button class="button button-secondary" id="page-next" type="button">Далі</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel editor hidden" id="editor">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">ДАНІ СУТНОСТІ</p>
+                <h3 id="editor-title">Новий запис</h3>
+              </div>
+              <button class="icon-button" id="close-editor">✕</button>
+            </div>
+            <div id="entity-form" class="form-grid"></div>
+            <p class="muted" id="form-hint">
+              Заповніть поля форми. Службові ідентифікатори та часові мітки створюються системою
+              автоматично.
+            </p>
+            <div class="editor-actions">
+              <button class="button button-primary" id="save-entity">Зберегти</button
+              ><button class="button button-ghost" id="cancel-editor">Скасувати</button>
+            </div>
+            <p id="editor-message" class="message"></p>
+          </div>
+          <div class="panel editor" id="api-console">
+            <div class="developer-only">
+              <p class="eyebrow">ДЛЯ РОЗРОБНИКА</p>
+              <p class="muted">
+                Технічна API-консоль. Для звичайної роботи використовуйте форми адміністратора.
+              </p>
+            </div>
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">РОЗШИРЕНІ ОПЕРАЦІЇ API</p>
+                <h3>Виконати запит як у Bruno</h3>
+              </div>
+            </div>
+            <p class="muted">
+              Тут доступні спеціальні дії сутності: фільтри, історія, завершення, скасування,
+              публікація, розрахунки та інші маршрути API.
+            </p>
+            <div class="api-console-grid">
+              <label
+                >HTTP-метод<select id="api-method">
+                  <option>GET</option>
+                  <option>POST</option>
+                  <option>PATCH</option>
+                  <option>DELETE</option>
+                </select></label
+              ><label
+                >Шлях API<input id="api-path" placeholder="/children або /children/:id"
+              /></label>
+            </div>
+            <label
+              >Параметри запиту (JSON)<textarea
+                id="api-query"
+                rows="3"
+                placeholder='{"search":"Марія","status":"ACTIVE"}'
+              ></textarea></label
+            ><label
+              >Тіло запиту (JSON)<textarea
+                id="api-body"
+                rows="5"
+                placeholder='{"firstName":"Марія","lastName":"Демо","birthDate":"2022-03-15"}'
+              ></textarea>
+            </label>
+            <div class="editor-actions">
+              <button class="button button-primary" id="execute-api">Виконати запит</button>
+            </div>
+            <pre id="api-response" class="api-response"></pre>
+          </div>
+        </section>
+        <section id="optimizer-view" class="hidden">
+          <div class="optimizer-intro">
+            <div>
+              <p class="eyebrow">ФІНАНСОВЕ МОДЕЛЮВАННЯ</p>
+              <h2>Оптимізатор прибутковості</h2>
+              <p>
+                Задайте кількість дітей і дні відвідування вручну або завантажте фактичні дані з
+                бази. Оптимізатор самостійно підбере розподіл по групах.
+              </p>
+            </div>
+            <div class="capacity-badge">240 місць <small>12 групових кімнат</small></div>
+          </div>
+          <div class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">ВХІДНІ ДАНІ</p>
+                <h3>Кількість дітей і відвідуваність</h3>
+              </div>
+            </div>
+            <div class="age-grid" id="age-inputs"></div>
+            <div class="optimizer-options">
+              <label
+                >Занять на тиждень на одну групу (хвилин)<input
+                  id="lesson-minutes"
+                  type="number"
+                  min="0"
+                  max="2400"
+                  placeholder="Наприклад, 600" /></label
+              ><label
+                >Інші витрати за місяць (грн)<input
+                  id="other-expenses"
+                  type="number"
+                  min="0"
+                  value="0" /></label
+              ><span class="muted"
+                >Для оцінки кількості викладачів. 40 годин на тиждень — розрахункова місткість
+                одного викладача.</span
+              >
+            </div>
+            <div class="editor-actions">
+              <button class="button button-primary" id="run-optimizer">
+                Оптимізувати введені дані</button
+              ><button class="button button-secondary" id="run-database">
+                Завантажити фактичні дані з бази
+              </button>
+            </div>
+            <div class="database-period">
+              <label>Період від<input id="database-from" type="date" /></label
+              ><label>Період до<input id="database-to" type="date" /></label>
+            </div>
+          </div>
+          <div class="panel hidden" id="optimizer-result">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">РЕЗУЛЬТАТ</p>
+                <h3 id="result-title">Розрахунок</h3>
+              </div>
+              <span class="result-profit" id="result-profit"></span>
+            </div>
+            <div class="stats-grid" id="result-stats"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Група</th>
+                    <th>Вік</th>
+                    <th>Дітей</th>
+                    <th>Вихователь / міс.</th>
+                    <th>Помічник / міс.</th>
+                  </tr>
+                </thead>
+                <tbody id="result-groups"></tbody>
+              </table>
+            </div>
+            <div class="finance-grid" id="result-finance"></div>
+            <div id="result-warnings" class="warning-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">ПОРІВНЯННЯ</p>
+                <h3>Порівняти кілька сценаріїв</h3>
+              </div>
+            </div>
+            <p class="muted">
+              Порівнюйте результати різних ручних наборів даних або розрахунків із бази. Кожен
+              сценарій додається після виконання розрахунку.
+            </p>
+            <div class="scenario-compare-form">
+              <label>Назва сценарію<input id="scenario-name" value="Мій сценарій" /></label
+              ><button class="button button-primary" id="compare-optimizer" type="button">
+                Додати поточний сценарій до порівняння
+              </button>
+            </div>
+            <div id="compare-results"></div>
+          </div>
+        </section>
+        <div id="toast" class="toast hidden"></div>
+      </main>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>

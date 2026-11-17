@@ -2,10 +2,10 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 const DEFAULT_RATES = [
-  { ageYears: 2, amount: 300n },
-  { ageYears: 3, amount: 400n },
-  { ageYears: 4, amount: 500n },
-  { ageYears: 5, amount: 600n }
+  { ageYears: 2, amount: 100n },
+  { ageYears: 3, amount: 200n },
+  { ageYears: 4, amount: 100n },
+  { ageYears: 5, amount: 200n }
 ];
 
 async function main() {

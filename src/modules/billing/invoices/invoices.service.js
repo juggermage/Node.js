@@ -478,12 +478,8 @@ async function cancel(id, actorId) {
         action: "CANCEL",
         entityType: "Invoice",
         entityId: id,
-        before: {
-          status: invoice.status
-        },
-        after: {
-          status: updatedInvoice.status
-        }
+        before: invoice,
+        after: updatedInvoice
       },
       tx
     );
